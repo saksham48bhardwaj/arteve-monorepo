@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "lib": ["DOM", "DOM.Iterable", "ES2021"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@arteve/shared/*": ["packages/shared/*"],
+      "@arteve/supabase/*": ["packages/supabase/src/*"],
+      "@arteve/ui/*": ["packages/ui/*"]
+    }
+  },
+  "include": ["packages", "apps"]
+}

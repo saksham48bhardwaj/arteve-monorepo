@@ -1,0 +1,10 @@
+{
+  "name": "@arteve/supabase",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/client.ts",
+    "./client": "./src/client.ts",
+    "./admin": "./src/admin.ts"
+  }
+}

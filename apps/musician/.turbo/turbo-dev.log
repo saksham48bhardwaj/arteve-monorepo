@@ -1,0 +1,175 @@
+
+
+> musician@0.1.0 dev
+> next dev -p 3000
+
+   [1m[38;2;173;127;168m▲ Next.js 15.5.4[39m[22m
+   - Local:        http://localhost:3000
+   - Network:      http://10.0.0.103:3000
+   - Environments: .env.local
+
+ [32m[1m✓[22m[39m Starting...
+ [32m[1m✓[22m[39m Ready in 1315ms
+ [37m[1m○[22m[39m Compiling /middleware ...
+ [32m[1m✓[22m[39m Compiled /middleware in 534ms (256 modules)
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [37m[1m○[22m[39m Compiling /gigs/[id] ...
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Serializing big strings (118kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)[39m[22m
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ GET /gigs/a2a3afca-8dff-4f38-85e6-b90462396e8f [31m500[39m in 5505ms
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ GET /gigs/a2a3afca-8dff-4f38-85e6-b90462396e8f [31m500[39m in 197ms
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@a[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@a'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ GET /gigs/a2a3afca-8dff-4f38-85e6-b90462396e8f [31m500[39m in 17ms
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arte[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arte'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arte[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arte'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ GET /gigs/a2a3afca-8dff-4f38-85e6-b90462396e8f [31m500[39m in 65ms
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/s[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/s'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/s[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/s'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ GET /gigs/a2a3afca-8dff-4f38-85e6-b90462396e8f [31m500[39m in 63ms
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m {
+ [90m 8 |[39m   title[33m:[39m [32m"Arteve — Musician"[39m[33m,[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ GET /gigs/a2a3afca-8dff-4f38-85e6-b90462396e8f [31m500[39m in 17ms
+[?25h

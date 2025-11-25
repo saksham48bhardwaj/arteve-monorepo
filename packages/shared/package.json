@@ -1,0 +1,18 @@
+{
+  "name": "@arteve/shared",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "types": "index.ts",
+  "type": "module",
+  "exports": {
+    "./notifications": "./notifications/index.ts",
+    "./notifications/realtime": "./notifications/realtime.ts",
+    "./notifications/auto-read": "./notifications/auto-read.ts",
+    "./presence/provider": "./presence/provider.tsx",
+    "./types/gig": "./types/gig.ts",
+    "./types/application": "./types/application.ts",
+    "./types/booking": "./types/booking.ts",
+    "./types/user": "./types/user.ts",
+    "./utils/date": "./utils/date.ts"
+  } 
+}

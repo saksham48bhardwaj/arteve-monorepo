@@ -1,0 +1,107 @@
+
+
+> organizer@0.1.0 dev
+> next dev -p 3001
+
+   [1m[38;2;173;127;168m▲ Next.js 15.5.4[39m[22m
+   - Local:        http://localhost:3001
+   - Network:      http://10.0.0.103:3001
+   - Environments: .env.local
+
+ [32m[1m✓[22m[39m Starting...
+ [32m[1m✓[22m[39m Ready in 1312ms
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ [37m[1m○[22m[39m Compiling /middleware ...
+ [32m[1m✓[22m[39m Compiled /middleware in 689ms (256 modules)
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [37m[1m○[22m[39m Compiling /notifications ...
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Serializing big strings (118kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)[39m[22m
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m { title[33m:[39m [32m"Arteve — Organizer"[39m }[33m;[39m
+ [90m 8 |[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m { title[33m:[39m [32m"Arteve — Organizer"[39m }[33m;[39m
+ [90m 8 |[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m { title[33m:[39m [32m"Arteve — Organizer"[39m }[33m;[39m
+ [90m 8 |[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m { title[33m:[39m [32m"Arteve — Organizer"[39m }[33m;[39m
+ [90m 8 |[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ GET /notifications [31m500[39m in 138ms
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/sakshambhardwaj/Documents/Arteve/APP/arteve-monorepo/apps/organizer/.next/cache/webpack/client-development-fallback/0.pack.gz_' -> '/Users/sakshambhardwaj/Documents/Arteve/APP/arteve-monorepo/apps/organizer/.next/cache/webpack/client-development-fallback/0.pack.gz'[39m[22m
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/sakshambhardwaj/Documents/Arteve/APP/arteve-monorepo/apps/organizer/.next/cache/webpack/client-development-fallback/0.pack.gz_' -> '/Users/sakshambhardwaj/Documents/Arteve/APP/arteve-monorepo/apps/organizer/.next/cache/webpack/client-development-fallback/0.pack.gz'[39m[22m
+ [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+Please utilize the `createMiddlewareClient` function instead of the deprecated `createMiddlewareSupabaseClient` function. Learn more: https://supabase.com/docs/guides/auth/auth-helpers/nextjs#middleware
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m { title[33m:[39m [32m"Arteve — Organizer"[39m }[33m;[39m
+ [90m 8 |[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ [31m[1m⨯[22m[39m ./src/app/layout.tsx:5:1
+[31m[1mModule not found[22m[39m: Can't resolve '[32m@arteve/shared/presence/provider[39m'
+[0m [90m 3 |[39m [36mimport[39m [33mTopNav[39m [36mfrom[39m [32m"@/components/TopNav"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mBottomNav[39m [36mfrom[39m [32m"@/components/BottomNav"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m [33mPresenceProvider[39m [36mfrom[39m [32m'@arteve/shared/presence/provider'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mexport[39m [36mconst[39m metadata[33m:[39m [33mMetadata[39m [33m=[39m { title[33m:[39m [32m"Arteve — Organizer"[39m }[33m;[39m
+ [90m 8 |[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ GET /notifications [31m500[39m in 268ms
+<w> [1m[33m[webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/sakshambhardwaj/Documents/Arteve/APP/arteve-monorepo/apps/organizer/.next/cache/webpack/client-development-fallback/0.pack.gz_' -> '/Users/sakshambhardwaj/Documents/Arteve/APP/arteve-monorepo/apps/organizer/.next/cache/webpack/client-development-fallback/0.pack.gz'[39m[22m
+[?25h

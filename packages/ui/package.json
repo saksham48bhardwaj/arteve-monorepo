@@ -1,0 +1,8 @@
+{
+  "name": "@arteve/ui",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./profile/PublicProfile": "./profile/PublicProfile.tsx"
+  }
+}

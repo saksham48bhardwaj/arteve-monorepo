@@ -1,16 +1,23 @@
 {
   "name": "arteve-monorepo",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
-    "turbo": "^2.5.8",
-    "typescript": "^5.9.3"
+    "rimraf": "^6.0.1",
+    "turbo": "^2.0.6",
+    "typescript": "^5.6.2"
+  },
+  "packageManager": "npm@10.2.3",
+  "dependencies": {
+    "@supabase/ssr": "^0.7.0"
   }
 }
