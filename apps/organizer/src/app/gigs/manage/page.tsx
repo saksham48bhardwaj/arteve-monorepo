@@ -39,7 +39,7 @@ export default function ManageGigsPage() {
     <main className="mx-auto max-w-3xl p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">My Gigs</h1>
-        <a className="px-3 py-2 border rounded" href="/gigs/create">Create gig</a>
+        <Link className="px-3 py-2 border rounded" href="/gigs/create">Create gig</Link>
       </div>
 
       <div className="space-y-3">

@@ -25,8 +25,8 @@ export default function LoginPage() {
         if (error) throw error;
       }
       router.push('/profile');
-    } catch (err: any) {
-      setMsg(err.message ?? 'Something went wrong');
+    } catch (err: unknown) {
+      setMsg(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
