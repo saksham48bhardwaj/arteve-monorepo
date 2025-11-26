@@ -32,13 +32,26 @@ function resolveNotificationLink(n: Notification) {
   }
 }
 
+// Optional: mapping icons to notification types
+const icons: Record<string, string> = {
+  gig_application: '🎤',
+  application_status: '📢',
+  gig_closed: '🚫',
+  booking_created: '📘',
+  new_message: '💬',
+};
+
 export default function OrganizerNotificationsPage() {
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       setLoading(false);
       return;
@@ -61,63 +74,128 @@ export default function OrganizerNotificationsPage() {
   const markAllAsRead = async () => {
     setMarking(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       setMarking(false);
       return;
     }
 
+    const now = new Date().toISOString();
+
     await supabase
       .from('notifications')
-      .update({ read_at: new Date().toISOString() })
+      .update({ read_at: now })
       .is('read_at', null)
       .eq('user_id', user.id);
 
-    setItems(prev =>
-      prev.map(n => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))
+    setItems((prev) =>
+      prev.map((n) => ({ ...n, read_at: n.read_at ?? now }))
     );
 
     setMarking(false);
   };
 
+  const filteredItems = showUnreadOnly
+    ? items.filter((n) => !n.read_at)
+    : items;
+
   if (loading) {
-    return <main className="p-6">Loading notifications…</main>;
+    return (
+      <main className="min-h-screen flex items-center justify-center text-slate-500">
+        Loading notifications…
+      </main>
+    );
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-semibold">Notifications</h1>
+    <main className="min-h-screen bg-slate-50 pb-16">
+      {/* HEADER */}
+      <div className="border-b border-slate-200 bg-white/70 backdrop-blur">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
+                Notifications
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Your recent activity, updates, and requests.
+              </p>
+            </div>
 
-        {items.some(n => !n.read_at) && (
-          <button
-            onClick={markAllAsRead}
-            disabled={marking}
-            className="text-sm text-blue-600 hover:underline disabled:opacity-60"
-          >
-            {marking ? 'Marking…' : 'Mark all as read'}
-          </button>
-        )}
+            {items.some((n) => !n.read_at) && (
+              <button
+                onClick={markAllAsRead}
+                disabled={marking}
+                className="rounded-full border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+              >
+                {marking ? 'Marking…' : 'Mark all as read'}
+              </button>
+            )}
+          </div>
+
+          {/* UNREAD TOGGLE */}
+          <div className="flex gap-3 mt-5">
+            <button
+              onClick={() => setShowUnreadOnly(false)}
+              className={`px-4 py-1.5 rounded-full text-sm border transition ${
+                !showUnreadOnly
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              All
+            </button>
+
+            <button
+              onClick={() => setShowUnreadOnly(true)}
+              className={`px-4 py-1.5 rounded-full text-sm border transition ${
+                showUnreadOnly
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+              }`}
+            >
+              Unread
+            </button>
+          </div>
+        </div>
       </div>
 
-      {items.length === 0 && (
-        <p className="text-sm text-gray-500">No notifications yet.</p>
-      )}
+      {/* LIST */}
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 space-y-4">
+        {filteredItems.length === 0 && (
+          <p className="text-slate-500 text-sm text-center py-10">
+            No notifications found.
+          </p>
+        )}
 
-      <div className="space-y-3">
-        {items.map(n => (
+        {filteredItems.map((n) => (
           <a
             key={n.id}
             href={`${resolveNotificationLink(n)}?notification_id=${n.id}`}
-            className={`block p-4 border rounded-xl ${
-              !n.read_at ? 'bg-blue-50 border-blue-100' : 'bg-white'
+            className={`flex items-start gap-4 p-5 rounded-3xl border transition shadow-sm hover:shadow bg-white ${
+              !n.read_at ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200'
             }`}
           >
-            <p className="font-medium">{n.title || 'Notification'}</p>
-            {n.body && <p className="text-gray-700 mt-1">{n.body}</p>}
-            <p className="text-xs text-gray-400 mt-1">
-              {new Date(n.created_at).toLocaleString()}
-            </p>
+            {/* ICON */}
+            <div className="text-2xl">
+              {icons[n.type || ''] || '🔔'}
+            </div>
+
+            {/* TEXT */}
+            <div className="flex-1">
+              <p className="font-medium text-slate-900">
+                {n.title || 'Notification'}
+              </p>
+              {n.body && (
+                <p className="text-slate-600 text-sm mt-1">{n.body}</p>
+              )}
+              <p className="text-xs text-slate-400 mt-1">
+                {new Date(n.created_at).toLocaleString()}
+              </p>
+            </div>
           </a>
         ))}
       </div>

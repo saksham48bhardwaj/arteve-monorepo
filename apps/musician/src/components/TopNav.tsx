@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRealtimeNotifications } from '@arteve/shared/notifications/realtime';
+import LogoutButton from './logout-button';
 
 export default function TopNav() {
   const { unread } = useRealtimeNotifications();
@@ -54,6 +55,9 @@ export default function TopNav() {
             </svg>
           </Link>
 
+          <div className="flex justify-center md:justify-start mt-2">
+            <LogoutButton />
+          </div>
         </div>
       </div>
     </header>

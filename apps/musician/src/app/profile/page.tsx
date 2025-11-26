@@ -388,7 +388,7 @@ export default function ProfilePage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-3 gap-3 md:gap-4">
               {media.map((item, index) => (
                 <button
                   type="button"

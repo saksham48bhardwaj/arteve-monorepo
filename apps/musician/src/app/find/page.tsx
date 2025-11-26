@@ -22,17 +22,19 @@ import {
   PAGE_SIZE,
 } from '@/lib/find-queries';
 
-// Wrapper Component to satisfy Suspense requirement
+// -------------------------------------------
+// Wrapper Component (Suspense)
+// -------------------------------------------
 export default function FindPageWrapper() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
       <FindPageContent />
     </Suspense>
   );
 }
 
 // -------------------------------------------
-// Inner Component (actual page logic)
+// Main Find Page Component
 // -------------------------------------------
 function FindPageContent() {
   const searchParams = useSearchParams();
@@ -52,7 +54,7 @@ function FindPageContent() {
   const [hasMore, setHasMore] = useState(true);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  // -------------------- Load musician ID --------------------
+  /* -------------------- Load user (musician ID) -------------------- */
   useEffect(() => {
     async function loadUser() {
       const { data } = await supabase.auth.getUser();
@@ -61,34 +63,34 @@ function FindPageContent() {
     loadUser();
   }, []);
 
-  // -------------------- Change tab --------------------
+  /* -------------------- Tab Change -------------------- */
   const changeTab = (tab: string) => {
     router.push(`/find?tab=${tab}`);
     setResults([]);
     setPage(1);
     setHasMore(true);
+    setQuery('');
   };
 
-  // -------------------- Reset page when query/tab/filters change --------------------
+  /* -------------------- Reset pagination when filters change -------------------- */
   useEffect(() => {
     setResults([]);
     setPage(1);
     setHasMore(true);
   }, [query, currentTab, filters, musicianId]);
 
-  // -------------------- Fetch results (with pagination) --------------------
+  /* -------------------- Fetch Results -------------------- */
   useEffect(() => {
     async function run() {
       const trimmed = query.trim();
 
-      // For non-gig tabs, require a query to avoid massive fetch
+      // For non-gigs, avoid empty search fetch
       if (currentTab !== 'gigs' && trimmed === '') {
         setResults([]);
         setHasMore(false);
         return;
       }
 
-      // For gigs, allow empty query (show all open gigs)
       if (currentTab === 'gigs' && !musicianId) return;
 
       setLoading(true);
@@ -108,7 +110,7 @@ function FindPageContent() {
           data = await searchEvents(trimmed, page);
         }
 
-        const newResults = (data || []) as (PersonResult | GigResult | VenueResult | PostResult | EventResult)[];
+        const newResults = (data || []) as ResultType;
         setResults((prev) =>
           page === 1 ? newResults : [...prev, ...newResults]
         );
@@ -123,10 +125,9 @@ function FindPageContent() {
     run();
   }, [page, query, currentTab, musicianId, filters]);
 
-  // -------------------- Infinite scroll observer --------------------
+  /* -------------------- Infinite Scroll -------------------- */
   useEffect(() => {
     if (!loadMoreRef.current) return;
-    const el = loadMoreRef.current;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -138,12 +139,11 @@ function FindPageContent() {
       { threshold: 1 }
     );
 
-    observer.observe(el);
-
-    return () => observer.unobserve(el);
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
   }, [hasMore, loading]);
 
-  // -------------------- Helpers --------------------
+  /* -------------------- Filter Helper -------------------- */
   const handleFilterChange = (field: keyof GigFilters, value: string) => {
     setFilters((prev) => {
       if (field === 'minBudget' || field === 'maxBudget') {
@@ -154,18 +154,17 @@ function FindPageContent() {
     });
   };
 
-  // -------------------- Render --------------------
+  /* -------------------- Render -------------------- */
   return (
-    <div className="p-4 space-y-4">
-      {/* Search Bar */}
-      <div className="flex items-center bg-gray-100 rounded-lg px-3 py-2 gap-3">
+    <main className="max-w-4xl mx-auto px-6 py-8 space-y-8 bg-white">
+
+      {/* -------------------- Search Bar -------------------- */}
+      <div className="flex items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 gap-3 shadow-sm">
         <button
-          type="button"
           onClick={() => setShowFilters(true)}
-          className="text-gray-600"
-          aria-label="Filters"
+          className="text-gray-600 hover:text-black transition"
         >
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+          <svg width="20" height="20" viewBox="0 0 24 24">
             <path
               d="M4 7h16M7 12h10M10 17h4"
               stroke="currentColor"
@@ -177,49 +176,61 @@ function FindPageContent() {
 
         <input
           type="text"
-          placeholder="Search..."
-          className="flex-1 bg-transparent outline-none text-base"
+          placeholder="Search anything…"
+          className="flex-1 bg-transparent outline-none text-gray-800 placeholder:text-gray-500"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {TABS.map((tab) => (
+      {/* -------------------- Tabs -------------------- */}
+      <div className="flex gap-6 border-b border-gray-200 pb-2 overflow-x-auto scrollbar-hide">
+
+        {TABS.map((t) => (
           <button
-            key={tab.key}
-            className={`px-4 py-1 rounded-full border ${
-              currentTab === tab.key
-                ? 'bg-black text-white'
-                : 'bg-white text-gray-600'
+            key={t.key}
+            onClick={() => changeTab(t.key)}
+            className={`pb-2 text-base font-medium tracking-tight transition ${
+              currentTab === t.key
+                ? 'text-black border-b-2 border-black'
+                : 'text-gray-500 hover:text-gray-800'
             }`}
-            onClick={() => changeTab(tab.key)}
           >
-            {tab.label}
+            {t.label}
           </button>
         ))}
+
       </div>
 
-      {/* Results */}
-      <div className="space-y-4">
-        {loading && page === 1 && <p>Loading...</p>}
-        {!loading && results.length === 0 && (
-          <p className="text-sm text-gray-500">No results found.</p>
+      {/* -------------------- Results -------------------- */}
+      <section className="space-y-4">
+
+        {loading && page === 1 && (
+          <p className="text-sm text-gray-500">Loading…</p>
         )}
 
+        {!loading && results.length === 0 && (
+          <p className="text-sm text-gray-500 pt-4 text-center">
+            No results found.
+          </p>
+        )}
+
+        {/* Each card type is now styled consistently */}
         {results.map((item) => {
           if (currentTab === 'people') {
             const p = item as PersonResult;
             return (
-              <div key={p.id} className="border-b pb-2">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={p.avatar_url || '/default-avatar.png'}
-                    className="w-10 h-10 rounded-full"
-                    alt={p.full_name}
-                  />
-                  <span className="font-medium">{p.full_name}</span>
+              <div
+                key={p.id}
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition"
+                onClick={() => router.push(`/profile/${p.id}`)}
+              >
+                <img
+                  src={p.avatar_url || '/default-avatar.png'}
+                  className="w-12 h-12 rounded-2xl object-cover border"
+                />
+                <div>
+                  <p className="font-medium">{p.full_name}</p>
                 </div>
               </div>
             );
@@ -230,12 +241,12 @@ function FindPageContent() {
             return (
               <div
                 key={g.id}
-                className="border-b pb-2 cursor-pointer"
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-gray-50 transition"
                 onClick={() => router.push(`/gigs/${g.id}`)}
               >
-                <p className="font-medium">{g.title}</p>
-                <p className="text-sm text-gray-500">
-                  {g.location}
+                <p className="font-semibold text-gray-900">{g.title}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {g.location ?? 'Unknown location'}
                   {g.budget_min != null && g.budget_max != null && (
                     <> · ${g.budget_min}–${g.budget_max}</>
                   )}
@@ -247,9 +258,12 @@ function FindPageContent() {
           if (currentTab === 'venues') {
             const v = item as VenueResult;
             return (
-              <div key={v.id} className="border-b pb-2">
-                <p className="font-medium">{v.venue_name || v.name}</p>
-                <p className="text-sm text-gray-500">{v.location}</p>
+              <div
+                key={v.id}
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:bg-gray-50 transition"
+              >
+                <p className="font-semibold">{v.venue_name || v.name}</p>
+                <p className="text-sm text-gray-600">{v.location}</p>
               </div>
             );
           }
@@ -257,18 +271,24 @@ function FindPageContent() {
           if (currentTab === 'posts') {
             const p = item as PostResult;
             return (
-              <div key={p.id} className="border-b pb-2">
-                <p>{p.content || p.text}</p>
+              <div
+                key={p.id}
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:bg-gray-50 transition"
+              >
+                <p className="text-gray-800">{p.content || p.text}</p>
               </div>
             );
           }
 
           if (currentTab === 'events') {
-            const e = item as EventResult;
+            const ev = item as EventResult;
             return (
-              <div key={e.id} className="border-b pb-2">
-                <p className="font-medium">{e.title}</p>
-                <p className="text-sm text-gray-500">{e.location}</p>
+              <div
+                key={ev.id}
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:bg-gray-50 transition"
+              >
+                <p className="font-semibold">{ev.title}</p>
+                <p className="text-sm text-gray-600">{ev.location}</p>
               </div>
             );
           }
@@ -281,117 +301,117 @@ function FindPageContent() {
             ref={loadMoreRef}
             className="py-6 text-center text-gray-400 text-sm"
           >
-            {loading ? 'Loading more...' : 'Scroll to load more'}
+            {loading ? 'Loading more...' : ''}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Filters (Sheet) */}
+      {/* -------------------- Filter Sheet -------------------- */}
       {showFilters && (
-        <div className="fixed inset-0 bg-black/30 flex items-end justify-center z-50">
-          <div className="bg-white w-full max-w-md rounded-t-2xl p-4 space-y-4">
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-white w-full max-w-md rounded-t-3xl p-6 space-y-6 shadow-xl">
+
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Filters</h2>
+              <h2 className="text-xl font-semibold">Filters</h2>
               <button
-                type="button"
                 onClick={() => setShowFilters(false)}
-                className="text-gray-500 text-sm"
+                className="text-gray-500"
               >
                 Close
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Location
                 </label>
                 <input
                   type="text"
-                  className="w-full border rounded p-2 text-sm"
+                  placeholder="City or area"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2"
                   value={filters.location}
                   onChange={(e) =>
                     handleFilterChange('location', e.target.value)
                   }
-                  placeholder="City or area"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Genre
                 </label>
                 <input
                   type="text"
-                  className="w-full border rounded p-2 text-sm"
+                  placeholder="Rock, Jazz, Pop…"
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2"
                   value={filters.genre}
-                  onChange={(e) => handleFilterChange('genre', e.target.value)}
-                  placeholder="e.g. Rock, Jazz"
+                  onChange={(e) =>
+                    handleFilterChange('genre', e.target.value)
+                  }
                 />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm text-gray-700 mb-1">
-                    Min budget
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Min Budget
                   </label>
                   <input
                     type="number"
-                    className="w-full border rounded p-2 text-sm"
+                    placeholder="100"
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2"
                     value={filters.minBudget ?? ''}
                     onChange={(e) =>
                       handleFilterChange('minBudget', e.target.value)
                     }
-                    placeholder="e.g. 100"
                   />
                 </div>
+
                 <div className="flex-1">
-                  <label className="block text-sm text-gray-700 mb-1">
-                    Max budget
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Max Budget
                   </label>
                   <input
                     type="number"
-                    className="w-full border rounded p-2 text-sm"
+                    placeholder="1000"
+                    className="w-full border border-gray-300 rounded-xl px-3 py-2"
                     value={filters.maxBudget ?? ''}
                     onChange={(e) =>
                       handleFilterChange('maxBudget', e.target.value)
                     }
-                    placeholder="e.g. 1000"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-3 pt-2">
               <button
-                type="button"
-                className="flex-1 border rounded py-2 text-sm"
+                className="flex-1 border border-gray-300 rounded-xl py-2 text-sm"
                 onClick={() => setFilters(DEFAULT_FILTERS)}
               >
                 Clear
               </button>
               <button
-                type="button"
-                className="flex-1 bg-black text-white rounded py-2 text-sm"
+                className="flex-1 bg-black text-white rounded-xl py-2 text-sm"
                 onClick={() => {
                   setShowFilters(false);
                   setPage(1);
                   setResults([]);
                 }}
               >
-                Apply
+                Apply Filters
               </button>
             </div>
+
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
 
-// -------------------------------------------
-// Tabs for navigation
-// -------------------------------------------
+/* -------------------- Tabs -------------------- */
 const TABS = [
   { key: 'people', label: 'People' },
   { key: 'gigs', label: 'Gigs' },
@@ -400,9 +420,7 @@ const TABS = [
   { key: 'events', label: 'Events' },
 ];
 
-// -------------------------------------------
-// Types used inside this component
-// -------------------------------------------
+/* -------------------- Types -------------------- */
 type ResultType =
   | PersonResult[]
   | GigResult[]

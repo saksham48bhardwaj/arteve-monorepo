@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
+
+/* ----------------------------- Shared Types ----------------------------- */
 
 type MediaItem = { id: string; url: string; type: 'image' | 'video' };
 
@@ -33,262 +36,544 @@ type Recommendation = {
   content: string | null;
 };
 
-type Profile = {
+type BaseProfile = {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
-  location: string | null;
   genres: string[] | null;
   links: Record<string, string> | null;
+  location: string | null;
   quote: string | null;
   stats_posts?: number | null;
   stats_followers?: number | null;
   stats_following?: number | null;
+  role: string | null;
+  venue_photos: string[] | null;
 };
+
+type OrganizerGig = {
+  id: string;
+  title: string | null;
+  event_date: string | null;
+  location: string | null;
+  status: 'open' | 'booked' | 'closed' | string;
+  budget_min: number | null;
+  budget_max: number | null;
+  created_at: string;
+};
+
+/* ---------------------------------------------------------------------- */
+/* MAIN WRAPPER: decide musician vs organizer based on profile.role       */
+/* ---------------------------------------------------------------------- */
 
 export default function PublicProfilePage() {
   const { id } = useParams<{ id: string }>();
 
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<BaseProfile | null>(null);
+
+  // musician-related data
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [shows, setShows] = useState<Show[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
 
+  // organizer-related data
+  const [organizerGigs, setOrganizerGigs] = useState<OrganizerGig[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  // modal state for musician media
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // modal state for venue photo
+  const [venueModalUrl, setVenueModalUrl] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<'media' | 'about'>('media');
 
-  // Load profile + related data
   useEffect(() => {
     if (!id) return;
 
     (async () => {
       try {
-        // PROFILE
-        const { data: p, error: profileErr } = await supabase
+        // 1) PROFILE (always)
+        const { data: p, error: pErr } = await supabase
           .from('profiles')
-          .select('*')
+          .select(`
+            id,
+            created_at,
+            display_name,
+            avatar_url,
+            role,
+            bio,
+            location,
+            genres,
+            links,
+            quote,
+            venue_photos,
+            achievements,
+            skills,
+            recent_shows,
+            recommendations,
+            spotlight
+          `)
           .eq('id', id)
           .maybeSingle();
 
-        if (profileErr) throw profileErr;
+        if (pErr) throw pErr;
         if (!p) throw new Error('Profile not found');
+        const prof = p as BaseProfile;
+        setProfile(prof);
 
-        setProfile(p as Profile);
+        // 2) Branch on role
+        if (prof.role === 'organizer') {
+          // Organizer / venue profile
 
-        // MEDIA
-        const { data: m, error: mErr } = await supabase
-          .from('media')
-          .select('*')
-          .eq('profile_id', id)
-          .order('created_at', { ascending: false });
+          const { data: gigsData, error: gigsErr } = await supabase
+            .from('gigs')
+            .select(
+              `
+              id,
+              title,
+              event_date,
+              location,
+              status,
+              budget_min,
+              budget_max,
+              created_at
+            `
+            )
+            .eq('organizer_id', prof.id)
+            .order('created_at', { ascending: false });
 
-        if (mErr) throw mErr;
-        setMedia((m ?? []) as MediaItem[]);
+          if (gigsErr) throw gigsErr;
 
-        // ACHIEVEMENTS
-        const { data: a, error: aErr } = await supabase
-          .from('achievements')
-          .select('*')
-          .eq('profile_id', id)
-          .order('created_at', { ascending: false });
+          setOrganizerGigs((gigsData ?? []) as OrganizerGig[]);
+        } else {
+          // Musician profile (default if role is null or 'musician')
 
-        if (aErr) throw aErr;
-        setAchievements((a ?? []) as Achievement[]);
+          const [{ data: m }, { data: a }, { data: s }, { data: sk }, { data: r }] =
+            await Promise.all([
+              supabase
+                .from('media')
+                .select('*')
+                .eq('profile_id', id)
+                .order('created_at', { ascending: false }),
+              supabase
+                .from('achievements')
+                .select('*')
+                .eq('profile_id', id)
+                .order('created_at', { ascending: false }),
+              supabase
+                .from('shows')
+                .select('*')
+                .eq('profile_id', id)
+                .order('event_date', { ascending: false }),
+              supabase
+                .from('skills')
+                .select('*')
+                .eq('profile_id', id)
+                .order('created_at', { ascending: false }),
+              supabase
+                .from('recommendations')
+                .select('*')
+                .eq('profile_id', id)
+                .order('created_at', { ascending: false }),
+            ]);
 
-        // SHOWS
-        const { data: s, error: sErr } = await supabase
-          .from('shows')
-          .select('*')
-          .eq('profile_id', id)
-          .order('event_date', { ascending: false });
-
-        if (sErr) throw sErr;
-        setShows((s ?? []) as Show[]);
-
-        // SKILLS
-        const { data: sk, error: skErr } = await supabase
-          .from('skills')
-          .select('*')
-          .eq('profile_id', id)
-          .order('created_at', { ascending: false });
-
-        if (skErr) throw skErr;
-        setSkills((sk ?? []) as Skill[]);
-
-        // RECOMMENDATIONS
-        const { data: r, error: rErr } = await supabase
-          .from('recommendations')
-          .select('*')
-          .eq('profile_id', id)
-          .order('created_at', { ascending: false });
-
-        if (rErr) throw rErr;
-        setRecommendations((r ?? []) as Recommendation[]);
+          setMedia((m ?? []) as MediaItem[]);
+          setAchievements((a ?? []) as Achievement[]);
+          setShows((s ?? []) as Show[]);
+          setSkills((sk ?? []) as Skill[]);
+          setRecommendations((r ?? []) as Recommendation[]);
+        }
       } catch (e) {
-        console.error('PUBLIC PROFILE LOAD ERROR:', e);
-        if (e instanceof Error) setErr(e.message);
-        else setErr('Failed to load profile');
+        setErr(e instanceof Error ? e.message : 'Failed to load profile');
       } finally {
         setLoading(false);
       }
     })();
   }, [id]);
 
-  // ESC to close modal
+  // ESC to close musician media modal
   useEffect(() => {
-    function handleEsc(e: KeyboardEvent) {
+    const esc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectedMedia(null);
+        setVenueModalUrl(null);
       }
-    }
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
   }, []);
 
   if (loading) return <main className="p-6">Loading profile…</main>;
-  if (err || !profile) {
+  if (err || !profile)
+    return <main className="p-6 text-red-600">Error: {err}</main>;
+
+  const isOrganizer = profile.role === 'organizer';
+
+  // -------------------- ORGANIZER / VENUE VIEW -------------------- //
+  if (isOrganizer) {
+    const venuePhotos = profile.venue_photos ?? [];
+    const primaryVenuePhoto = venuePhotos[0] ?? null;
+
     return (
-      <main className="p-6 text-red-600">
-        Error: {err ?? 'Profile not found'}
+      <main className="max-w-6xl mx-auto px-6 py-10 space-y-8 bg-white">
+        {/* HERO / HEADER */}
+        <section className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          {/* Hero banner */}
+          <div className="h-48 md:h-64 w-full bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 relative">
+            {primaryVenuePhoto && (
+              <img
+                src={primaryVenuePhoto}
+                alt={profile.display_name ?? 'Venue'}
+                className="w-full h-full object-cover opacity-70"
+              />
+            )}
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute bottom-5 left-5 right-5 md:left-10 md:bottom-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+              <div className="space-y-1 text-white">
+                <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+                  {profile.display_name ?? 'Venue'}
+                </h1>
+                {profile.location && (
+                  <p className="text-sm md:text-base text-gray-100">
+                    {profile.location}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/chat/${profile.id}`}
+                  className="px-4 py-2 rounded-full bg-white text-sm font-medium text-gray-900"
+                >
+                  Message venue
+                </Link>
+                <a
+                  href="#venue-gigs"
+                  className="px-4 py-2 rounded-full border border-white/70 text-sm font-medium text-white"
+                >
+                  View gigs
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary under banner */}
+          <div className="px-6 py-6 md:px-10 md:py-8 space-y-4">
+            {profile.bio && (
+              <p className="text-sm md:text-base text-gray-800 leading-relaxed">
+                {profile.bio}
+              </p>
+            )}
+
+            {/* Links */}
+            {profile.links && Object.keys(profile.links).length > 0 && (
+              <div className="space-y-2">
+                <h2 className="text-sm font-semibold text-gray-700">
+                  Online presence
+                </h2>
+                <div className="flex flex-wrap gap-3 text-xs md:text-sm">
+                  {Object.entries(profile.links)
+                    .filter(([, v]) => v)
+                    .map(([key, value]) => (
+                      <a
+                        key={key}
+                        href={value as string}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1 rounded-full border text-gray-700 hover:bg-gray-50"
+                      >
+                        {key}
+                      </a>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* VENUE PHOTOS */}
+        <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-8 md:py-7 space-y-4">
+          <div>
+            <h2 className="text-lg md:text-xl font-semibold tracking-tight">
+              Venue photos
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              A peek inside the space — stage, crowd, and vibe.
+            </p>
+          </div>
+
+          {venuePhotos.length === 0 ? (
+            <div className="border border-dashed rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-gray-50">
+              <p className="text-sm text-gray-600">
+                No photos uploaded yet.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {venuePhotos.map((url) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => setVenueModalUrl(url)}
+                  className="relative w-full pb-[75%] bg-gray-100 overflow-hidden rounded-2xl hover:opacity-90 transition"
+                >
+                  <img
+                    src={url}
+                    alt="Venue photo"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* GIGS FROM THIS ORGANIZER */}
+        <section
+          id="venue-gigs"
+          className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-8 md:py-7 space-y-4"
+        >
+          <div>
+            <h2 className="text-lg md:text-xl font-semibold tracking-tight">
+              Gigs from this organizer
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Active and past opportunities listed by this venue.
+            </p>
+          </div>
+
+          {organizerGigs.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No gigs posted yet.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {organizerGigs.map((gig) => (
+                <Link
+                  key={gig.id}
+                  href={`/gigs/${gig.id}`}
+                  className="block border rounded-2xl px-4 py-3 hover:bg-gray-50 transition"
+                >
+                  <div className="flex justify-between items-start gap-3">
+                    <div>
+                      <p className="font-medium text-sm md:text-base">
+                        {gig.title ?? 'Untitled gig'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {gig.event_date
+                          ? new Date(gig.event_date).toLocaleDateString(
+                              undefined,
+                              {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              }
+                            )
+                          : 'Date TBD'}
+                        {gig.location ? ` · ${gig.location}` : ''}
+                      </p>
+                      {(gig.budget_min !== null ||
+                        gig.budget_max !== null) && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Budget:{' '}
+                          {gig.budget_min !== null
+                            ? `$${gig.budget_min}`
+                            : 'TBD'}
+                          {gig.budget_max !== null
+                            ? ` – $${gig.budget_max}`
+                            : ''}
+                        </p>
+                      )}
+                    </div>
+
+                    <span
+                      className={`text-[11px] px-2 py-1 rounded-full ${
+                        gig.status === 'open'
+                          ? 'bg-green-100 text-green-800'
+                          : gig.status === 'booked'
+                          ? 'bg-amber-100 text-amber-800'
+                          : gig.status === 'closed'
+                          ? 'bg-gray-200 text-gray-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {gig.status === 'open'
+                        ? 'Open for applications'
+                        : gig.status === 'booked'
+                        ? 'Booked'
+                        : gig.status === 'closed'
+                        ? 'Closed'
+                        : gig.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* VENUE PHOTO MODAL */}
+        {venueModalUrl && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+            <button
+              onClick={() => setVenueModalUrl(null)}
+              className="absolute inset-0 cursor-pointer"
+            />
+            <div className="relative max-w-3xl w-full px-4 z-50">
+              <img
+                src={venueModalUrl}
+                className="w-full max-h-[90vh] object-contain rounded-2xl"
+                alt=""
+              />
+              <button
+                className="absolute top-2 right-3 text-white text-3xl font-bold"
+                onClick={() => setVenueModalUrl(null)}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     );
   }
 
-  const links = profile.links || {};
+  // -------------------- MUSICIAN VIEW (EXISTING UI) -------------------- //
+
+  const primaryMedia = media[0];
+  const genres = Array.isArray(profile.genres) ? profile.genres : [];
+
   const username =
     profile.display_name?.toLowerCase().replace(/\s+/g, '') ??
     profile.id.slice(0, 8);
 
-  function openModal(index: number) {
-    setSelectedIndex(index);
-    setSelectedMedia(media[index]);
+  function openModal(i: number) {
+    setSelectedIndex(i);
+    setSelectedMedia(media[i]);
   }
-
   function closeModal() {
     setSelectedMedia(null);
   }
-
   function showNext() {
-    if (!media.length) return;
     const nextIndex = (selectedIndex + 1) % media.length;
     setSelectedIndex(nextIndex);
     setSelectedMedia(media[nextIndex]);
   }
-
   function showPrev() {
-    if (!media.length) return;
     const prevIndex = (selectedIndex - 1 + media.length) % media.length;
     setSelectedIndex(prevIndex);
     setSelectedMedia(media[prevIndex]);
   }
 
   return (
-    <main className="max-w-5xl mx-auto p-6 space-y-10">
-      {/* HEADER */}
-      <section className="flex flex-col md:flex-row gap-8 md:items-start">
-        {/* Avatar */}
-        <div className="flex-shrink-0 flex justify-center md:block">
-          <img
-            src={profile.avatar_url || '/default-avatar.png'}
-            alt={profile.display_name ?? 'Artist avatar'}
-            className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border border-gray-200"
-          />
-        </div>
-
-        {/* Main info */}
-        <div className="flex-1 space-y-4 text-center md:text-left">
-          <div>
-            <h1 className="text-3xl font-semibold">
-              {profile.display_name ?? 'Unnamed artist'}
-            </h1>
-            <p className="text-sm text-gray-500">@{username}</p>
+    <main className="max-w-6xl mx-auto px-6 py-10 space-y-8 bg-white">
+      {/* HEADER CARD */}
+      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-6 md:px-10 md:py-8 flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:items-start gap-6">
+          {/* Avatar */}
+          <div className="flex-shrink-0 flex justify-center md:block">
+            <img
+              src={profile.avatar_url ?? '/placeholder-avatar.png'}
+              alt="Avatar"
+              className="w-32 h-32 md:w-40 md:h-40 rounded-3xl object-cover border border-gray-200 shadow-sm"
+            />
           </div>
 
-          {profile.bio && (
-            <p className="text-sm text-gray-800 leading-relaxed">{profile.bio}</p>
-          )}
-
-          {profile.location && (
-            <p className="text-sm text-gray-500">{profile.location}</p>
-          )}
-
-          {profile.genres && profile.genres.length > 0 && (
-            <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-1">
-              {profile.genres.map((g) => (
-                <span
-                  key={g}
-                  className="px-2.5 py-1 rounded-full bg-gray-100 text-xs text-gray-700"
-                >
-                  {g}
-                </span>
-              ))}
+          {/* Main info */}
+          <div className="flex-1 space-y-4 text-center md:text-left">
+            <div className="space-y-1">
+              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+                {profile.display_name}
+              </h1>
+              <p className="text-xs md:text-sm text-gray-500">@{username}</p>
             </div>
-          )}
 
-          <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-3">
-            <a
-              href={`/book/${profile.id}`}
-              className="px-4 py-2 rounded-xl border border-black text-sm font-medium hover:bg-black hover:text-white transition"
-            >
-              Book
-            </a>
-            <a
-              href={`/chat/${profile.id}`}
-              className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50"
-            >
-              Message
-            </a>
-            <button className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-50">
-              Follow
-            </button>
+            {profile.location && (
+              <p className="text-sm text-gray-500">{profile.location}</p>
+            )}
+            {genres.length > 0 && (
+              <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                {genres.map((g) => (
+                  <span
+                    key={g}
+                    className="px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-700"
+                  >
+                    {g}
+                  </span>
+                ))}
+              </div>
+            )}
+            {profile.bio && (
+              <p className="text-sm md:text-base text-gray-800 leading-relaxed">
+                {profile.bio}
+              </p>
+            )}
+
+            <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-1">
+              <Link
+                href={`/book/${profile.id}`}
+                className="px-4 py-1.5 rounded-full bg-black text-white text-sm"
+              >
+                Book
+              </Link>
+              <Link
+                href={`/chat/${profile.id}`}
+                className="px-4 py-1.5 rounded-full border text-sm"
+              >
+                Message
+              </Link>
+              <button className="px-4 py-1.5 rounded-full border text-sm">
+                Follow
+              </button>
+            </div>
           </div>
+
+          {/* Stats */}
+          <aside className="w-full md:w-56 flex md:flex-col justify-around md:justify-start gap-4 md:gap-3 text-center">
+            <StatBlock label="Posts" value={profile.stats_posts ?? 0} />
+            <StatBlock label="Followers" value={profile.stats_followers ?? 0} />
+            <StatBlock label="Following" value={profile.stats_following ?? 0} />
+          </aside>
         </div>
 
-        {/* Stats card */}
-        <aside className="w-full md:w-48 flex md:flex-col justify-around md:justify-start gap-4 md:gap-3 text-center">
-          <StatBlock label="Posts" value={profile.stats_posts ?? 0} />
-          <StatBlock label="Followers" value={profile.stats_followers ?? 0} />
-          <StatBlock label="Following" value={profile.stats_following ?? 0} />
-        </aside>
+        {/* Artist quote */}
+        {profile.quote && (
+          <div className="rounded-2xl bg-gray-50 px-4 py-3 md:px-6 md:py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              Artist quote
+            </p>
+            <p className="mt-1 text-sm md:text-base italic text-gray-900">
+              “{profile.quote}”
+            </p>
+          </div>
+        )}
       </section>
 
-      {/* Artist quote */}
-      {profile.quote && (
-        <section className="border rounded-2xl p-5 bg-gray-50">
-          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Artist Quote
-          </p>
-          <p className="mt-2 text-lg md:text-xl italic text-gray-900">
-            “{profile.quote}”
-          </p>
-        </section>
-      )}
-
       {/* TABS */}
-      <div className="flex gap-6 border-b pb-2 mt-2">
+      <div className="flex gap-6 border-b border-gray-200 pb-2 mt-2">
         <button
           onClick={() => setActiveTab('media')}
-          className={`pb-2 text-sm md:text-base font-medium ${
+          className={`pb-2 text-sm md:text-base font-medium tracking-tight ${
             activeTab === 'media'
               ? 'border-b-2 border-black text-black'
-              : 'text-gray-500'
+              : 'text-gray-500 hover:text-gray-800'
           }`}
         >
           Media
         </button>
         <button
           onClick={() => setActiveTab('about')}
-          className={`pb-2 text-sm md:text-base font-medium ${
+          className={`pb-2 text-sm md:text-base font-medium tracking-tight ${
             activeTab === 'about'
               ? 'border-b-2 border-black text-black'
-              : 'text-gray-500'
+              : 'text-gray-500 hover:text-gray-800'
           }`}
         >
           About
@@ -297,24 +582,36 @@ export default function PublicProfilePage() {
 
       {/* MEDIA TAB */}
       {activeTab === 'media' && (
-        <section>
-          <h2 className="text-lg font-semibold mb-3">Media</h2>
+        <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-8 md:py-7 space-y-4">
+          <div>
+            <h2 className="text-lg md:text-xl font-semibold tracking-tight">
+              Media
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Photos and videos uploaded by the artist.
+            </p>
+          </div>
+
           {media.length === 0 ? (
-            <p className="text-sm text-gray-500">No media uploaded yet.</p>
+            <div className="border border-dashed rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-gray-50">
+              <p className="text-sm text-gray-600">
+                No media uploaded yet.
+              </p>
+            </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
-              {media.map((item, index) => (
+            <div className="grid grid-cols-3 gap-3 md:gap-4">
+              {media.map((item, idx) => (
                 <button
-                  type="button"
                   key={item.id}
-                  onClick={() => openModal(index)}
-                  className="relative w-full pb-[100%] bg-gray-100 overflow-hidden rounded-md cursor-pointer hover:opacity-90 transition"
+                  type="button"
+                  onClick={() => openModal(idx)}
+                  className="relative w-full pb-[100%] bg-gray-100 overflow-hidden rounded-2xl cursor-pointer hover:opacity-90 transition"
                 >
                   {item.type === 'image' ? (
                     <img
                       src={item.url}
-                      alt=""
                       className="absolute inset-0 w-full h-full object-cover"
+                      alt=""
                     />
                   ) : (
                     <video
@@ -332,32 +629,78 @@ export default function PublicProfilePage() {
 
       {/* ABOUT TAB */}
       {activeTab === 'about' && (
-        <section className="space-y-10">
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* LEFT COLUMN */}
-            <div className="space-y-8">
+        <section className="space-y-6">
+          {/* ABOUT CARD */}
+          <section className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            {/* Banner */}
+            <div className="h-40 md:h-52 w-full bg-gradient-to-r from-gray-900 via-gray-700 to-gray-500 relative">
+              {primaryMedia?.type === 'image' && (
+                <img
+                  src={primaryMedia.url}
+                  alt=""
+                  className="w-full h-full object-cover opacity-70"
+                />
+              )}
+              <div className="absolute inset-0 bg-black/20"></div>
+            </div>
+
+            <div className="px-5 py-6 md:px-8 md:py-8 space-y-8">
+              {profile.bio && (
+                <div className="space-y-1">
+                  <h2 className="text-lg md:text-xl font-semibold tracking-tight">
+                    About
+                  </h2>
+                  <p className="text-sm md:text-base text-gray-800 leading-relaxed whitespace-pre-line">
+                    {profile.bio}
+                  </p>
+                </div>
+              )}
+
+              {profile.links && Object.keys(profile.links).length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-700">Links</h3>
+                  <div className="flex flex-wrap gap-3 text-xs md:text-sm">
+                    {Object.entries(profile.links)
+                      .filter(([, v]) => v)
+                      .map(([key, value]) => (
+                        <a
+                          key={key}
+                          href={value as string}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1 rounded-full border text-gray-700 hover:bg-gray-50"
+                        >
+                          {key}
+                        </a>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* CONTENT GRID */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* LEFT */}
+            <div className="space-y-6">
               {/* Achievements */}
-              <section>
+              <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-6 md:py-6">
                 <h2 className="text-lg font-semibold mb-3">Achievements</h2>
                 {achievements.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    No achievements added yet.
-                  </p>
+                  <p className="text-sm text-gray-500">No achievements yet.</p>
                 ) : (
-                  <ul className="space-y-2 text-gray-800">
+                  <ul className="space-y-2">
                     {achievements.map((a) => (
                       <li
                         key={a.id}
-                        className="border p-3 rounded-md bg-gray-50 space-y-1"
+                        className="border border-gray-100 p-3 rounded-2xl bg-gray-50"
                       >
-                        <p className="font-medium">{a.title}</p>
+                        <p className="font-medium text-sm">{a.title}</p>
                         {a.description && (
-                          <p className="text-sm text-gray-700">
-                            {a.description}
-                          </p>
+                          <p className="text-xs text-gray-700">{a.description}</p>
                         )}
                         {a.year && (
-                          <p className="text-xs text-gray-500">{a.year}</p>
+                          <p className="text-xs text-gray-500 mt-1">{a.year}</p>
                         )}
                       </li>
                     ))}
@@ -365,24 +708,24 @@ export default function PublicProfilePage() {
                 )}
               </section>
 
-              {/* Recent Shows */}
-              <section>
-                <h2 className="text-lg font-semibold mb-3">Recent Shows</h2>
+              {/* Shows */}
+              <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-6 md:py-6">
+                <h2 className="text-lg font-semibold mb-3">Recent shows</h2>
                 {shows.length === 0 ? (
-                  <p className="text-sm text-gray-500">No shows added yet.</p>
+                  <p className="text-sm text-gray-500">No shows yet.</p>
                 ) : (
-                  <ul className="space-y-2 text-gray-800">
+                  <ul className="space-y-2">
                     {shows.map((s) => (
                       <li
                         key={s.id}
-                        className="border p-3 rounded-md bg-gray-50 space-y-1"
+                        className="border border-gray-100 p-3 rounded-2xl bg-gray-50"
                       >
-                        <p className="font-medium">{s.title}</p>
-                        <p className="text-sm text-gray-700">
+                        <p className="font-medium text-sm">{s.title}</p>
+                        <p className="text-xs text-gray-700">
                           {[s.venue, s.location].filter(Boolean).join(', ')}
                         </p>
                         {s.event_date && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-[11px] text-gray-500 mt-1">
                             {new Date(s.event_date).toLocaleDateString()}
                           </p>
                         )}
@@ -393,24 +736,22 @@ export default function PublicProfilePage() {
               </section>
             </div>
 
-            {/* RIGHT COLUMN */}
-            <div className="space-y-8">
+            {/* RIGHT */}
+            <div className="space-y-6">
               {/* Skills */}
-              <section>
+              <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-6 md:py-6">
                 <h2 className="text-lg font-semibold mb-3">Skills</h2>
                 {skills.length === 0 ? (
-                  <p className="text-sm text-gray-500">No skills added yet.</p>
+                  <p className="text-sm text-gray-500">No skills yet.</p>
                 ) : (
-                  <ul className="grid sm:grid-cols-2 gap-3 text-gray-800">
+                  <ul className="space-y-2">
                     {skills.map((sk) => (
                       <li
                         key={sk.id}
-                        className="border p-3 rounded-md bg-gray-50 flex justify-between items-center"
+                        className="border border-gray-100 p-3 rounded-2xl bg-gray-50 flex justify-between items-center"
                       >
-                        <span className="text-sm">{sk.skill}</span>
-                        <span className="text-xs italic text-gray-600">
-                          {sk.level}
-                        </span>
+                        <p className="text-sm font-medium">{sk.skill}</p>
+                        <p className="text-xs italic text-gray-600">{sk.level}</p>
                       </li>
                     ))}
                   </ul>
@@ -418,51 +759,29 @@ export default function PublicProfilePage() {
               </section>
 
               {/* Recommendations */}
-              <section>
+              <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-6 md:py-6">
                 <h2 className="text-lg font-semibold mb-3">Recommendations</h2>
                 {recommendations.length === 0 ? (
                   <p className="text-sm text-gray-500">No recommendations yet.</p>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {recommendations.map((r) => (
                       <blockquote
                         key={r.id}
-                        className="border-l-4 pl-4 py-2 bg-gray-50 rounded-md italic text-gray-700"
+                        className="border-l-4 border-gray-300 pl-4 py-2 bg-gray-50 rounded-2xl"
                       >
-                        “{r.content}”
-                        <div className="text-xs mt-1 text-gray-500">
-                          — {r.author}
-                        </div>
+                        <p className="text-sm text-gray-700 italic">
+                          “{r.content}”
+                        </p>
+                        {r.author && (
+                          <p className="text-xs mt-1 text-gray-500">
+                            — {r.author}
+                          </p>
+                        )}
                       </blockquote>
                     ))}
                   </div>
                 )}
-              </section>
-
-              {/* Social Links */}
-              <section>
-                <h2 className="text-lg font-semibold mb-3">Social Links</h2>
-                <div className="flex flex-wrap gap-4 text-sm text-blue-600 underline">
-                  {links.instagram && (
-                    <a
-                      href={links.instagram}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Instagram
-                    </a>
-                  )}
-                  {links.youtube && (
-                    <a href={links.youtube} target="_blank" rel="noreferrer">
-                      YouTube
-                    </a>
-                  )}
-                  {links.website && (
-                    <a href={links.website} target="_blank" rel="noreferrer">
-                      Website
-                    </a>
-                  )}
-                </div>
               </section>
             </div>
           </div>
@@ -472,50 +791,41 @@ export default function PublicProfilePage() {
       {/* MEDIA MODAL */}
       {selectedMedia && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          {/* Overlay */}
           <button
-            type="button"
-            className="absolute inset-0 cursor-pointer"
             onClick={closeModal}
+            className="absolute inset-0 cursor-pointer"
           />
-
-          {/* Content */}
           <div className="relative max-w-3xl w-full px-4 z-50">
             {selectedMedia.type === 'image' ? (
               <img
                 src={selectedMedia.url}
-                className="w-full max-h-[90vh] object-contain rounded-md"
+                className="w-full max-h-[90vh] object-contain rounded-2xl"
                 alt=""
               />
             ) : (
               <video
                 src={selectedMedia.url}
                 controls
-                className="w-full max-h-[90vh] object-contain rounded-md"
+                className="w-full max-h-[90vh] rounded-2xl"
               />
             )}
 
-            {/* Close */}
             <button
-              type="button"
               className="absolute top-2 right-2 text-white text-3xl font-bold"
               onClick={closeModal}
             >
               ×
             </button>
 
-            {/* Prev / Next */}
             {media.length > 1 && (
               <>
                 <button
-                  type="button"
                   onClick={showPrev}
                   className="absolute left-2 top-1/2 -translate-y-1/2 text-white text-4xl"
                 >
                   ‹
                 </button>
                 <button
-                  type="button"
                   onClick={showNext}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-white text-4xl"
                 >
@@ -530,9 +840,12 @@ export default function PublicProfilePage() {
   );
 }
 
+/* ---------------------------------------- */
+/* STATS BLOCK (same as private profile)    */
+/* ---------------------------------------- */
 function StatBlock({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex-1 md:flex-none md:w-full border rounded-xl py-3 px-4 bg-gray-50">
+    <div className="flex-1 md:flex-none md:w-full border border-gray-200 rounded-2xl py-3 px-4 bg-gray-50 shadow-sm">
       <div className="text-lg font-semibold">{value}</div>
       <div className="text-xs text-gray-600">{label}</div>
     </div>

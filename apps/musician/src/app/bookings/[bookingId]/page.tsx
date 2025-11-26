@@ -30,17 +30,26 @@ type Booking = {
   updated_at: string | null;
 };
 
+type OrganizerProfile = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  genres: string[] | null;
+  location: string | null;
+};
+
 export default function BookingDetailPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
   const router = useRouter();
 
   const [booking, setBooking] = useState<Booking | null>(null);
+  const [organizer, setOrganizer] = useState<OrganizerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // ----------------------------
-  // LOAD BOOKING
+  // LOAD BOOKING + ORGANIZER PROFILE
   // ----------------------------
   useEffect(() => {
     loadBooking();
@@ -56,10 +65,21 @@ export default function BookingDetailPage() {
     if (error) {
       console.error(error);
       setError('Unable to load booking.');
-    } else {
-      setBooking(data as Booking);
+      setLoading(false);
+      return;
     }
 
+    const b = data as Booking;
+    setBooking(b);
+
+    // Organizer profile
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, genres, location')
+      .eq('id', b.organizer_id)
+      .maybeSingle();
+
+    setOrganizer(prof as OrganizerProfile);
     setLoading(false);
   }
 
@@ -84,7 +104,7 @@ export default function BookingDetailPage() {
   }, [bookingId]);
 
   // ----------------------------
-  // UPDATE STATUS (accept/decline/cancel)
+  // UPDATE STATUS (accept / decline / cancel)
   // ----------------------------
   async function updateStatus(status: BookingStatus) {
     if (!booking) return;
@@ -125,7 +145,6 @@ export default function BookingDetailPage() {
 
   async function markCompleted() {
     if (!booking) return;
-
     setActionLoading(true);
 
     const { error } = await supabase
@@ -151,7 +170,9 @@ export default function BookingDetailPage() {
       data: { bookingId, status: 'completed' },
     });
 
-    setBooking((prev) => (prev ? { ...prev, status: 'completed' } : prev));
+    setBooking((prev) =>
+      prev ? { ...prev, status: 'completed' } : prev
+    );
     setActionLoading(false);
   }
 
@@ -166,7 +187,7 @@ export default function BookingDetailPage() {
     booking.status === 'canceled_by_musician';
 
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-4">
+    <main className="max-w-3xl mx-auto p-6 space-y-6">
       <button className="text-sm text-gray-600" onClick={() => router.back()}>
         ← Back
       </button>
@@ -179,12 +200,47 @@ export default function BookingDetailPage() {
         </div>
       )}
 
-      <section className="border rounded-xl p-4 space-y-2">
-        <p className="text-sm text-gray-500">
-          From {booking.organizer_name || booking.organizer_email}
-        </p>
+      {/* ORGANIZER SNAPSHOT */}
+      <section className="border rounded-xl p-4 bg-gray-50">
+        <div className="flex gap-3">
+          <img
+            src={organizer?.avatar_url ?? '/placeholder-avatar.png'}
+            alt={organizer?.display_name ?? 'Organizer'}
+            className="w-14 h-14 rounded-full object-cover border"
+          />
 
-        <p className="font-medium">{booking.event_title || 'Untitled event'}</p>
+          <div className="flex-1">
+            <p className="font-medium">
+              {organizer?.display_name || 'Organizer'}
+            </p>
+            {booking.organizer_email && (
+              <p className="text-xs text-gray-500">{booking.organizer_email}</p>
+            )}
+            {organizer?.location && (
+              <p className="text-xs text-gray-500">{organizer.location}</p>
+            )}
+
+            {organizer?.genres?.length ? (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {organizer.genres.map((g) => (
+                  <span
+                    key={g}
+                    className="px-2 py-0.5 rounded-full bg-white border text-[11px] text-gray-700"
+                  >
+                    {g}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {/* EVENT DETAILS */}
+      <section className="border rounded-xl p-4 space-y-2">
+        <p className="font-medium text-lg">
+          {booking.event_title || 'Untitled event'}
+        </p>
 
         <p className="text-sm text-gray-600">
           Date: {booking.event_date || 'TBD'}
@@ -194,9 +250,11 @@ export default function BookingDetailPage() {
           Time: {booking.event_time || 'TBD'}
         </p>
 
-        <p className="text-sm text-gray-600">Location: {booking.location}</p>
+        <p className="text-sm text-gray-600">
+          Location: {booking.location || 'TBD'}
+        </p>
 
-        {(booking.budget_min || booking.budget_max) && (
+        {(booking.budget_min !== null || booking.budget_max !== null) && (
           <p className="text-sm text-gray-600">
             Budget: {booking.budget_min ? `$${booking.budget_min}` : 'TBD'}
             {booking.budget_max ? ` – $${booking.budget_max}` : ''}
@@ -204,60 +262,60 @@ export default function BookingDetailPage() {
         )}
 
         {booking.message && (
-          <p className="text-sm bg-gray-50 rounded-lg px-3 py-2">
+          <p className="text-sm bg-gray-50 rounded-lg px-3 py-2 mt-2">
             “{booking.message}”
           </p>
         )}
+      </section>
 
-        <div className="pt-4 flex gap-2">
-          {booking.status === 'pending' && !isCanceled && (
-            <>
-              <button
-                onClick={() => updateStatus('accepted')}
-                disabled={actionLoading}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg disabled:opacity-60"
-              >
-                {actionLoading ? 'Updating…' : 'Accept'}
-              </button>
+      {/* ACTIONS */}
+      <section className="pt-2 space-y-2">
+        {booking.status === 'pending' && !isCanceled && (
+          <>
+            <button
+              onClick={() => updateStatus('accepted')}
+              disabled={actionLoading}
+              className="w-full py-2 bg-green-600 text-white rounded-lg disabled:opacity-60"
+            >
+              {actionLoading ? 'Updating…' : 'Accept'}
+            </button>
 
-              <button
-                onClick={() => updateStatus('declined')}
-                disabled={actionLoading}
-                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-60"
-              >
-                Decline
-              </button>
-            </>
-          )}
+            <button
+              onClick={() => updateStatus('declined')}
+              disabled={actionLoading}
+              className="w-full py-2 border border-gray-300 rounded-lg disabled:opacity-60"
+            >
+              Decline
+            </button>
+          </>
+        )}
 
-          {booking.status === 'accepted' && (
-            <>
-              <button
-                onClick={() => updateStatus('canceled_by_musician')}
-                disabled={actionLoading}
-                className="px-4 py-2 border border-red-300 text-red-700 rounded-lg disabled:opacity-60"
-              >
-                Cancel booking
-              </button>
+        {booking.status === 'accepted' && (
+          <>
+            <button
+              onClick={() => router.push(`/bookings/${booking.id}/chat`)}
+              className="w-full py-2 bg-blue-600 text-white rounded-lg"
+            >
+              Open chat →
+            </button>
 
-              <button
-                onClick={() => router.push(`/bookings/${booking.id}/chat`)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-              >
-                Open chat →
-              </button>
-            </>
-          )}
-          {booking.status === 'accepted' && (
             <button
               onClick={markCompleted}
               disabled={actionLoading}
-              className="px-4 py-2 bg-blue-700 text-white rounded-lg disabled:opacity-60"
+              className="w-full py-2 bg-blue-700 text-white rounded-lg disabled:opacity-60"
             >
               Mark as completed
             </button>
-          )}
-        </div>
+
+            <button
+              onClick={() => updateStatus('canceled_by_musician')}
+              disabled={actionLoading}
+              className="w-full py-2 border border-red-300 text-red-700 rounded-lg disabled:opacity-60"
+            >
+              Cancel booking
+            </button>
+          </>
+        )}
       </section>
     </main>
   );

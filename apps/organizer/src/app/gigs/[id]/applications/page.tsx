@@ -14,16 +14,20 @@ type Application = {
   musician_avatar_url: string | null;
 };
 
-// Shape of rows returned from Supabase
+// Supabase row shape
 type ApplicationRow = {
   id: string;
   message: string | null;
   status: string;
   created_at: string;
   musician_id: string;
-  musician?: {
+  profiles?: {
     id: string;
-    full_name: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+  }[] | {
+    id: string;
+    display_name: string | null;
     avatar_url: string | null;
   } | null;
 };
@@ -43,22 +47,21 @@ export default function GigApplicationsPage() {
       setLoading(true);
 
       const { data, error } = await supabase
-      .from('applications')
-      .select(`
-        id,
-        message,
-        status,
-        created_at,
-        musician_id,
-        profiles:profiles!applications_musician_id_fkey (
+        .from('applications')
+        .select(`
           id,
-          display_name,
-          avatar_url
-        )
-      `)
-      .eq('gig_id', gigId)
-      .order('created_at', { ascending: false });
-
+          message,
+          status,
+          created_at,
+          musician_id,
+          profiles:profiles!applications_musician_id_fkey (
+            id,
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('gig_id', gigId)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading applications:', error);
@@ -66,21 +69,23 @@ export default function GigApplicationsPage() {
         return;
       }
 
-      const mapped: Application[] = (data ?? []).map(row => {
-        const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+      const parsed: Application[] = (data ?? []).map((row: ApplicationRow) => {
+        const profile = Array.isArray(row.profiles)
+          ? row.profiles[0]
+          : row.profiles;
+
         return {
           id: row.id,
           message: row.message,
           status: row.status,
           created_at: row.created_at,
           musician_id: row.musician_id,
-          musician_name: profile?.display_name ?? 'Unknown',
-          musician_avatar_url: profile?.avatar_url ?? null,
+          musician_name: profile?.display_name ?? 'Unknown musician',
+          musician_avatar_url: profile?.avatar_url ?? null
         };
       });
 
-
-      setApplications(mapped);
+      setApplications(parsed);
       setLoading(false);
     }
 
@@ -92,52 +97,72 @@ export default function GigApplicationsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-semibold mb-2">Applications</h1>
+    <main className="max-w-3xl mx-auto px-6 py-6 space-y-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">Applications</h1>
+        <p className="text-sm text-gray-600">
+          Review applications submitted to this gig.
+        </p>
+      </header>
 
-      {loading && <p>Loading applications…</p>}
+      {loading && <p className="text-gray-600">Loading applications…</p>}
 
       {!loading && applications.length === 0 && (
         <p className="text-sm text-gray-500">No applications yet.</p>
       )}
 
-      <div className="space-y-3">
+      {/* Application cards */}
+      <div className="space-y-4">
         {applications.map((app) => (
-          <button
+          <div
             key={app.id}
             onClick={() => goToApplication(app.id)}
-            className="w-full flex items-center justify-between border rounded-lg px-3 py-2 text-left hover:bg-gray-50"
+            className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4 flex items-center justify-between gap-4 hover:bg-gray-50 transition cursor-pointer"
           >
-            <div className="flex items-center gap-3">
+            {/* Left side */}
+            <div className="flex items-center gap-4">
               <img
                 src={app.musician_avatar_url ?? '/default-avatar.png'}
                 alt={app.musician_name ?? 'Musician'}
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-12 h-12 rounded-full object-cover border border-gray-200"
               />
-              <div>
-                <p className="font-medium">
-                  {app.musician_name ?? 'Unknown musician'}
+
+              <div className="space-y-0.5">
+                <p className="font-medium text-sm md:text-base text-gray-900">
+                  {app.musician_name}
                 </p>
+
                 {app.message && (
-                  <p className="text-sm text-gray-500 line-clamp-1">
+                  <p className="text-xs md:text-sm text-gray-500 line-clamp-1">
                     {app.message}
                   </p>
                 )}
-                <p className="text-xs text-gray-400">
-                  {new Date(app.created_at).toLocaleString()}
+
+                <p className="text-[11px] text-gray-400">
+                  Applied {new Date(app.created_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
 
-            <StatusBadge status={app.status} />
-          </button>
+            {/* Right side */}
+            <StatusPill status={app.status} />
+          </div>
         ))}
       </div>
-    </div>
+    </main>
   );
 }
 
-function StatusBadge({ status }: { status: Application['status'] }) {
+function StatusPill({ status }: { status: Application['status'] }) {
+  const base =
+    'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border';
+
+  const map = {
+    pending: `${base} bg-yellow-50 text-yellow-800 border-yellow-200`,
+    accepted: `${base} bg-green-50 text-green-800 border-green-200`,
+    declined: `${base} bg-red-50 text-red-800 border-red-200`
+  };
+
   const label =
     status === 'pending'
       ? 'Pending'
@@ -147,18 +172,10 @@ function StatusBadge({ status }: { status: Application['status'] }) {
       ? 'Declined'
       : status;
 
-  const colorClasses =
-    status === 'pending'
-      ? 'bg-yellow-100 text-yellow-800'
-      : status === 'accepted'
-      ? 'bg-green-100 text-green-800'
-      : status === 'declined'
-      ? 'bg-red-100 text-red-800'
-      : 'bg-gray-100 text-gray-800';
+  const classes =
+    status in map
+      ? map[status as keyof typeof map]
+      : `${base} bg-gray-50 text-gray-700 border-gray-200`;
 
-  return (
-    <span className={`text-xs px-2 py-1 rounded-full ${colorClasses}`}>
-      {label}
-    </span>
-  );
+  return <span className={classes}>{label}</span>;
 }

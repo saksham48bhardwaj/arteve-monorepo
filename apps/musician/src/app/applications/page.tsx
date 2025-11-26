@@ -7,7 +7,7 @@ import { supabase } from '@arteve/supabase/client';
 type Status = 'pending' | 'accepted' | 'rejected';
 
 type Row = {
-  id: string;                 
+  id: string;
   created_at: string;
   status: Status;
   message: string | null;
@@ -59,14 +59,15 @@ export default function ApplicationsPage() {
         }[] | null;
         error: Error | null;
       };
+
     if (error) {
       setErr(error.message);
     } else {
       const normalized = (data ?? []).map((d) => ({
-        id: d.id as string,
-        created_at: d.created_at as string,
-        status: d.status as Status,
-        message: (d.message ?? null) as string | null,
+        id: d.id,
+        created_at: d.created_at,
+        status: d.status,
+        message: d.message ?? null,
         gigs: d.gig ?? null,
       })) as Row[];
       setRows(normalized);
@@ -94,39 +95,53 @@ export default function ApplicationsPage() {
   if (loading) return <main className="p-6">Loading…</main>;
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">My Applications</h1>
+    <main className="mx-auto max-w-4xl px-6 py-10 space-y-8 bg-white">
+      <h1 className="text-3xl font-semibold tracking-tight">My Applications</h1>
 
       {rows.length === 0 && (
-        <p className="text-gray-600">You haven’t applied to any gigs yet.</p>
+        <p className="text-gray-600 text-sm">
+          You haven’t applied to any gigs yet.
+        </p>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {rows.map((a) => (
-          <a
+          <button
             key={a.id}
-            href={`/gigs/${a.gigs?.id}`}
-            className="block rounded-2xl border p-4 hover:bg-gray-50"
+            onClick={() => router.push(`/gigs/${a.gigs?.id}`)}
+            className="w-full text-left rounded-3xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition p-6 space-y-3"
           >
+            {/* Title + Status */}
             <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">{a.gigs?.title ?? 'Gig'}</div>
-                <div className="text-sm text-gray-600">
-                  {(a.gigs?.location ?? '—')} · {(a.gigs?.event_date ?? 'TBD')}
-                </div>
-              </div>
-
-              <div className="text-right">
-                <span className="text-xs text-gray-500">
-                  {new Date(a.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-2">
+              <h2 className="text-lg font-semibold">
+                {a.gigs?.title ?? 'Gig'}
+              </h2>
               <StatusPill status={a.status} />
             </div>
-          </a>
+
+            {/* Location + Date */}
+            <div className="text-sm text-gray-600 space-y-0.5">
+              <p>{a.gigs?.location ?? '—'}</p>
+              <p>
+                {a.gigs?.event_date
+                  ? new Date(a.gigs.event_date).toLocaleDateString()
+                  : 'Date TBD'}
+              </p>
+            </div>
+
+            {/* Applied date */}
+            <p className="text-xs text-gray-400">
+              Applied on{' '}
+              {new Date(a.created_at).toLocaleDateString()}
+            </p>
+
+            {/* View indicator */}
+            <div className="flex justify-end pt-1">
+              <span className="text-xs text-blue-600 font-medium">
+                View gig →
+              </span>
+            </div>
+          </button>
         ))}
       </div>
 
@@ -149,7 +164,9 @@ function StatusPill({ status }: { status: Status }) {
   };
 
   return (
-    <span className={`inline-block rounded-full px-2.5 py-1 text-xs border ${styles[status]}`}>
+    <span
+      className={`inline-block rounded-full px-3 py-1 text-xs font-medium border ${styles[status]}`}
+    >
       {labels[status]}
     </span>
   );

@@ -127,7 +127,7 @@ export default function ApplicationDetailPage() {
         profile_snapshot: snapshot,
       });
 
-      // 2) load gig
+      // 2) load gig (for booking + notifications)
       const { data: gigRow, error: gigErr } = await supabase
         .from('gigs')
         .select(
@@ -309,7 +309,13 @@ export default function ApplicationDetailPage() {
   }
 
   if (loading) return <main className="p-6">Loading…</main>;
-  if (error || !app) return <main className="p-6">{error ?? 'Failed to load application.'}</main>;
+  if (error || !app) {
+    return (
+      <main className="p-6 text-sm text-red-600">
+        {error ?? 'Failed to load application.'}
+      </main>
+    );
+  }
 
   const snap = app.profile_snapshot;
   const p = snap?.profile ?? null;
@@ -321,41 +327,82 @@ export default function ApplicationDetailPage() {
 
   const canAct = app.status === 'pending';
 
-  return (
-    <main className="mx-auto max-w-2xl p-6 space-y-6">
-      <h1 className="text-xl font-semibold">Application Details</h1>
+  const appliedDate = new Date(app.created_at).toLocaleString();
 
-      {/* MUSICIAN HEADER */}
-      <section className="border rounded-xl p-4 bg-gray-50 flex gap-3">
-        <img
-          src={p?.avatar_url ?? '/placeholder-avatar.png'}
-          alt={p?.display_name ?? 'Musician'}
-          className="w-14 h-14 rounded-full object-cover border"
-        />
-        <div className="flex-1">
-          <div className="flex justify-between gap-2">
+  const statusLabel =
+    app.status === 'pending'
+      ? 'Pending'
+      : app.status === 'accepted'
+      ? 'Accepted'
+      : app.status === 'rejected'
+      ? 'Rejected'
+      : app.status;
+
+  const statusClasses =
+    app.status === 'pending'
+      ? 'bg-amber-50 text-amber-800 border-amber-200'
+      : app.status === 'accepted'
+      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+      : app.status === 'rejected'
+      ? 'bg-rose-50 text-rose-800 border-rose-200'
+      : 'bg-gray-50 text-gray-800 border-gray-200';
+
+  return (
+    <main className="mx-auto max-w-4xl px-6 py-8 space-y-8 bg-white">
+      {/* PAGE TITLE */}
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Application details
+          </h1>
+          <p className="text-xs text-gray-500 mt-1">
+            Applied on {appliedDate}
+          </p>
+        </div>
+
+        <span
+          className={`inline-flex items-center px-3 py-1 rounded-full border text-xs font-medium ${statusClasses}`}
+        >
+          {statusLabel}
+        </span>
+      </header>
+
+      {/* MUSICIAN HEADER CARD */}
+      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-5 flex gap-4">
+        <div className="flex-shrink-0">
+          <img
+            src={p?.avatar_url ?? '/placeholder-avatar.png'}
+            alt={p?.display_name ?? 'Musician'}
+            className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border border-gray-200"
+          />
+        </div>
+
+        <div className="flex-1 space-y-2">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
             <div>
-              <p className="font-medium">
+              <p className="text-base md:text-lg font-semibold">
                 {p?.display_name ?? 'Unknown musician'}
               </p>
               {p?.location && (
-                <p className="text-xs text-gray-500">{p.location}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {p.location}
+                </p>
               )}
             </div>
           </div>
 
           {p?.quote && (
-            <blockquote className="mt-2 text-xs italic text-gray-700 border-l-2 pl-2">
+            <blockquote className="text-xs md:text-sm italic text-gray-700 border-l-2 border-gray-200 pl-3">
               “{p.quote}”
             </blockquote>
           )}
 
           {p?.genres && p.genres.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {p.genres.map((g) => (
                 <span
                   key={g}
-                  className="px-2 py-0.5 rounded-full bg-white border text-[11px] text-gray-700"
+                  className="px-2.5 py-0.5 rounded-full bg-gray-50 border border-gray-200 text-[11px] text-gray-700"
                 >
                   {g}
                 </span>
@@ -365,37 +412,54 @@ export default function ApplicationDetailPage() {
         </div>
       </section>
 
-      {/* ABOUT SUMMARY */}
-      {p?.bio && (
-        <section className="space-y-1">
-          <h2 className="text-sm font-semibold text-gray-700">Bio</h2>
-          <p className="text-sm text-gray-800 whitespace-pre-line">
-            {p.bio}
-          </p>
-        </section>
-      )}
-
-      {/* Achievements + Shows (left) / Skills + Recommendations + Media (right) */}
+      {/* BIO + MESSAGE */}
       <section className="grid md:grid-cols-2 gap-6">
-        {/* LEFT */}
-        <div className="space-y-4">
+        {p?.bio && (
+          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4 space-y-2">
+            <h2 className="text-sm font-semibold text-gray-700">
+              Bio
+            </h2>
+            <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+              {p.bio}
+            </p>
+          </div>
+        )}
+
+        <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4 space-y-2">
+          <h2 className="text-sm font-semibold text-gray-700">
+            Application message
+          </h2>
+          <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+            {app.message || 'No message provided.'}
+          </p>
+        </div>
+      </section>
+
+      {/* SNAPSHOT GRID */}
+      <section className="grid md:grid-cols-2 gap-6">
+        {/* LEFT COLUMN */}
+        <div className="space-y-6">
           {/* Achievements */}
-          <div>
+          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
             <h3 className="text-sm font-semibold text-gray-700">
               Achievements
             </h3>
             {achievements.length === 0 ? (
-              <p className="text-xs text-gray-500 mt-1">No achievements.</p>
+              <p className="mt-1 text-xs text-gray-500">
+                No achievements listed.
+              </p>
             ) : (
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-2 space-y-2">
                 {achievements.map((a) => (
                   <li
                     key={a.id}
-                    className="border rounded-md bg-gray-50 p-2"
+                    className="border border-gray-100 bg-gray-50 rounded-2xl px-3 py-2"
                   >
-                    <div className="text-xs font-medium">{a.title}</div>
+                    <div className="text-xs font-medium text-gray-900">
+                      {a.title}
+                    </div>
                     {a.description && (
-                      <div className="text-[11px] text-gray-700">
+                      <div className="text-[11px] text-gray-700 mt-0.5">
                         {a.description}
                       </div>
                     )}
@@ -411,20 +475,24 @@ export default function ApplicationDetailPage() {
           </div>
 
           {/* Shows */}
-          <div>
+          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
             <h3 className="text-sm font-semibold text-gray-700">
-              Recent Shows
+              Recent shows
             </h3>
             {shows.length === 0 ? (
-              <p className="text-xs text-gray-500 mt-1">No shows listed.</p>
+              <p className="mt-1 text-xs text-gray-500">
+                No shows listed.
+              </p>
             ) : (
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-2 space-y-2">
                 {shows.map((s) => (
                   <li
                     key={s.id}
-                    className="border rounded-md bg-gray-50 p-2"
+                    className="border border-gray-100 bg-gray-50 rounded-2xl px-3 py-2"
                   >
-                    <div className="text-xs font-medium">{s.title}</div>
+                    <div className="text-xs font-medium text-gray-900">
+                      {s.title}
+                    </div>
                     <div className="text-[11px] text-gray-700">
                       {[s.venue, s.location].filter(Boolean).join(', ')}
                     </div>
@@ -440,21 +508,25 @@ export default function ApplicationDetailPage() {
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div className="space-y-4">
+        {/* RIGHT COLUMN */}
+        <div className="space-y-6">
           {/* Skills */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700">Skills</h3>
+          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
+            <h3 className="text-sm font-semibold text-gray-700">
+              Skills
+            </h3>
             {skills.length === 0 ? (
-              <p className="text-xs text-gray-500 mt-1">No skills listed.</p>
+              <p className="mt-1 text-xs text-gray-500">
+                No skills listed.
+              </p>
             ) : (
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-2 space-y-2">
                 {skills.map((sk) => (
                   <li
                     key={sk.id}
-                    className="border rounded-md bg-gray-50 p-2 flex justify-between items-center"
+                    className="border border-gray-100 bg-gray-50 rounded-2xl px-3 py-2 flex items-center justify-between"
                   >
-                    <span className="text-xs font-medium">
+                    <span className="text-xs font-medium text-gray-900">
                       {sk.skill}
                     </span>
                     {sk.level && (
@@ -469,22 +541,22 @@ export default function ApplicationDetailPage() {
           </div>
 
           {/* Recommendations */}
-          <div>
+          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
             <h3 className="text-sm font-semibold text-gray-700">
               Recommendations
             </h3>
             {recommendations.length === 0 ? (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 No recommendations yet.
               </p>
             ) : (
-              <div className="mt-1 space-y-2">
+              <div className="mt-2 space-y-2">
                 {recommendations.map((r) => (
                   <blockquote
                     key={r.id}
-                    className="border-l-2 pl-2 py-1 bg-gray-50 rounded-md"
+                    className="border-l-4 border-gray-200 bg-gray-50 rounded-2xl pl-3 pr-2 py-2"
                   >
-                    <p className="text-xs text-gray-700 italic">
+                    <p className="text-xs text-gray-800 italic">
                       “{r.content}”
                     </p>
                     {r.author && (
@@ -498,17 +570,17 @@ export default function ApplicationDetailPage() {
             )}
           </div>
 
-          {/* Media preview */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-700">Media</h3>
-            {media.length === 0 ? (
-              <p className="text-xs text-gray-500 mt-1">No media.</p>
-            ) : (
-              <div className="mt-1 flex gap-2 flex-wrap">
+          {/* Media preview (kept minimal) */}
+          {media.length > 0 && (
+            <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
+              <h3 className="text-sm font-semibold text-gray-700">
+                Media preview
+              </h3>
+              <div className="mt-2 flex flex-wrap gap-2">
                 {media.slice(0, 3).map((item) => (
                   <div
                     key={item.id}
-                    className="w-16 h-16 rounded-md overflow-hidden bg-gray-200"
+                    className="w-16 h-16 rounded-xl overflow-hidden bg-gray-200"
                   >
                     {item.type === 'video' ? (
                       <video
@@ -531,44 +603,60 @@ export default function ApplicationDetailPage() {
                   </span>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* APPLICATION MESSAGE */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-700">Message</h2>
-        <p className="mt-1 border rounded-xl p-3 text-sm text-gray-800 whitespace-pre-line">
-          {app.message || 'No message provided.'}
-        </p>
-      </section>
-
-      {/* STATUS */}
-      <section>
-        <h2 className="text-sm font-semibold text-gray-700">Status</h2>
-        <p className="mt-1 text-sm text-gray-800 capitalize">{app.status}</p>
-      </section>
-
-      {/* ACTIONS */}
-      {canAct && (
-        <section className="flex gap-3 pt-2">
-          <button
-            onClick={acceptApplication}
-            disabled={saving}
-            className="flex-1 bg-green-600 text-white py-2 rounded-xl text-sm disabled:opacity-60"
-          >
-            Accept &amp; create booking
-          </button>
-          <button
-            onClick={declineApplication}
-            disabled={saving}
-            className="flex-1 bg-red-600 text-white py-2 rounded-xl text-sm disabled:opacity-60"
-          >
-            Decline
-          </button>
+      {/* LINKS */}
+      {p?.links && Object.keys(p.links).filter((k) => !!p.links?.[k]).length > 0 && (
+        <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4 space-y-2">
+          <h2 className="text-sm font-semibold text-gray-700">Links</h2>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {Object.entries(p.links)
+              .filter(([, v]) => !!v)
+              .map(([key, value]) => (
+                <a
+                  key={key}
+                  href={value as string}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  {key}
+                </a>
+              ))}
+          </div>
         </section>
       )}
+
+      {/* ACTIONS */}
+      <section className="pt-2 border-t border-gray-100 space-y-3">
+        {!canAct && (
+          <p className="text-xs text-gray-500">
+            This application has already been {statusLabel.toLowerCase()}.
+          </p>
+        )}
+
+        {canAct && (
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={acceptApplication}
+              disabled={saving}
+              className="flex-1 rounded-full bg-black text-white py-2.5 text-sm font-medium disabled:opacity-60"
+            >
+              {saving ? 'Processing…' : 'Accept & create booking'}
+            </button>
+            <button
+              onClick={declineApplication}
+              disabled={saving}
+              className="flex-1 rounded-full border border-gray-300 text-sm font-medium py-2.5 hover:bg-gray-50 disabled:opacity-60"
+            >
+              {saving ? 'Processing…' : 'Decline'}
+            </button>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

@@ -66,7 +66,6 @@ export default function OrganizerGigsPage() {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error(error);
       setError('Failed to load gigs.');
       setLoading(false);
       return;
@@ -85,177 +84,207 @@ export default function OrganizerGigsPage() {
       .eq('id', id);
 
     if (error) {
-      console.error(error);
       setError('Failed to update gig status.');
       setActionId(null);
       return;
     }
 
-    setGigs((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, status } : g))
-    );
+    setGigs((prev) => prev.map((g) => (g.id === id ? { ...g, status } : g)));
     setActionId(null);
   }
 
   const filteredGigs =
-    filter === 'all'
-      ? gigs
-      : gigs.filter((g) => g.status === filter);
+    filter === 'all' ? gigs : gigs.filter((g) => g.status === filter);
 
   return (
-    <main className="mx-auto max-w-4xl p-6 space-y-6">
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">My Gigs</h1>
-          <p className="text-sm text-gray-600">
-            Manage your gigs across their lifecycle: Open → Booked → Closed.
-          </p>
+    <main className="min-h-screen bg-slate-50 pb-16">
+      {/* TOP HEADER */}
+      <div className="border-b border-slate-200 bg-white/70 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">
+                Your Gigs
+              </h1>
+              <p className="text-xs text-slate-500 sm:text-sm mt-1">
+                Manage openings, publish new gigs, and track applications.
+              </p>
+            </div>
+
+            <Link
+              href="/gigs/create"
+              className="hidden sm:inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black transition"
+            >
+              + Create gig
+            </Link>
+          </div>
         </div>
-
-        <Link
-          href="/gigs/create"
-          className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm"
-        >
-          Create new gig
-        </Link>
-      </header>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2 text-sm">
-        <FilterChip
-          label="All"
-          active={filter === 'all'}
-          onClick={() => setFilter('all')}
-        />
-        <FilterChip
-          label="Open"
-          active={filter === 'open'}
-          onClick={() => setFilter('open')}
-        />
-        <FilterChip
-          label="Booked"
-          active={filter === 'booked'}
-          onClick={() => setFilter('booked')}
-        />
-        <FilterChip
-          label="Closed"
-          active={filter === 'closed'}
-          onClick={() => setFilter('closed')}
-        />
       </div>
 
-      {loading && <p className="text-gray-600">Loading gigs…</p>}
-      {error && (
-        <p className="text-red-600 text-sm">
-          {error}
-        </p>
-      )}
+      {/* FILTERS */}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-6">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <FilterChip
+            label="All"
+            active={filter === 'all'}
+            onClick={() => setFilter('all')}
+          />
+          <FilterChip
+            label="Open"
+            active={filter === 'open'}
+            onClick={() => setFilter('open')}
+          />
+          <FilterChip
+            label="Booked"
+            active={filter === 'booked'}
+            onClick={() => setFilter('booked')}
+          />
+          <FilterChip
+            label="Closed"
+            active={filter === 'closed'}
+            onClick={() => setFilter('closed')}
+          />
+        </div>
+      </div>
 
-      {!loading && filteredGigs.length === 0 && (
-        <p className="text-gray-600 text-sm">
-          No gigs found for this filter.
-        </p>
-      )}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        {/* STATES */}
+        {loading && (
+          <p className="text-slate-500 text-sm py-10">Loading gigs…</p>
+        )}
+        {error && (
+          <p className="text-red-600 text-sm py-10">{error}</p>
+        )}
 
-      <div className="space-y-3">
-        {filteredGigs.map((gig) => (
-          <article
-            key={gig.id}
-            className="border rounded-2xl p-4 flex items-center justify-between gap-4 hover:bg-gray-50"
-          >
-            <div className="space-y-1">
-              <Link
-                href={`/gigs/${gig.id}`}
-                className="font-medium hover:underline"
-              >
-                {gig.title ?? 'Untitled gig'}
-              </Link>
+        {!loading && filteredGigs.length === 0 && (
+          <div className="py-16 text-center text-slate-500">
+            <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-slate-200/60" />
+            <h2 className="text-base font-medium text-slate-700">
+              No gigs found
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Try switching filters or create a new gig.
+            </p>
 
-              <p className="text-sm text-gray-600">
-                {gig.location ?? 'Location TBD'}
-                {' · '}
-                {gig.event_date
-                  ? new Date(gig.event_date).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })
-                  : 'Date TBD'}
-                {gig.event_time && ` · ${gig.event_time}`}
-              </p>
+            <Link
+              href="/gigs/create"
+              className="inline-flex mt-6 rounded-full bg-slate-900 px-6 py-2 text-sm font-semibold text-white hover:bg-black"
+            >
+              + Create gig
+            </Link>
+          </div>
+        )}
 
-              {(gig.budget_min !== null || gig.budget_max !== null) && (
-                <p className="text-xs text-gray-500">
-                  Budget:{' '}
-                  {gig.budget_min !== null
-                    ? `$${gig.budget_min}`
-                    : 'TBD'}
-                  {gig.budget_max !== null
-                    ? ` – $${gig.budget_max}`
-                    : ''}
+        {/* GIG LIST */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          {filteredGigs.map((gig) => (
+            <div
+              key={gig.id}
+              className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm hover:shadow transition"
+            >
+              {/* Top banner strip */}
+              <div className="h-2 w-full bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900" />
+
+              <div className="p-5 space-y-3">
+                {/* TITLE */}
+                <Link
+                  href={`/gigs/${gig.id}`}
+                  className="block text-lg font-semibold text-slate-900 group-hover:underline"
+                >
+                  {gig.title ?? 'Untitled gig'}
+                </Link>
+
+                {/* DATE + LOCATION */}
+                <p className="text-sm text-slate-600">
+                  {gig.location || 'Location TBD'}
+                  {' · '}
+                  {gig.event_date
+                    ? new Date(gig.event_date).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : 'Date TBD'}
+                  {gig.event_time && ` · ${gig.event_time}`}
                 </p>
-              )}
 
-              <div className="flex items-center gap-2">
-                <StatusBadge status={gig.status} />
-                <p className="text-[11px] text-gray-400">
-                  Created{' '}
-                  {new Date(gig.created_at).toLocaleDateString()}
-                </p>
+                {/* BUDGET */}
+                {(gig.budget_min !== null || gig.budget_max !== null) && (
+                  <p className="text-xs text-slate-500">
+                    Budget:{' '}
+                    {gig.budget_min ? `$${gig.budget_min}` : 'TBD'}
+                    {gig.budget_max ? ` – $${gig.budget_max}` : ''}
+                  </p>
+                )}
+
+                {/* STATUS + CREATED */}
+                <div className="flex items-center gap-2 pt-2">
+                  <StatusBadge status={gig.status} />
+                  <span className="text-[11px] text-slate-400">
+                    Created{' '}
+                    {new Date(gig.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+
+                {/* ACTIONS */}
+                <div className="pt-4 flex items-center justify-between">
+                  <div className="text-xs flex gap-2">
+                    {gig.status === 'open' && (
+                      <button
+                        onClick={() => updateGigStatus(gig.id, 'closed')}
+                        disabled={actionId === gig.id}
+                        className="px-3 py-1 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
+                      >
+                        {actionId === gig.id ? 'Updating…' : 'Close'}
+                      </button>
+                    )}
+
+                    {gig.status === 'booked' && (
+                      <button
+                        onClick={() => updateGigStatus(gig.id, 'closed')}
+                        disabled={actionId === gig.id}
+                        className="px-3 py-1 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition disabled:opacity-50"
+                      >
+                        {actionId === gig.id ? 'Updating…' : 'Complete'}
+                      </button>
+                    )}
+
+                    {gig.status === 'closed' && (
+                      <button
+                        onClick={() => updateGigStatus(gig.id, 'open')}
+                        disabled={actionId === gig.id}
+                        className="px-3 py-1 rounded-full border border-blue-300 text-blue-700 hover:bg-blue-50 transition disabled:opacity-50"
+                      >
+                        {actionId === gig.id ? 'Updating…' : 'Reopen'}
+                      </button>
+                    )}
+                  </div>
+
+                  <Link
+                    href={`/gigs/${gig.id}`}
+                    className="text-sm font-medium text-slate-700 hover:underline"
+                  >
+                    View →
+                  </Link>
+                </div>
               </div>
             </div>
+          ))}
+        </div>
 
-            <div className="flex flex-col items-end gap-2 text-xs">
-              {gig.status === 'open' && (
-                <button
-                  onClick={() => updateGigStatus(gig.id, 'closed')}
-                  disabled={actionId === gig.id}
-                  className="px-3 py-1 rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-60"
-                >
-                  {actionId === gig.id
-                    ? 'Updating…'
-                    : 'Close gig'}
-                </button>
-              )}
-
-              {gig.status === 'booked' && (
-                <button
-                  onClick={() => updateGigStatus(gig.id, 'closed')}
-                  disabled={actionId === gig.id}
-                  className="px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-                >
-                  {actionId === gig.id
-                    ? 'Updating…'
-                    : 'Mark completed'}
-                </button>
-              )}
-
-              {gig.status === 'closed' && (
-                <button
-                  onClick={() => updateGigStatus(gig.id, 'open')}
-                  disabled={actionId === gig.id}
-                  className="px-3 py-1 rounded-lg border border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-60"
-                >
-                  {actionId === gig.id
-                    ? 'Updating…'
-                    : 'Reopen gig'}
-                </button>
-              )}
-
-              <Link
-                href={`/gigs/${gig.id}`}
-                className="text-blue-600 hover:underline"
-              >
-                View details →
-              </Link>
-            </div>
-          </article>
-        ))}
+        {/* FLOATING CREATE BUTTON (mobile) */}
+        <Link
+          href="/gigs/create"
+          className="fixed bottom-6 right-6 sm:hidden rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:bg-black"
+        >
+          + Create gig
+        </Link>
       </div>
     </main>
   );
 }
 
+/* FILTER CHIP */
 function FilterChip({
   label,
   active,
@@ -268,10 +297,10 @@ function FilterChip({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1 rounded-full border text-xs ${
+      className={`px-4 py-1.5 rounded-full border text-sm transition whitespace-nowrap ${
         active
-          ? 'bg-blue-600 text-white border-blue-600'
-          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+          ? 'bg-slate-900 text-white border-slate-900'
+          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
       }`}
     >
       {label}
@@ -279,22 +308,21 @@ function FilterChip({
   );
 }
 
+/* STATUS BADGE */
 function StatusBadge({ status }: { status: GigStatus }) {
   let label = status;
   let classes =
-    'bg-gray-100 text-gray-800 border-gray-200';
+    'bg-slate-200 text-slate-700 border-slate-300';
 
   if (status === 'open') {
-    label = 'Open for applications';
-    classes =
-      'bg-green-100 text-green-800 border-green-200';
+    label = 'Open';
+    classes = 'bg-emerald-100 text-emerald-800 border-emerald-200';
   } else if (status === 'booked') {
     label = 'Booked';
-    classes =
-      'bg-amber-100 text-amber-800 border-amber-200';
+    classes = 'bg-amber-100 text-amber-800 border-amber-200';
   } else if (status === 'closed') {
-    label = 'Closed / Completed';
-    classes = 'bg-gray-200 text-gray-800 border-gray-300';
+    label = 'Closed';
+    classes = 'bg-slate-300 text-slate-700 border-slate-400';
   }
 
   return (

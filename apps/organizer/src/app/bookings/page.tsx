@@ -4,11 +4,17 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 
+/* ------------------------------------
+   TYPES
+------------------------------------ */
 type BookingStatus =
   | 'pending'
   | 'accepted'
   | 'declined'
   | 'cancelled'
+  | 'canceled_by_organizer'
+  | 'canceled_by_musician'
+  | 'completed'
   | string;
 
 type Booking = {
@@ -18,7 +24,7 @@ type Booking = {
   organizer_name: string | null;
   organizer_email: string | null;
   event_title: string;
-  event_date: string; // date from Postgres comes as string
+  event_date: string;
   location: string | null;
   budget_min: number | null;
   budget_max: number | null;
@@ -31,7 +37,6 @@ type Booking = {
   musician_avatar_url: string | null;
 };
 
-// Shape returned by Supabase for this query
 type BookingRow = {
   id: string;
   musician_id: string;
@@ -52,61 +57,64 @@ type BookingRow = {
     id: string;
     display_name: string | null;
     avatar_url: string | null;
-  } | null;
+  }[] | null;
 };
 
-const STATUS_LABEL: Record<BookingStatus, string> = {
+const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
   accepted: 'Accepted',
   declined: 'Declined',
   cancelled: 'Cancelled',
+  canceled_by_organizer: 'Cancelled by organizer',
+  canceled_by_musician: 'Cancelled by musician',
+  completed: 'Completed',
 };
 
-function statusLabel(status: BookingStatus): string {
-  return STATUS_LABEL[status] ?? status;
+const STATUS_STYLES: Record<string, string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  accepted: 'bg-green-100 text-green-800',
+  declined: 'bg-red-100 text-red-800',
+  cancelled: 'bg-gray-200 text-gray-800',
+  canceled_by_organizer: 'bg-gray-200 text-gray-800',
+  canceled_by_musician: 'bg-gray-200 text-gray-800',
+  completed: 'bg-blue-100 text-blue-800',
+};
+
+function getStatusLabel(status: string): string {
+  return STATUS_LABELS[status] ?? status;
 }
 
-function statusClasses(status: BookingStatus): string {
-  switch (status) {
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'accepted':
-      return 'bg-green-100 text-green-800';
-    case 'declined':
-      return 'bg-red-100 text-red-800';
-    case 'cancelled':
-      return 'bg-gray-100 text-gray-700';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
+function getStatusClass(status: string): string {
+  return STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-800';
 }
 
+/* ------------------------------------
+   COMPONENT
+------------------------------------ */
 export default function OrganizerBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | BookingStatus>('all');
+  const [filter, setFilter] = useState<
+    'all' | Exclude<BookingStatus, 'all'>
+  >('all');
 
+  /* LOAD BOOKINGS */
   useEffect(() => {
     async function load() {
       setLoading(true);
 
-      const {
-        data: auth,
-        error: authErr,
-      } = await supabase.auth.getUser();
+      const { data: auth } = await supabase.auth.getUser();
+      const organizerId = auth?.user?.id;
 
-      if (authErr || !auth.user) {
+      if (!organizerId) {
         setBookings([]);
         setLoading(false);
         return;
       }
 
-      const organizerId = auth.user.id;
-
       const { data, error } = await supabase
         .from('bookings')
-        .select(
-          `
+        .select(`
           id,
           musician_id,
           organizer_id,
@@ -127,8 +135,7 @@ export default function OrganizerBookingsPage() {
             display_name,
             avatar_url
           )
-        `
-        )
+        `)
         .eq('organizer_id', organizerId)
         .order('created_at', { ascending: false });
 
@@ -139,7 +146,7 @@ export default function OrganizerBookingsPage() {
         return;
       }
 
-      const mapped: Booking[] = (data as unknown as BookingRow[]).map((row) => ({
+      const mapped = (data as BookingRow[]).map((row) => ({
         id: row.id,
         musician_id: row.musician_id,
         organizer_id: row.organizer_id,
@@ -155,8 +162,8 @@ export default function OrganizerBookingsPage() {
         created_at: row.created_at,
         updated_at: row.updated_at,
         event_time: row.event_time,
-        musician_name: row.musician?.display_name ?? 'Unknown',
-        musician_avatar_url: row.musician?.avatar_url ?? null,
+        musician_name: row.musician?.[0]?.display_name ?? 'Unknown',
+        musician_avatar_url: row.musician?.[0]?.avatar_url ?? null,
       }));
 
       setBookings(mapped);
@@ -166,65 +173,73 @@ export default function OrganizerBookingsPage() {
     load();
   }, []);
 
-  const filteredBookings =
-    filter === 'all'
-      ? bookings
-      : bookings.filter((b) => b.status === filter);
+  const filtered = filter === 'all'
+    ? bookings
+    : bookings.filter((b) => b.status === filter);
 
+  /* ------------------------------------
+     RENDER
+  ------------------------------------ */
   return (
-    <main className="mx-auto max-w-4xl p-6 space-y-4">
-      <header className="flex items-center justify-between gap-3">
+    <main className="mx-auto max-w-4xl p-6 space-y-6">
+      {/* HEADER */}
+      <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Bookings</h1>
-          <p className="text-sm text-gray-500">
-            View and manage bookings created from gig applications.
+          <h1 className="text-2xl font-semibold">Bookings</h1>
+          <p className="text-sm text-gray-600">
+            View and manage all bookings created from your gigs.
           </p>
-        </div>
-
-        <div className="flex gap-2 text-sm">
-          {(['all', 'pending', 'accepted', 'declined', 'cancelled'] as const).map(
-            (statusKey) => (
-              <button
-                key={statusKey}
-                onClick={() => setFilter(statusKey)}
-                className={`px-3 py-1 rounded-full border ${
-                  filter === statusKey
-                    ? 'bg-black text-white'
-                    : 'bg-white text-gray-700'
-                }`}
-              >
-                {statusKey === 'all' ? 'All' : statusLabel(statusKey)}
-              </button>
-            )
-          )}
         </div>
       </header>
 
-      {loading && <p>Loading bookings…</p>}
+      {/* FILTERS */}
+      <div className="flex gap-2 overflow-x-auto pb-2 text-sm">
+        {(['all', 'pending', 'accepted', 'declined', 'cancelled', 'completed'] as const).map(
+          (key) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`px-4 py-1 rounded-full border whitespace-nowrap ${
+                filter === key
+                  ? 'bg-black text-white'
+                  : 'bg-white text-gray-700'
+              }`}
+            >
+              {key === 'all' ? 'All' : getStatusLabel(key)}
+            </button>
+          )
+        )}
+      </div>
 
-      {!loading && filteredBookings.length === 0 && (
-        <p className="text-sm text-gray-500">No bookings yet.</p>
+      {/* LOADING */}
+      {loading && <p className="text-sm text-gray-600">Loading bookings…</p>}
+
+      {/* EMPTY STATE */}
+      {!loading && filtered.length === 0 && (
+        <p className="text-sm text-gray-500">No bookings found.</p>
       )}
 
+      {/* BOOKING LIST */}
       <div className="space-y-3">
-        {filteredBookings.map((b) => (
+        {filtered.map((b) => (
           <Link
             key={b.id}
             href={`/bookings/${b.id}`}
-            className="block border rounded-xl px-4 py-3 hover:bg-gray-50 transition"
+            className="block border rounded-xl p-4 hover:bg-gray-50 transition"
           >
-            <div className="flex justify-between items-start gap-3">
-              <div className="flex items-start gap-3">
+            <div className="flex justify-between items-center gap-4">
+              {/* Left side */}
+              <div className="flex items-center gap-3">
                 <img
                   src={b.musician_avatar_url ?? '/default-avatar.png'}
-                  alt={b.musician_name ?? 'Musician'}
                   className="w-10 h-10 rounded-full object-cover"
+                  alt={b.musician_name ?? 'Musician'}
                 />
+
                 <div>
-                  <p className="text-sm text-gray-500">
-                    {b.musician_name ?? 'Unknown musician'}
-                  </p>
-                  <p className="font-medium">{b.event_title}</p>
+                  <p className="text-sm text-gray-500">{b.musician_name}</p>
+                  <p className="font-semibold">{b.event_title}</p>
+
                   <p className="text-xs text-gray-500 mt-1">
                     {b.event_date &&
                       new Date(b.event_date).toLocaleDateString(undefined, {
@@ -234,20 +249,24 @@ export default function OrganizerBookingsPage() {
                       })}
                     {b.location ? ` · ${b.location}` : ''}
                   </p>
-                  {b.budget_min !== null && b.budget_max !== null && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Budget: ${b.budget_min}–${b.budget_max}
+
+                  {(b.budget_min !== null || b.budget_max !== null) && (
+                    <p className="text-xs text-gray-500">
+                      Budget:{' '}
+                      {b.budget_min ? `$${b.budget_min}` : 'TBD'}
+                      {b.budget_max ? ` – $${b.budget_max}` : ''}
                     </p>
                   )}
                 </div>
               </div>
 
+              {/* Status pill */}
               <span
-                className={`text-xs px-2 py-1 rounded-full ${statusClasses(
+                className={`text-xs px-2 py-1 rounded-full ${getStatusClass(
                   b.status
                 )}`}
               >
-                {statusLabel(b.status)}
+                {getStatusLabel(b.status)}
               </span>
             </div>
           </Link>

@@ -15,9 +15,10 @@ type Profile = {
   venue_photos: string[] | null;
 };
 
-export default function VenueProfilePage() {
+export default function OrganizerProfilePage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -32,6 +33,9 @@ export default function VenueProfilePage() {
   const [website, setWebsite] = useState('');
   const [venuePhotos, setVenuePhotos] = useState<string[]>([]);
 
+  // -------------------------
+  // LOAD PROFILE
+  // -------------------------
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -39,6 +43,7 @@ export default function VenueProfilePage() {
         router.push('/login');
         return;
       }
+
       setUserId(user.id);
 
       const { data, error } = await supabase
@@ -53,15 +58,18 @@ export default function VenueProfilePage() {
         return;
       }
 
-      const p = data as Profile | null;
-      if (p) {
+      if (data) {
+        const p = data as Profile;
+
         setVenueName(p.display_name ?? '');
         setBio(p.bio ?? '');
         setLocation(p.location ?? '');
+
         const links = p.links ?? {};
         setInstagram(links.instagram ?? '');
         setYoutube(links.youtube ?? '');
         setWebsite(links.website ?? '');
+
         setVenuePhotos(p.venue_photos ?? []);
       }
 
@@ -69,26 +77,27 @@ export default function VenueProfilePage() {
     })();
   }, [router]);
 
+  // -------------------------
+  // UPLOAD PHOTOS
+  // -------------------------
   async function handleVenuePhotoUpload(e: ChangeEvent<HTMLInputElement>) {
     if (!userId) return;
     const files = e.target.files;
-    if (!files || files.length === 0) return;
+    if (!files) return;
 
     setUploadingPhotos(true);
     setErr(null);
 
-    const newUrls: string[] = [];
+    const uploaded: string[] = [];
 
     try {
       for (const file of Array.from(files)) {
         const ext = file.name.split('.').pop() ?? 'jpg';
-        const path = `venue-photos/${userId}/${Date.now()}-${Math.random()
-          .toString(36)
-          .slice(2)}.${ext}`;
+        const path = `venue-photos/${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
         const { error: uploadError } = await supabase
           .storage
-          .from('media') // ⬅ change bucket name here if needed
+          .from('media')
           .upload(path, file);
 
         if (uploadError) {
@@ -96,30 +105,31 @@ export default function VenueProfilePage() {
           continue;
         }
 
-        const { data: publicData } = supabase
+        const { data: publicUrl } = supabase
           .storage
           .from('media')
           .getPublicUrl(path);
 
-        if (publicData?.publicUrl) {
-          newUrls.push(publicData.publicUrl);
-        }
+        if (publicUrl?.publicUrl) uploaded.push(publicUrl.publicUrl);
       }
 
-      if (newUrls.length) {
-        setVenuePhotos(prev => [...prev, ...newUrls]);
+      if (uploaded.length) {
+        setVenuePhotos(prev => [...prev, ...uploaded]);
       }
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : 'Failed to upload photos');
-    } finally {
-      setUploadingPhotos(false);
-      // reset input so same file can be selected again if needed
-      e.target.value = '';
+    } catch (e) {
+      setErr('Photo upload failed.');
     }
+
+    setUploadingPhotos(false);
+    e.target.value = '';
   }
 
+  // -------------------------
+  // SAVE PROFILE
+  // -------------------------
   async function saveProfile() {
     if (!userId) return;
+
     setSaving(true);
     setErr(null);
 
@@ -136,7 +146,7 @@ export default function VenueProfilePage() {
           {
             id: userId,
             display_name: venueName || null,
-            role: 'organizer',              // 🔒 fixed role for this app
+            role: 'organizer',
             bio: bio || null,
             location: location || null,
             links,
@@ -146,8 +156,8 @@ export default function VenueProfilePage() {
         );
 
       if (error) throw error;
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : 'Failed to save');
+    } catch {
+      setErr('Failed to save changes.');
     } finally {
       setSaving(false);
     }
@@ -158,90 +168,104 @@ export default function VenueProfilePage() {
     router.push('/login');
   }
 
-  if (loading) return <main className="p-6">Loading venue profile…</main>;
+  if (loading) return <main className="p-6">Loading profile…</main>;
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-6">
+    <main className="mx-auto max-w-3xl p-6 space-y-8">
+
+      {/* HEADER */}
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Venue profile</h1>
+        <h1 className="text-2xl font-semibold">Organizer Profile</h1>
         <p className="text-sm text-gray-600">
-          This is what musicians will see when they view Atomic Rooster on Arteve.
+          This is what musicians will see when viewing your venue on Arteve.
         </p>
       </header>
 
-      <section className="space-y-4">
-        <label className="block">
-          <span className="text-sm font-medium">Venue name</span>
+      {/* PROFILE CARD */}
+      <div className="bg-white border rounded-2xl p-6 space-y-6 shadow-sm">
+
+        {/* Venue name */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Venue name</label>
           <input
-            className="w-full border rounded-xl p-2 mt-1"
+            className="w-full border rounded-xl px-3 py-2 text-sm"
             value={venueName}
             onChange={e => setVenueName(e.target.value)}
             placeholder="Atomic Rooster"
           />
-        </label>
+        </div>
 
-        <label className="block">
-          <span className="text-sm font-medium">About this venue</span>
+        {/* About */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">About this venue</label>
           <textarea
-            className="w-full border rounded-xl p-2 mt-1"
-            rows={4}
+            className="w-full border rounded-xl px-3 py-2 text-sm min-h-[120px]"
             value={bio}
             onChange={e => setBio(e.target.value)}
             placeholder="Cozy Bank Street bar with weekly live music and monthly art shows."
           />
-        </label>
+        </div>
 
-        <label className="block">
-          <span className="text-sm font-medium">Location</span>
+        {/* Location */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Location</label>
           <input
-            className="w-full border rounded-xl p-2 mt-1"
+            className="w-full border rounded-xl px-3 py-2 text-sm"
             value={location}
             onChange={e => setLocation(e.target.value)}
             placeholder="303 Bank St, Ottawa, ON"
           />
-        </label>
-      </section>
+        </div>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium">Online presence</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <label className="block text-sm">
-            Instagram
+      </div>
+
+      {/* SOCIAL LINKS */}
+      <div className="bg-white border rounded-2xl p-6 space-y-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-gray-800">Online presence</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Instagram</label>
             <input
-              className="w-full border rounded-xl p-2 mt-1"
+              className="w-full border rounded-xl px-3 py-2 text-sm"
               value={instagram}
               onChange={e => setInstagram(e.target.value)}
               placeholder="@atomicrooster"
             />
-          </label>
-          <label className="block text-sm">
-            YouTube
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">YouTube</label>
             <input
-              className="w-full border rounded-xl p-2 mt-1"
+              className="w-full border rounded-xl px-3 py-2 text-sm"
               value={youtube}
               onChange={e => setYoutube(e.target.value)}
+              placeholder="Channel URL"
             />
-          </label>
-          <label className="block text-sm">
-            Website
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Website</label>
             <input
-              className="w-full border rounded-xl p-2 mt-1"
+              className="w-full border rounded-xl px-3 py-2 text-sm"
               value={website}
               onChange={e => setWebsite(e.target.value)}
-              placeholder="https://www.atomicrooster.ca"
+              placeholder="https://example.com"
             />
-          </label>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium">Venue photos</h2>
+      {/* PHOTOS */}
+      <div className="bg-white border rounded-2xl p-6 space-y-4 shadow-sm">
+        <h2 className="text-sm font-semibold text-gray-800">Venue photos</h2>
         <p className="text-xs text-gray-500">
-          Add a few photos of your stage, bar, or crowd so musicians know what the space looks like.
+          Add photos of your stage, interior, or crowd so musicians understand your setup.
         </p>
 
-        <label className="inline-flex items-center gap-2 text-sm">
-          <span className="px-3 py-2 border rounded-xl cursor-pointer">
+        {/* Upload button */}
+        <label className="inline-flex items-center gap-2 cursor-pointer">
+          <span className="px-4 py-2 text-sm border rounded-xl bg-gray-50 hover:bg-gray-100">
             {uploadingPhotos ? 'Uploading…' : 'Upload photos'}
           </span>
           <input
@@ -253,40 +277,38 @@ export default function VenueProfilePage() {
           />
         </label>
 
+        {/* Gallery */}
         {venuePhotos.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {venuePhotos.map((url) => (
               <div
                 key={url}
                 className="relative overflow-hidden rounded-xl border aspect-video bg-gray-100"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={url}
-                  alt="Venue photo"
-                  className="w-full h-full object-cover"
-                />
+                <img src={url} className="w-full h-full object-cover" alt="" />
               </div>
             ))}
           </div>
         )}
-      </section>
+      </div>
 
-      <section className="flex gap-3">
+      {/* ACTIONS */}
+      <div className="flex gap-3 pt-2">
         <button
           onClick={saveProfile}
           disabled={saving}
-          className="px-4 py-2 rounded-xl border text-sm"
+          className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm disabled:opacity-60"
         >
           {saving ? 'Saving…' : 'Save profile'}
         </button>
+
         <button
           onClick={signOut}
-          className="px-4 py-2 rounded-xl border text-sm"
+          className="px-5 py-2.5 rounded-xl border text-sm"
         >
           Sign out
         </button>
-      </section>
+      </div>
 
       {err && <p className="text-sm text-red-600">{err}</p>}
     </main>
