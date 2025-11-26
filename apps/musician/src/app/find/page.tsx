@@ -1,5 +1,9 @@
 'use client';
 
+import { Suspense } from 'react';
+
+export const dynamic = "force-dynamic";
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@arteve/supabase/client';
@@ -18,37 +22,19 @@ import {
   PAGE_SIZE,
 } from '@/lib/find-queries';
 
-const TABS = [
-  { key: 'people', label: 'People' },
-  { key: 'gigs', label: 'Gigs' },
-  { key: 'venues', label: 'Venues' },
-  { key: 'posts', label: 'Posts' },
-  { key: 'events', label: 'Events' },
-];
+// Wrapper Component to satisfy Suspense requirement
+export default function FindPageWrapper() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FindPageContent />
+    </Suspense>
+  );
+}
 
-type ResultType =
-  | PersonResult[]
-  | GigResult[]
-  | VenueResult[]
-  | PostResult[]
-  | EventResult[]
-  | [];
-
-type GigFilters = {
-  location: string;
-  genre: string;
-  minBudget: number | null;
-  maxBudget: number | null;
-};
-
-const DEFAULT_FILTERS: GigFilters = {
-  location: '',
-  genre: '',
-  minBudget: null,
-  maxBudget: null,
-};
-
-export default function FindPage() {
+// -------------------------------------------
+// Inner Component (actual page logic)
+// -------------------------------------------
+function FindPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -124,7 +110,7 @@ export default function FindPage() {
 
         const newResults = (data || []) as (PersonResult | GigResult | VenueResult | PostResult | EventResult)[];
         setResults((prev) =>
-          page === 1 ? newResults : [...(prev as (PersonResult | GigResult | VenueResult | PostResult | EventResult)[]), ...newResults]
+          page === 1 ? newResults : [...prev, ...newResults]
         );
         setHasMore(newResults.length === PAGE_SIZE);
       } catch (err) {
@@ -140,7 +126,6 @@ export default function FindPage() {
   // -------------------- Infinite scroll observer --------------------
   useEffect(() => {
     if (!loadMoreRef.current) return;
-
     const el = loadMoreRef.current;
 
     const observer = new IntersectionObserver(
@@ -155,9 +140,7 @@ export default function FindPage() {
 
     observer.observe(el);
 
-    return () => {
-      observer.unobserve(el);
-    };
+    return () => observer.unobserve(el);
   }, [hasMore, loading]);
 
   // -------------------- Helpers --------------------
@@ -165,7 +148,7 @@ export default function FindPage() {
     setFilters((prev) => {
       if (field === 'minBudget' || field === 'maxBudget') {
         const num = value === '' ? null : Number(value);
-        return { ...prev, [field]: isNaN(num as number) ? null : num };
+        return { ...prev, [field]: num === null || isNaN(num) ? null : num };
       }
       return { ...prev, [field]: value };
     });
@@ -174,7 +157,7 @@ export default function FindPage() {
   // -------------------- Render --------------------
   return (
     <div className="p-4 space-y-4">
-      {/* Search Bar + Filter Button */}
+      {/* Search Bar */}
       <div className="flex items-center bg-gray-100 rounded-lg px-3 py-2 gap-3">
         <button
           type="button"
@@ -293,7 +276,6 @@ export default function FindPage() {
           return null;
         })}
 
-        {/* Infinite scroll sentinel */}
         {hasMore && (
           <div
             ref={loadMoreRef}
@@ -304,7 +286,7 @@ export default function FindPage() {
         )}
       </div>
 
-      {/* Filter Sheet (for gigs) */}
+      {/* Filters (Sheet) */}
       {showFilters && (
         <div className="fixed inset-0 bg-black/30 flex items-end justify-center z-50">
           <div className="bg-white w-full max-w-md rounded-t-2xl p-4 space-y-4">
@@ -337,7 +319,7 @@ export default function FindPage() {
 
               <div>
                 <label className="block text-sm text-gray-700 mb-1">
-                  Genre (for gigs)
+                  Genre
                 </label>
                 <input
                   type="text"
@@ -406,3 +388,39 @@ export default function FindPage() {
     </div>
   );
 }
+
+// -------------------------------------------
+// Tabs for navigation
+// -------------------------------------------
+const TABS = [
+  { key: 'people', label: 'People' },
+  { key: 'gigs', label: 'Gigs' },
+  { key: 'venues', label: 'Venues' },
+  { key: 'posts', label: 'Posts' },
+  { key: 'events', label: 'Events' },
+];
+
+// -------------------------------------------
+// Types used inside this component
+// -------------------------------------------
+type ResultType =
+  | PersonResult[]
+  | GigResult[]
+  | VenueResult[]
+  | PostResult[]
+  | EventResult[]
+  | [];
+
+type GigFilters = {
+  location: string;
+  genre: string;
+  minBudget: number | null;
+  maxBudget: number | null;
+};
+
+const DEFAULT_FILTERS: GigFilters = {
+  location: '',
+  genre: '',
+  minBudget: null,
+  maxBudget: null,
+};

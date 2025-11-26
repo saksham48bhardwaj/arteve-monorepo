@@ -1,3 +1,5 @@
+'use client';
+
 import { supabase } from '@arteve/supabase/client';
 
 /* -------------------- TYPES -------------------- */
