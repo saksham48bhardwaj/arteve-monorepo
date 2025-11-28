@@ -1,103 +1,155 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, ChangeEvent, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 
 export default function NewPostPage() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
-
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Ensure user is logged in
   useEffect(() => {
-    (async ()=>{
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/login'); return; }
-      setUserId(user.id);
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) router.push('/login');
     })();
   }, [router]);
 
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] || null;
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
     setFile(f);
-    setPreview(f ? URL.createObjectURL(f) : null);
+    setPreviewUrl(f ? URL.createObjectURL(f) : null);
   }
 
-  async function submit() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) { router.push('/login'); return; }
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErrorMsg(null);
 
-  if (!file) { setErr('Please choose an image or video'); return; }
-  setUploading(true); setErr(null);
+    if (!file) {
+      setErrorMsg('Please choose an image or video first.');
+      return;
+    }
 
-  try {
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-    const mediaType = file.type.startsWith('video') ? 'video' : 'image';
-    const path = `posts/${user.id}/${Date.now()}.${ext}`;
+    try {
+      setSubmitting(true);
 
-    // 1) upload to storage
-    const { error: upErr } = await supabase.storage.from('media').upload(path, file, {
-      cacheControl: '3600',
-      upsert: false
-    });
-    if (upErr) throw upErr;
+      // 1️⃣ Get user
+      const {
+        data: { user },
+        error: userErr,
+      } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+      if (!user) throw new Error('You must be logged in to post.');
 
-    // 2) get public URL
-    const { data: pub } = supabase.storage.from('media').getPublicUrl(path);
-    const media_url = pub.publicUrl;
+      const profileId = user.id;
 
-    // 3) insert row (RLS requires author_id = auth.uid())
-    const { error: dbErr } = await supabase.from('posts').insert([{
-      author_id: user.id,
-      caption: caption || null,
-      media_url,
-      media_type: mediaType
-    }]);
-    if (dbErr) throw dbErr;
+      // 2️⃣ Upload file to Supabase Storage
+      const ext = file.name.split('.').pop();
+      const fileName = `${profileId}-${Date.now()}.${ext}`;
+      const filePath = `profiles/${profileId}/${fileName}`;
 
-    // 4) go home
-    router.push('/');
-  } catch (e:unknown) {
-    setErr(e instanceof Error ? e.message : 'Upload failed');
-  } finally {
-    setUploading(false);
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 3️⃣ Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('media')
+        .getPublicUrl(filePath);
+
+      const mediaUrl = publicUrlData.publicUrl;
+      const mediaType = file.type.startsWith('video') ? 'video' : 'image';
+
+      // 4️⃣ Insert into unified posts table
+      const { error: postErr } = await supabase.from('posts').insert({
+        profile_id: profileId,
+        media_url: mediaUrl,
+        media_type: mediaType,
+        caption: caption || null,
+        kind: 'post', // <–– THIS IS IMPORTANT
+      });
+
+      if (postErr) throw postErr;
+
+      // 5️⃣ Redirect home
+      router.push('/');
+    } catch (err: unknown) {
+      console.error('NEW POST ERROR:', err);
+      setErrorMsg(
+        err instanceof Error ? err.message : 'Failed to publish your post.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
-}
-
 
   return (
-    <main className="mx-auto max-w-xl p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">New Post</h1>
+    <main className="mx-auto max-w-3xl px-6 py-10 space-y-6">
+      <h1 className="text-xl font-semibold">New Post</h1>
 
-      <label className="block">
-        <span className="text-sm">Image or video</span>
-        <input type="file" accept="image/*,video/*" onChange={onFile} className="mt-1" />
-      </label>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Preview */}
+        <div className="rounded-2xl border px-6 py-6 flex flex-col items-center gap-4">
+          {previewUrl ? (
+            file?.type.startsWith('video') ? (
+              <video
+                src={previewUrl}
+                className="max-h-80 rounded-xl border"
+                controls
+              />
+            ) : (
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="max-h-80 rounded-xl border object-contain"
+              />
+            )
+          ) : (
+            <div className="h-40 w-full max-w-md rounded-xl border border-dashed flex items-center justify-center text-sm text-gray-500">
+              Choose an image or video to get started.
+            </div>
+          )}
 
-      {preview && (
-        file?.type.startsWith('video') ? (
-          <video className="w-full rounded-2xl border" src={preview} controls />
-        ) : (
-          <img className="w-full rounded-2xl border" src={preview} alt="" />
-        )
-      )}
+          <label className="inline-flex cursor-pointer items-center rounded-full border px-4 py-2 text-sm hover:bg-gray-50">
+            Choose file
+            <input
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </label>
+        </div>
 
-      <label className="block">
-        <span className="text-sm">Caption</span>
-        <textarea className="w-full border p-2 mt-1" rows={3}
-                  value={caption} onChange={e=>setCaption(e.target.value)} />
-      </label>
+        {/* Caption */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">Caption</label>
+          <textarea
+            className="w-full rounded-2xl border px-3.5 py-2.5 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black/5"
+            rows={3}
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Add some context to your performance…"
+          />
+        </div>
 
-      <button onClick={submit} disabled={uploading} className="px-4 py-2 border rounded">
-        {uploading ? 'Uploading…' : 'Publish'}
-      </button>
+        {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
 
-      {err && <p className="text-red-600">{err}</p>}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-full bg-black px-6 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+        >
+          {submitting ? 'Publishing…' : 'Publish'}
+        </button>
+      </form>
     </main>
   );
 }

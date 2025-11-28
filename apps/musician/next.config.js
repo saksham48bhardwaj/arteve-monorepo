@@ -1,7 +1,8 @@
-/** @type {import('next').NextConfig} */
-import nextPWA from "next-pwa";
+/* eslint-disable @typescript-eslint/no-require-imports */
 
-const withPWA = nextPWA({
+/** @type {import('next').NextConfig} */
+
+const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
   skipWaiting: true,
@@ -12,4 +13,4 @@ const nextConfig = {
   reactStrictMode: true,
 };
 
-export default withPWA(nextConfig);
+module.exports = withPWA(nextConfig);

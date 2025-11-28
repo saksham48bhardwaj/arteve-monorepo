@@ -2,49 +2,56 @@
 
 import { supabase } from '@arteve/supabase/client';
 
-/* -------------------- TYPES -------------------- */
+/* ============================================================
+   TYPES
+   ============================================================ */
+
 export type PersonResult = {
   id: string;
-  full_name: string;
+  display_name: string | null;
   avatar_url: string | null;
-  username?: string;
-  is_verified?: boolean;
+  location: string | null;
+  genres: string[] | null;
 };
 
 export type GigResult = {
   id: string;
   title: string;
-  genre?: string;
-  location?: string;
-  budget_min?: number | null;
-  budget_max?: number | null;
-  event_date?: string;
+  location: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  event_date: string | null;
 };
 
 export type VenueResult = {
   id: string;
-  venue_name?: string;
-  name?: string;
-  location?: string;
-  avatar_url?: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  location: string | null;
 };
 
 export type PostResult = {
-  id: string;
-  content?: string;
-  text?: string;
-  created_at?: string;
+  id: number;
+  media_url: string;
+  caption: string | null;
+  created_at: string;
+  profile_id: string;
+  content?: string | null;
+  text?: string | null;
 };
 
 export type EventResult = {
   id: string;
   title: string;
-  location?: string;
-  date?: string;
-  image_url?: string | null;
+  location: string | null;
+  date: string | null;
+  image_url: string | null;
 };
 
-/* -------------------- Pagination Utils -------------------- */
+/* ============================================================
+   PAGINATION
+   ============================================================ */
+
 export const PAGE_SIZE = 20;
 
 function getRange(page: number) {
@@ -53,7 +60,10 @@ function getRange(page: number) {
   return { from, to };
 }
 
-/* -------------------- PEOPLE SEARCH -------------------- */
+/* ============================================================
+   PEOPLE SEARCH
+   ============================================================ */
+
 export async function searchPeople(
   query: string,
   page = 1
@@ -62,16 +72,28 @@ export async function searchPeople(
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, full_name, avatar_url, username, is_verified')
+    .select(
+      `
+      id,
+      display_name,
+      avatar_url,
+      location,
+      genres
+    `
+    )
     .eq('role', 'musician')
-    .ilike('full_name', `%${query}%`)
+    .ilike('display_name', `%${query}%`)
     .range(from, to);
 
   if (error) throw error;
+
   return (data ?? []) as PersonResult[];
 }
 
-/* -------------------- GIG SEARCH (with filters) -------------------- */
+/* ============================================================
+   GIG SEARCH (with filters)
+   ============================================================ */
+
 export type GigFilters = {
   location?: string;
   genre?: string;
@@ -89,33 +111,34 @@ export async function searchGigs(
 
   let q = supabase
     .from('gigs')
-    .select('id, title, genres, location, budget_min, budget_max, event_date')
+    .select('id, title, location, budget_min, budget_max, event_date')
     .eq('status', 'open')
-    .neq('organizer_id', musicianId); // avoid gigs created by this user (if they are also an organizer)
+    .neq('organizer_id', musicianId);
 
-  // Text search in several fields
+  // Text search
   if (query) {
     q = q.or(
-      `title.ilike.%${query}%,location.ilike.%${query}%,genres.cs.{${query}}`
+      `title.ilike.%${query}%,location.ilike.%${query}%`
     );
   }
 
   // Filters
-  if (filters.genre) {
-    // genres is text[] - use the "contains" operator
-    q = q.contains('genres', [filters.genre]);
-  }
   if (filters.location) q = q.ilike('location', `%${filters.location}%`);
-  if (filters.minBudget != null) q = q.gte('budget_min', filters.minBudget);
-  if (filters.maxBudget != null) q = q.lte('budget_max', filters.maxBudget);
+  if (filters.genre) q = q.contains('genres', [filters.genre]);
+  if (filters.minBudget) q = q.gte('budget_min', filters.minBudget);
+  if (filters.maxBudget) q = q.lte('budget_max', filters.maxBudget);
 
   const { data, error } = await q.range(from, to);
 
   if (error) throw error;
+
   return (data ?? []) as GigResult[];
 }
 
-/* -------------------- VENUE SEARCH -------------------- */
+/* ============================================================
+   VENUE SEARCH (Organizers)
+   ============================================================ */
+
 export async function searchVenues(
   query: string,
   page = 1
@@ -124,19 +147,21 @@ export async function searchVenues(
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, venue_name, full_name:name, location, avatar_url')
+    .select('id, display_name, avatar_url, location')
     .eq('role', 'organizer')
-    .eq('is_venue', true)
-    .or(
-      `venue_name.ilike.%${query}%,full_name.ilike.%${query}%,location.ilike.%${query}%`
-    )
+    .ilike('display_name', `%${query}%`)
     .range(from, to);
 
   if (error) throw error;
+
   return (data ?? []) as VenueResult[];
 }
 
-/* -------------------- POSTS SEARCH -------------------- */
+/* ============================================================
+   POSTS SEARCH
+   (Search caption of ALL posts + bits)
+   ============================================================ */
+
 export async function searchPosts(
   query: string,
   page = 1
@@ -144,17 +169,21 @@ export async function searchPosts(
   const { from, to } = getRange(page);
 
   const { data, error } = await supabase
-    .from('bits')
-    .select('id, content, created_at')
-    .ilike('content', `%${query}%`)
+    .from('posts')
+    .select('id, media_url, caption, created_at, profile_id')
+    .ilike('caption', `%${query}%`)
     .order('created_at', { ascending: false })
     .range(from, to);
 
   if (error) throw error;
+
   return (data ?? []) as PostResult[];
 }
 
-/* -------------------- EVENTS SEARCH -------------------- */
+/* ============================================================
+   EVENTS SEARCH
+   ============================================================ */
+
 export async function searchEvents(
   query: string,
   page = 1
@@ -169,5 +198,6 @@ export async function searchEvents(
     .range(from, to);
 
   if (error) throw error;
+
   return (data ?? []) as EventResult[];
 }

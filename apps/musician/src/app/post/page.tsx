@@ -1,22 +1,48 @@
+'use client';
+
+import Link from 'next/link';
+
 export default function PostHub() {
   return (
-    <section className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-xl font-semibold">Create</h1>
+    <main className="mx-auto max-w-3xl px-6 py-10 space-y-8">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight">Create</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Share your talent with high-quality posts and short bits.
+        </p>
+      </header>
 
-      <div className="grid sm:grid-cols-2 gap-4">
-        <a href="/post/new" className="rounded-2xl border p-6 hover:bg-gray-50">
-          <div className="text-lg font-medium">New Post</div>
-          <p className="text-sm text-gray-600">Share a photo/video with a caption.</p>
-        </a>
-        <a href="/bits/new" className="rounded-2xl border p-6 hover:bg-gray-50">
-          <div className="text-lg font-medium">New Bit</div>
-          <p className="text-sm text-gray-600">Upload a short vertical clip.</p>
-        </a>
-      </div>
+      {/* CREATE OPTIONS */}
+      <section className="grid sm:grid-cols-2 gap-4">
+        <Link
+          href="/post/new"
+          className="rounded-2xl border border-gray-200 p-6 bg-white hover:bg-gray-50 transition shadow-sm"
+        >
+          <div className="space-y-1">
+            <h2 className="text-lg font-medium">New Post</h2>
+            <p className="text-sm text-gray-600">
+              Upload a photo or video with an optional caption. Appears in your profile media grid.
+            </p>
+          </div>
+        </Link>
 
-      <p className="text-sm text-gray-500">
-        (We’ll hook these into Supabase Storage next—this is the entry point to reduce friction.)
+        <Link
+          href="/bits/new"
+          className="rounded-2xl border border-gray-200 p-6 bg-white hover:bg-gray-50 transition shadow-sm"
+        >
+          <div className="space-y-1">
+            <h2 className="text-lg font-medium">New Bit</h2>
+            <p className="text-sm text-gray-600">
+              Share a short vertical clip. Great for highlights and quick performances.
+            </p>
+          </div>
+        </Link>
+      </section>
+
+      {/* INFO NOTE */}
+      <p className="text-xs text-gray-500">
+        Your uploaded media instantly appears on your profile’s Media section.
       </p>
-    </section>
+    </main>
   );
 }

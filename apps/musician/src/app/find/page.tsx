@@ -110,7 +110,7 @@ function FindPageContent() {
           data = await searchEvents(trimmed, page);
         }
 
-        const newResults = (data || []) as ResultType;
+        const newResults: ResultType = (data || []);
         setResults((prev) =>
           page === 1 ? newResults : [...prev, ...newResults]
         );
@@ -230,7 +230,7 @@ function FindPageContent() {
                   className="w-12 h-12 rounded-2xl object-cover border"
                 />
                 <div>
-                  <p className="font-medium">{p.full_name}</p>
+                  <p className="font-medium">{p.display_name}</p>
                 </div>
               </div>
             );
@@ -262,7 +262,7 @@ function FindPageContent() {
                 key={v.id}
                 className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:bg-gray-50 transition"
               >
-                <p className="font-semibold">{v.venue_name || v.name}</p>
+                <p className="font-semibold">{v.display_name ?? 'Unknown Venue'}</p>
                 <p className="text-sm text-gray-600">{v.location}</p>
               </div>
             );
@@ -421,13 +421,8 @@ const TABS = [
 ];
 
 /* -------------------- Types -------------------- */
-type ResultType =
-  | PersonResult[]
-  | GigResult[]
-  | VenueResult[]
-  | PostResult[]
-  | EventResult[]
-  | [];
+type ResultItem = PersonResult | GigResult | VenueResult | PostResult | EventResult;
+type ResultType = ResultItem[];
 
 type GigFilters = {
   location: string;
