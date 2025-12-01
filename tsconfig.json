@@ -18,5 +18,5 @@
       "@arteve/ui/*": ["packages/ui/*"]
     }
   },
-  "include": ["packages", "apps"]
+  "include": ["packages", "apps", "tailwind.config.js"]
 }

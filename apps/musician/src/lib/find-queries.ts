@@ -7,7 +7,7 @@ import { supabase } from '@arteve/supabase/client';
    ============================================================ */
 
 export type PersonResult = {
-  id: string;
+  handle: string;
   display_name: string | null;
   avatar_url: string | null;
   location: string | null;
@@ -74,7 +74,7 @@ export async function searchPeople(
     .from('profiles')
     .select(
       `
-      id,
+      handle,
       display_name,
       avatar_url,
       location,

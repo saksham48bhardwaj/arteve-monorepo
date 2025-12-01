@@ -221,9 +221,9 @@ function FindPageContent() {
             const p = item as PersonResult;
             return (
               <div
-                key={p.id}
+                key={p.handle}
                 className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition"
-                onClick={() => router.push(`/profile/${p.id}`)}
+                onClick={() => router.push(`/profile/${p.handle}`)}
               >
                 <img
                   src={p.avatar_url || '/default-avatar.png'}

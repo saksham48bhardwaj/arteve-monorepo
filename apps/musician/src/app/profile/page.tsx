@@ -42,9 +42,6 @@ type Profile = {
   links: Record<string, string> | null;
   location: string | null;
   quote: string | null;
-  stats_posts: number | null;
-  stats_followers: number | null;
-  stats_following: number | null;
 };
 
 type PostMedia = {
@@ -99,6 +96,12 @@ export default function ProfilePage() {
 
   const [activeTab, setActiveTab] = useState<'media' | 'about'>('media');
 
+  const [counts, setCounts] = useState({
+    posts: 0,
+    followers: 0,
+    following: 0,
+  });
+
   /* ---------------------------------------------------------
       LOAD ALL PROFILE DATA
   --------------------------------------------------------- */
@@ -121,6 +124,10 @@ export default function ProfilePage() {
           .single();
 
         setProfile(p as Profile);
+
+        // Load counts for posts, followers, following
+        const c = await fetchProfileCounts(user.id);
+        setCounts(c);
 
         // ACHIEVEMENTS
         const { data: a } = await supabase
@@ -236,6 +243,33 @@ export default function ProfilePage() {
     }
   }
 
+  async function fetchProfileCounts(userId: string) {
+    const supa = supabase;
+
+    const [postsRes, followersRes, followingRes] = await Promise.all([
+      supa
+        .from("posts")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", userId),
+
+      supa
+        .from("followers")
+        .select("id", { count: "exact", head: true })
+        .eq("following_id", userId),
+
+      supa
+        .from("followers")
+        .select("id", { count: "exact", head: true })
+        .eq("follower_id", userId),
+    ]);
+
+    return {
+      posts: postsRes.count || 0,
+      followers: followersRes.count || 0,
+      following: followingRes.count || 0,
+    };
+  }
+
   /* ---------------------------------------------------------
       DELETE MEDIA
   --------------------------------------------------------- */
@@ -295,7 +329,7 @@ export default function ProfilePage() {
   }
 
   const username =
-    profile.display_name?.toLowerCase().replace(/\s+/g, '') ??
+    profile.display_name?.trim().toLowerCase().replace(/\s+/g, '') ??
     profile.id.slice(0, 8);
 
   const primaryMedia = media.at(0) ?? null;
@@ -304,133 +338,162 @@ export default function ProfilePage() {
   /* ---------------------------------------------------------
       UI STARTS HERE
   --------------------------------------------------------- */
+    /* ---------------------------------------------------------
+      UI STARTS HERE
+  --------------------------------------------------------- */
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10 space-y-8 bg-white">
+    <main className="w-full max-w-xl mx-auto px-4 py-6 space-y-6">
 
       {/* HEADER CARD */}
-      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-6 md:px-10 md:py-8 flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row md:items-start gap-6">
+      <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm p-6 space-y-6">
+        {/* Avatar + main info */}
+         {/* Top row: Avatar + Details */}
+  <div className="flex items-start gap-6">
 
-          {/* Avatar */}
-          <div className="flex-shrink-0 flex justify-center md:block">
-            <img
-              src={profile.avatar_url ?? '/placeholder-avatar.png'}
-              alt="Avatar"
-              className="w-32 h-32 md:w-40 md:h-40 rounded-3xl object-cover border border-gray-200 shadow-sm"
-            />
-          </div>
+    {/* Avatar */}
+    <img
+      src={profile.avatar_url ?? '/placeholder-avatar.png'}
+      className="w-24 h-24 rounded-full object-cover border border-neutral-300 dark:border-neutral-700"
+    />
 
-          {/* Main info */}
-          <div className="flex-1 space-y-4 text-center md:text-left">
+    {/* Name, username, location, genres */}
+    <div className="flex-1 space-y-1">
+      <h1 className="text-xl font-semibold tracking-tight">
+        {profile.display_name ?? 'Unnamed artist'}
+      </h1>
 
-            <div className="space-y-1">
-              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
-                {profile.display_name ?? 'Unnamed artist'}
-              </h1>
-              <p className="text-xs md:text-sm text-gray-500">@{username}</p>
-            </div>
-            {profile.location && (
-              <p className="text-sm text-gray-500">{profile.location}</p>
-            )}
+      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+        @{username}
+      </p>
 
-            {genres.length > 0 && (
-              <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                {genres.map((g) => (
-                  <span
-                    key={g}
-                    className="px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-700"
-                  >
-                    {g}
-                  </span>
-                ))}
-              </div>
-            )}
+      {profile.location && (
+        <p className="text-xs text-neutral-600 dark:text-neutral-300">
+          {profile.location}
+        </p>
+      )}
 
-            {profile.bio && (
-              <p className="text-sm md:text-base text-gray-800 leading-relaxed">
-                {profile.bio}
-              </p>
-            )}
-
-            <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-1">
-              <button className="px-4 py-1.5 rounded-full bg-black text-white text-sm">Book</button>
-              <button className="px-4 py-1.5 rounded-full border text-sm">Message</button>
-              <button className="px-4 py-1.5 rounded-full border text-sm">Follow</button>
-            </div>
-
-            <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-2 text-xs md:text-sm">
-              <Link href="/profile/edit" className="text-blue-600 underline">
-                Edit profile
-              </Link>
-              <Link href="/bookings" className="text-blue-600 underline">
-                View booking requests
-              </Link>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <aside className="w-full md:w-56 flex md:flex-col justify-around md:justify-start gap-4 md:gap-3 text-center">
-            <StatBlock label="Posts" value={profile.stats_posts ?? 0} />
-            <StatBlock label="Followers" value={profile.stats_followers ?? 0} />
-            <StatBlock label="Following" value={profile.stats_following ?? 0} />
-          </aside>
+      {genres.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {genres.map((g) => (
+            <span
+              key={g}
+              className="px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-900 text-xs text-neutral-700 dark:text-neutral-300"
+            >
+              {g}
+            </span>
+          ))}
         </div>
+      )}
 
-        {/* Quote */}
-        {profile.quote && (
-          <div className="rounded-2xl bg-gray-50 px-4 py-3 md:px-6 md:py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-              Artist quote
-            </p>
-            <p className="mt-1 text-sm md:text-base italic text-gray-900">
-              “{profile.quote}”
-            </p>
-          </div>
-        )}
+      {profile.bio && (
+        <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-snug pt-1">
+          {profile.bio}
+        </p>
+      )}
+    </div>
+  </div>
+
+  {/* Stats row */}
+  <div className="flex justify-around text-center mt-2">
+
+    <div>
+      <p className="text-lg font-semibold">{counts.posts}</p>
+      <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Posts</p>
+    </div>
+
+    <div>
+      <p className="text-lg font-semibold">{counts.followers}</p>
+      <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Followers</p>
+    </div>
+
+    <div>
+      <p className="text-lg font-semibold">{counts.following}</p>
+      <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Following</p>
+    </div>
+
+  </div>
+
+  {/* Buttons row */}
+  <div className="flex gap-2 justify-center mt-1">
+
+    <Link
+      href="/profile/edit"
+      className="px-4 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium"
+    >
+      Edit Profile
+    </Link>
+
+    <Link
+      href="/bookings"
+      className="px-4 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium"
+    >
+      View Bookings
+    </Link>
+
+    <button
+      onClick={() =>
+        navigator.clipboard.writeText(`${window.location.origin}/profile/${profile.id}`)
+      }
+      className="px-4 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium"
+    >
+      Share
+    </button>
+
+  </div>
+
+  {/* Quote */}
+  {profile.quote && (
+    <div className="px-4 py-3 rounded-xl bg-neutral-100 dark:bg-neutral-900 mt-3">
+      <p className="text-[11px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        Artist Quote
+      </p>
+      <p className="mt-1 text-sm italic text-neutral-700 dark:text-neutral-200">
+        “{profile.quote}”
+      </p>
+    </div>
+  )}
       </section>
 
       {/* TABS */}
-      <div className="flex gap-6 border-b border-gray-200 pb-2 mt-2">
+      <div className="flex gap-6 border-b border-neutral-200 dark:border-neutral-800 pb-1">
         <button
+          type="button"
           onClick={() => setActiveTab('media')}
-          className={`pb-2 text-sm md:text-base font-medium tracking-tight ${
+          className={`pb-2 text-sm font-medium ${
             activeTab === 'media'
-              ? 'border-b-2 border-black text-black'
-              : 'text-gray-500 hover:text-gray-800'
+              ? 'border-b-2 border-black dark:border-white text-black dark:text-white'
+              : 'text-neutral-500 dark:text-neutral-400'
           }`}
         >
           Media
         </button>
-
         <button
+          type="button"
           onClick={() => setActiveTab('about')}
-          className={`pb-2 text-sm md:text-base font-medium tracking-tight ${
+          className={`pb-2 text-sm font-medium ${
             activeTab === 'about'
-              ? 'border-b-2 border-black text-black'
-              : 'text-gray-500 hover:text-gray-800'
+              ? 'border-b-2 border-black dark:border-white text-black dark:text-white'
+              : 'text-neutral-500 dark:text-neutral-400'
           }`}
         >
           About
         </button>
       </div>
 
-      {/* MEDIA GRID */}
+      {/* MEDIA TAB */}
       {activeTab === 'media' && (
-        <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-8 md:py-7 space-y-4">
-
+        <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm p-5 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg md:text-xl font-semibold tracking-tight">
-                Media
-              </h2>
-              <p className="text-xs text-gray-500 mt-1">
+              <h2 className="text-lg font-semibold tracking-tight">Media</h2>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
                 Add photos and videos from your performances.
               </p>
             </div>
 
-            <label className="cursor-pointer inline-flex items-center px-3 py-1.5 rounded-full border text-xs md:text-sm hover:bg-gray-50">
-              {uploading ? 'Uploading…' : 'Upload media'}
+            <label className="cursor-pointer inline-flex items-center px-3 py-1.5 rounded-full border border-neutral-300 dark:border-neutral-700 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900">
+              {uploading ? 'Uploading…' : 'Upload'}
               <input
                 type="file"
                 accept="image/*,video/*"
@@ -442,22 +505,31 @@ export default function ProfilePage() {
 
           {/* Grid */}
           {media.length === 0 ? (
-            <div className="border border-dashed rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-gray-50">
-              <p className="text-sm text-gray-600">No media uploaded yet.</p>
+            <div className="border border-dashed border-neutral-300 dark:border-neutral-700 rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-neutral-50 dark:bg-neutral-900">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                No media uploaded yet.
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3 md:gap-4">
+            <div className="grid grid-cols-3 gap-2">
               {media.map((item, index) => (
                 <button
                   type="button"
                   key={item.id}
                   onClick={() => openModal(index)}
-                  className="relative w-full pb-[100%] bg-gray-100 overflow-hidden rounded-2xl cursor-pointer hover:opacity-90 transition"
+                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800"
                 >
                   {item.media_type === 'image' ? (
-                    <img src={item.media_url} className="absolute inset-0 w-full h-full object-cover" />
+                    <img
+                      src={item.media_url}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
                   ) : (
-                    <video src={item.media_url} className="absolute inset-0 w-full h-full object-cover" muted />
+                    <video
+                      src={item.media_url}
+                      muted
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
                   )}
                 </button>
               ))}
@@ -469,25 +541,23 @@ export default function ProfilePage() {
       {/* ABOUT TAB */}
       {activeTab === 'about' && (
         <section className="space-y-6">
-
-          {/* BANNER */}
-          <section className="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="h-40 md:h-52 w-full relative bg-gray-800">
+          {/* Banner + bio + links */}
+          <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm overflow-hidden">
+            <div className="h-40 w-full relative bg-neutral-900">
               {primaryMedia?.media_type === 'image' && (
                 <img
                   src={primaryMedia.media_url}
                   className="w-full h-full object-cover opacity-60"
                 />
               )}
-              <div className="absolute inset-0 bg-black/20" />
+              <div className="absolute inset-0 bg-black/30" />
             </div>
 
-            <div className="px-5 py-6 md:px-8 md:py-8 space-y-8">
-
+            <div className="px-5 py-6 space-y-6">
               {profile.bio && (
                 <div className="space-y-1">
-                  <h2 className="text-lg md:text-xl font-semibold">About</h2>
-                  <p className="text-sm md:text-base text-gray-800 leading-relaxed">
+                  <h2 className="text-lg font-semibold">About</h2>
+                  <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">
                     {profile.bio}
                   </p>
                 </div>
@@ -495,8 +565,10 @@ export default function ProfilePage() {
 
               {profile.links && Object.keys(profile.links).length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-700">Links</h3>
-                  <div className="flex flex-wrap gap-3 text-xs md:text-sm">
+                  <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                    Links
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
                     {Object.entries(profile.links)
                       .filter(([, v]) => !!v)
                       .map(([key, value]) => (
@@ -504,7 +576,8 @@ export default function ProfilePage() {
                           key={key}
                           href={value as string}
                           target="_blank"
-                          className="px-3 py-1 rounded-full border text-gray-700 hover:bg-gray-50"
+                          rel="noreferrer"
+                          className="px-3 py-1 rounded-full border border-neutral-300 dark:border-neutral-700 text-xs text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900"
                         >
                           {key}
                         </a>
@@ -515,27 +588,36 @@ export default function ProfilePage() {
             </div>
           </section>
 
-          {/* GRID OF ABOUT SECTIONS */}
-          <div className="grid md:grid-cols-2 gap-6">
-
-            {/* LEFT COLUMN */}
-            <div className="space-y-6">
-
+          {/* Grid sections */}
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Left column */}
+            <div className="space-y-4">
               {/* Achievements */}
-              <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5 md:px-6 md:py-6">
-                <h2 className="text-lg font-semibold mb-3">Achievements</h2>
+              <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2">Achievements</h2>
                 {achievements.length === 0 ? (
-                  <p className="text-sm text-gray-500">No achievements yet.</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    No achievements yet.
+                  </p>
                 ) : (
                   <ul className="space-y-2">
                     {achievements.map((a) => (
-                      <li key={a.id} className="border p-3 rounded-2xl bg-gray-50">
-                        <div className="font-medium text-sm">{a.title}</div>
+                      <li
+                        key={a.id}
+                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-3 space-y-1"
+                      >
+                        <div className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                          {a.title}
+                        </div>
                         {a.description && (
-                          <div className="text-xs text-gray-700">{a.description}</div>
+                          <div className="text-xs text-neutral-700 dark:text-neutral-300">
+                            {a.description}
+                          </div>
                         )}
                         {a.year && (
-                          <div className="text-xs text-gray-500 mt-1">{a.year}</div>
+                          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                            {a.year}
+                          </div>
                         )}
                       </li>
                     ))}
@@ -544,20 +626,27 @@ export default function ProfilePage() {
               </section>
 
               {/* Shows */}
-              <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5">
-                <h2 className="text-lg font-semibold mb-3">Recent shows</h2>
+              <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2">Recent shows</h2>
                 {shows.length === 0 ? (
-                  <p className="text-sm text-gray-500">No shows yet.</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    No shows yet.
+                  </p>
                 ) : (
                   <ul className="space-y-2">
                     {shows.map((s) => (
-                      <li key={s.id} className="border p-3 rounded-2xl bg-gray-50">
-                        <div className="font-medium text-sm">{s.title}</div>
-                        <div className="text-xs text-gray-700">
+                      <li
+                        key={s.id}
+                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-3 space-y-1"
+                      >
+                        <div className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                          {s.title}
+                        </div>
+                        <div className="text-xs text-neutral-700 dark:text-neutral-300">
                           {[s.venue, s.location].filter(Boolean).join(', ')}
                         </div>
                         {s.event_date && (
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-neutral-500 dark:text-neutral-400">
                             {new Date(s.event_date).toLocaleDateString()}
                           </div>
                         )}
@@ -568,23 +657,28 @@ export default function ProfilePage() {
               </section>
             </div>
 
-            {/* RIGHT COLUMN */}
-            <div className="space-y-6">
-
+            {/* Right column */}
+            <div className="space-y-4">
               {/* Skills */}
-              <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5">
-                <h2 className="text-lg font-semibold mb-3">Skills</h2>
+              <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2">Skills</h2>
                 {skills.length === 0 ? (
-                  <p className="text-sm text-gray-500">No skills yet.</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    No skills yet.
+                  </p>
                 ) : (
                   <ul className="space-y-2">
                     {skills.map((sk) => (
                       <li
                         key={sk.id}
-                        className="border p-3 rounded-2xl bg-gray-50 flex justify-between items-center"
+                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-3 flex justify-between items-center"
                       >
-                        <span className="text-sm font-medium">{sk.skill}</span>
-                        <span className="text-xs italic text-gray-600">{sk.level}</span>
+                        <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                          {sk.skill}
+                        </span>
+                        <span className="text-xs italic text-neutral-600 dark:text-neutral-300">
+                          {sk.level}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -592,17 +686,26 @@ export default function ProfilePage() {
               </section>
 
               {/* Recommendations */}
-              <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-5">
-                <h2 className="text-lg font-semibold mb-3">Recommendations</h2>
+              <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2">Recommendations</h2>
                 {recommendations.length === 0 ? (
-                  <p className="text-sm text-gray-500">No recommendations yet.</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    No recommendations yet.
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     {recommendations.map((r) => (
-                      <blockquote key={r.id} className="border-l-4 border-gray-300 pl-4 py-2 bg-gray-50 rounded-2xl">
-                        <p className="text-sm italic text-gray-700">“{r.content}”</p>
+                      <blockquote
+                        key={r.id}
+                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-3"
+                      >
+                        <p className="text-sm italic text-neutral-800 dark:text-neutral-100">
+                          “{r.content}”
+                        </p>
                         {r.author && (
-                          <p className="text-xs mt-1 text-gray-500">— {r.author}</p>
+                          <p className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
+                            — {r.author}
+                          </p>
                         )}
                       </blockquote>
                     ))}
@@ -616,39 +719,32 @@ export default function ProfilePage() {
 
       {/* MEDIA MODAL */}
       {selectedMedia && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-
-          {/* Clicking background closes modal */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          {/* background click */}
           <button
             type="button"
             className="absolute inset-0 cursor-pointer"
             onClick={closeModal}
           />
-
-          {/* Modal content */}
-          <div className="relative max-w-3xl w-full px-4 z-50">
-
-            {/* DELETE BUTTON */}
+          <div className="relative z-50 w-full max-w-3xl px-4">
+            {/* DELETE */}
             <button
               type="button"
-              onClick={() => {
-                deleteMedia(selectedMedia);
-              }}
-              className="absolute top-2 left-2 text-white bg-red-600 px-3 py-1 rounded-full text-xs shadow-md hover:bg-red-700 z-50"
+              onClick={() => deleteMedia(selectedMedia)}
+              className="absolute top-3 left-6 text-xs px-3 py-1 rounded-full bg-red-600 text-white shadow hover:bg-red-700"
             >
               Delete
             </button>
 
-            {/* CLOSE BUTTON */}
+            {/* CLOSE */}
             <button
               type="button"
               onClick={closeModal}
-              className="absolute top-2 right-2 text-white text-3xl font-bold"
+              className="absolute top-1 right-6 text-3xl font-bold text-white"
             >
               ×
             </button>
 
-            {/* MEDIA */}
             {selectedMedia.media_type === 'image' ? (
               <img
                 src={selectedMedia.media_url}
@@ -662,20 +758,19 @@ export default function ProfilePage() {
               />
             )}
 
-            {/* NAVIGATION */}
             {media.length > 1 && (
               <>
                 <button
                   type="button"
                   onClick={showPrev}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white text-4xl"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-4xl text-white"
                 >
                   ‹
                 </button>
                 <button
                   type="button"
                   onClick={showNext}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white text-4xl"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-4xl text-white"
                 >
                   ›
                 </button>
@@ -693,9 +788,14 @@ export default function ProfilePage() {
 --------------------------------------------------------- */
 function StatBlock({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex-1 md:w-full border border-gray-200 rounded-2xl py-3 px-4 bg-gray-50 shadow-sm text-center">
-      <div className="text-lg font-semibold">{value}</div>
-      <div className="text-xs text-gray-600">{label}</div>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/80 py-3">
+      <div className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
+        {value}
+      </div>
+      <div className="text-[11px] text-neutral-600 dark:text-neutral-400">
+        {label}
+      </div>
     </div>
   );
 }
+
