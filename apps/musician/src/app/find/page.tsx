@@ -260,10 +260,20 @@ function FindPageContent() {
             return (
               <div
                 key={v.id}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:bg-gray-50 transition"
+                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-gray-50 transition"
+                onClick={() => router.push(`/venue/${v.handle}`)}  // FIXED
               >
-                <p className="font-semibold">{v.display_name ?? 'Unknown Venue'}</p>
-                <p className="text-sm text-gray-600">{v.location}</p>
+                <div className="flex items-center gap-4">
+                  <img
+                    src={v.avatar_url || '/default-avatar.png'}
+                    className="w-12 h-12 rounded-xl object-cover border"
+                    alt=""
+                  />
+                  <div>
+                    <p className="font-semibold">{v.display_name ?? 'Unknown Venue'}</p>
+                    <p className="text-sm text-gray-600">{v.location ?? ''}</p>
+                  </div>
+                </div>
               </div>
             );
           }

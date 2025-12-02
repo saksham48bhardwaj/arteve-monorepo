@@ -25,6 +25,7 @@ export type GigResult = {
 
 export type VenueResult = {
   id: string;
+  handle: string; 
   display_name: string | null;
   avatar_url: string | null;
   location: string | null;
@@ -147,7 +148,7 @@ export async function searchVenues(
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, display_name, avatar_url, location')
+    .select('id, handle, display_name, avatar_url, location')
     .eq('role', 'organizer')
     .ilike('display_name', `%${query}%`)
     .range(from, to);
