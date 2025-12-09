@@ -19,6 +19,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
+  "dev": "next dev -H organizer.localhost -p 3001",
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
