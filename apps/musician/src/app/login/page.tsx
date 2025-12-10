@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@arteve/supabase/client';
 
 export default function LoginPage() {
@@ -53,105 +54,144 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            Musician Portal
+    <main className="min-h-screen flex flex-col md:flex-row bg-[#F5F7FA] text-[#333]">
+      {/* Desktop left hero */}
+      <section className="relative hidden md:flex md:w-1/2 lg:w-3/5">
+        <Image
+          src="/images/hero.png"
+          alt="Musician performing on stage"
+          fill
+          className="object-cover"
+          priority
+        />
+        <div className="relative z-10 flex flex-col justify-between w-full px-10 lg:px-14 py-8 bg-gradient-to-t from-black/75 via-black/50 to-black/30 justify-center">
+          <div>
+            <h1 className="mt-6 text-3xl lg:text-4xl font-semibold text-white">
+              Grow your music career with the right gigs.
+            </h1>
+            <p className="mt-4 text-sm lg:text-base text-white/80 max-w-md">
+              Manage your profile, showcase your performances, and connect with
+              organizers who are looking for artists like you.
+            </p>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">
-            Sign in to Arteve
-          </h1>
-          <p className="text-sm text-slate-300">
-            Manage your profile, gigs, and bookings from a single, clean dashboard.
+          <p className="mt-8 text-xs text-white/65">
+            Arteve · Connecting artists &amp; venues
           </p>
         </div>
+      </section>
 
-        <div className="rounded-2xl bg-white p-8 shadow-xl shadow-slate-950/40 border border-slate-100">
-          {/* Mode toggle */}
-          <div className="mb-6">
-            <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 p-1 text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => setMode('signup')}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  mode === 'signup'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-500'
-                }`}
-              >
-                Create account
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('signin')}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  mode === 'signin'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-500'
-                }`}
-              >
-                Sign in
-              </button>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-900">
-                Email
-              </label>
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none ring-0 transition focus:border-slate-900 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
+      {/* Right side: form (mobile + desktop) */}
+      <section className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-10 bg-[linear-gradient(120deg,_#4E7FA2,_white,_#FFE3CC)]">
+        <div className="w-full max-w-md">
+          {/* Card with toggle + form */}
+          <div className="rounded-3xl bg-white/95 border border-white/80 shadow-md shadow-black/5 backdrop-blur-sm px-6 py-7 sm:px-8 sm:py-8">
+            {/* Mode toggle */}
+            <div className="mb-4">
+              <Image
+                src="/images/arteve_logo.png"
+                alt="Arteve Musician"
+                width={200}
+                height={40}
+                className="mx-auto mt-2 mb-8"
               />
+              <p className="mt-1.5 text-sm text-[#666] text-center">
+                Connecting artists &amp; venues for better gigs and
+                collaborations.
+              </p>
             </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-900">
-                Password
-              </label>
-              <input
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none ring-0 transition focus:border-slate-900 focus:bg-white focus:ring-2 focus:ring-slate-900/5"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              />
-            </div>
-
-            {msg && (
-              <div className="rounded-xl border border-red-100 bg-red-50 px-3.5 py-2 text-xs text-red-700">
-                {msg}
+            <div className="mb-6 flex justify-center">
+              <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-xs font-medium p-1">
+                <button
+                  type="button"
+                  onClick={() => setMode('signin')}
+                  className={`px-4 py-1.5 rounded-full transition-all ${
+                    mode === 'signin'
+                      ? 'bg-[#4E7FA2] text-white shadow-sm'
+                      : 'text-slate-600'
+                  }`}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('signup')}
+                  className={`px-4 py-1.5 rounded-full transition-all ${
+                    mode === 'signup'
+                      ? 'bg-[#4E7FA2] text-white shadow-sm'
+                      : 'text-slate-600'
+                  }`}
+                >
+                  Create account
+                </button>
               </div>
-            )}
+            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading
-                ? 'Please wait…'
-                : mode === 'signup'
-                ? 'Create your musician account'
-                : 'Sign in'}
-            </button>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-[#333]">
+                  Email
+                </label>
+                <input
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#333] placeholder:text-slate-400 outline-none transition focus:border-[#4E7FA2] focus:bg-white focus:ring-2 focus:ring-[#4E7FA2]/15"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-            <p className="text-[11px] leading-relaxed text-slate-500 text-center">
-              By continuing, you agree to Arteve&apos;s terms of use and privacy policy.
-            </p>
-          </form>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-[#333]">
+                  Password
+                </label>
+                <input
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#333] placeholder:text-slate-400 outline-none transition focus:border-[#4E7FA2] focus:bg-white focus:ring-2 focus:ring-[#4E7FA2]/15"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete={
+                    mode === 'signin' ? 'current-password' : 'new-password'
+                  }
+                />
+              </div>
+
+              {msg && (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs text-red-700">
+                  {msg}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex w-full items-center justify-center rounded-2xl bg-[#4E7FA2] px-4 py-2.75 text-sm font-medium text-white shadow-sm transition hover:bg-[#406785] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading
+                  ? 'Please wait…'
+                  : mode === 'signup'
+                  ? 'Create account'
+                  : 'Sign in'}
+              </button>
+
+              <p className="text-[11px] leading-relaxed text-slate-500 text-center">
+                By continuing, you agree to Arteve&apos;s&nbsp;
+                <span className="underline underline-offset-2">
+                  terms of use
+                </span>{' '}
+                and{' '}
+                <span className="underline underline-offset-2">
+                  privacy policy
+                </span>
+                .
+              </p>
+            </form>
+          </div>
         </div>
-      </div>
+      </section>
     </main>
   );
 }

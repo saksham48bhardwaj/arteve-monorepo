@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import TopNav from '../components/TopNav';
 import BottomNav from '../components/BottomNav';
+import SideNav from '../components/SideNav';
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -11,12 +12,18 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   return (
     <>
       {!isLoginPage && (
-        <div className="relative z-50">
+        <div className="md:hidden relative z-50">
           <TopNav />
         </div>
       )}
 
-      <main className="relative z-10 mx-auto w-full max-w-xl px-4 pb-24 pt-4">
+      {!isLoginPage && (
+        <div className="hidden md:flex relative z-50">
+          <SideNav />
+        </div>
+      )}
+
+      <main className="relative mx-auto max-w-5xl pt-14 md:pt-4 md:pl-56 pb-20">
         {children}
       </main>
 
