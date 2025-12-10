@@ -1,86 +1,146 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { supabase } from '@arteve/supabase/client';
+import { Suspense } from 'react';
+export const dynamic = "force-dynamic";
 
-type Profile = {
-  id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  location: string | null;
-  genres: string[] | null;
-};
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { searchPeople, PersonResult, PAGE_SIZE } from '../../lib/find-queries';
 
-export default function FindArtistsPage() {
-  const [artists, setArtists] = useState<Profile[]>([]);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'musician')
-        .order('display_name', { ascending: true });
-
-      setArtists(data ?? []);
-      setLoading(false);
-    };
-
-    load();
-  }, []);
-
-  const filtered = artists.filter(a =>
-    a.display_name?.toLowerCase().includes(search.toLowerCase())
+export default function FindPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <FindArtistsContent />
+    </Suspense>
   );
+}
 
-  if (loading) {
-    return <div className="p-6">Loading musicians…</div>;
-  }
+function FindArtistsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [query, setQuery] = useState(searchParams.get("q") || "");
+  const [results, setResults] = useState<PersonResult[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  /* Reset pagination anytime query changes */
+  useEffect(() => {
+    setResults([]);
+    setPage(1);
+    setHasMore(true);
+  }, [query]);
+
+  /* Fetch musicians */
+  useEffect(() => {
+    async function run() {
+      if (query.trim() === "") {
+        setResults([]);
+        setHasMore(false);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const data = await searchPeople(query.trim(), page);
+        const newResults = data ?? [];
+
+        setResults(prev =>
+          page === 1 ? newResults : [...prev, ...newResults]
+        );
+
+        setHasMore(newResults.length === PAGE_SIZE);
+      } catch (err) {
+        console.error(err);
+      }
+
+      setLoading(false);
+    }
+
+    run();
+  }, [page, query]);
+
+  /* Infinite scroll */
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        const first = entries[0];
+        if (first.isIntersecting && hasMore && !loading) {
+          setPage(prev => prev + 1);
+        }
+      },
+      { threshold: 1 }
+    );
+
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loading]);
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-6">
-      <h1 className="text-xl font-bold">Find Artists</h1>
+    <main className="max-w-4xl mx-auto px-6 py-8 bg-white space-y-8">
 
-      <input
-        type="text"
-        placeholder="Search artists…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full border rounded-xl px-4 py-2"
-      />
+      {/* Search Input */}
+      <div className="flex items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 gap-3 shadow-sm">
+        <input
+          type="text"
+          placeholder="Search musicians…"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            router.push(`/find?q=${e.target.value}`);
+          }}
+          className="flex-1 bg-transparent outline-none text-gray-800 placeholder:text-gray-500"
+        />
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {filtered.map((artist) => (
-          <Link
-            key={artist.id}
-            href={`/artist/${artist.id}`}
-            className="border rounded-xl p-4 flex gap-3 hover:bg-gray-50 transition"
+      {/* Results */}
+      <section className="space-y-4">
+        {loading && page === 1 && (
+          <p className="text-gray-500 text-sm">Loading…</p>
+        )}
+
+        {!loading && results.length === 0 && (
+          <p className="text-center text-sm text-gray-500 pt-6">
+            No musicians found.
+          </p>
+        )}
+
+        {results.map((m) => (
+          <div
+            key={m.handle}
+            onClick={() => router.push(`/profile/${m.handle}`)}
+            className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition"
           >
             <img
-              src={artist.avatar_url ?? '/default-avatar.png'}
-              className="w-12 h-12 rounded-full object-cover"
+              src={m.avatar_url ?? '/default-avatar.png'}
+              className="w-12 h-12 rounded-xl object-cover border"
+              alt=""
             />
-
-            <div className="flex-1">
-              <p className="font-semibold">{artist.display_name}</p>
-              {artist.bio && (
-                <p className="text-sm text-gray-500 line-clamp-2">
-                  {artist.bio}
-                </p>
-              )}
-              {artist.location && (
-                <p className="text-xs text-gray-400 mt-1">
-                  {artist.location}
-                </p>
+            <div>
+              <p className="font-medium">{m.display_name}</p>
+              {m.location && (
+                <p className="text-sm text-gray-500">{m.location}</p>
               )}
             </div>
-          </Link>
+          </div>
         ))}
-      </div>
+
+        {/* Infinite Scroll Trigger */}
+        {hasMore && (
+          <div
+            ref={loadMoreRef}
+            className="py-4 text-center text-gray-400 text-sm"
+          >
+            {loading ? "Loading more…" : ""}
+          </div>
+        )}
+      </section>
     </main>
   );
 }

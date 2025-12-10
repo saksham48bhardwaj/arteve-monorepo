@@ -53,6 +53,16 @@ type PostMedia = {
   created_at: string;
 };
 
+type FollowerRow = {
+  follower_id: string;
+  profiles: Profile | null;
+};
+
+type FollowingRow = {
+  following_id: string;
+  profiles: Profile | null;
+};
+
 /* ---------------------------------------------------------
     Extract storage path from PUBLIC URL
 --------------------------------------------------------- */
@@ -94,6 +104,15 @@ export default function ProfilePage() {
   const [selectedMedia, setSelectedMedia] = useState<PostMedia | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // Followers & Following modal
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
+
+  const [followersList, setFollowersList] = useState<Profile[]>([]);
+  const [followingList, setFollowingList] = useState<Profile[]>([]);
+
+  const [myFollowingIds, setMyFollowingIds] = useState<string[]>([]);
+
   const [activeTab, setActiveTab] = useState<'media' | 'about'>('media');
 
   const [counts, setCounts] = useState({
@@ -101,6 +120,15 @@ export default function ProfilePage() {
     followers: 0,
     following: 0,
   });
+
+  function profilePath(user: Profile) {
+    const slug =
+      (user as unknown as Record<string, string>).handle ??
+      user.display_name?.trim().toLowerCase().replace(/\s+/g, '') ??
+      user.id;
+
+    return `/profile/${slug}`;
+  }
 
   /* ---------------------------------------------------------
       LOAD ALL PROFILE DATA
@@ -128,6 +156,14 @@ export default function ProfilePage() {
         // Load counts for posts, followers, following
         const c = await fetchProfileCounts(user.id);
         setCounts(c);
+
+        // Load IDs I am following
+        const { data: myFollows } = await supabase
+          .from("followers")
+          .select("following_id")
+          .eq("follower_id", user.id);
+
+        setMyFollowingIds(myFollows?.map((f) => f.following_id) ?? []);
 
         // ACHIEVEMENTS
         const { data: a } = await supabase
@@ -304,6 +340,85 @@ export default function ProfilePage() {
     closeModal();
   }
 
+  /* ---------------------------- Load Followers ---------------------------- */
+  async function loadFollowers() {
+    if (!profile) return;
+
+    const { data, error } = await supabase
+      .from("followers")
+      .select("follower_id, profiles:follower_id(*)") as unknown as {
+        data: FollowerRow[] | null;
+        error: Error | null;
+      };
+
+    if (!error && data) {
+      setFollowersList(
+        data
+          .map((row) => row.profiles)
+          .filter((p): p is Profile => p !== null)
+      );
+    }
+
+    setShowFollowersModal(true);
+  }
+
+  async function toggleFollowFromModal(targetId: string) {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return alert("Login required.");
+
+    const me = auth.user.id;
+
+    // Already following → unfollow
+    if (myFollowingIds.includes(targetId)) {
+      await supabase
+        .from("followers")
+        .delete()
+        .eq("follower_id", me)
+        .eq("following_id", targetId);
+
+      setMyFollowingIds((prev) => prev.filter((id) => id !== targetId));
+    } 
+    else {
+      // Not following → follow
+      await supabase.from("followers").insert({
+        follower_id: me,
+        following_id: targetId,
+      });
+
+      setMyFollowingIds((prev) => [...prev, targetId]);
+    }
+
+    // Update visible UI inside modal too
+    setCounts((c) => ({
+      ...c,
+      following: myFollowingIds.includes(targetId)
+        ? c.following - 1
+        : c.following + 1,
+    }));
+  }
+
+  /* ---------------------------- Load Following ---------------------------- */
+  async function loadFollowing() {
+    if (!profile) return;
+
+    const { data, error } = await supabase
+      .from("followers")
+      .select("following_id, profiles:following_id(*)") as unknown as {
+        data: FollowingRow[] | null;
+        error: Error | null;
+      };
+
+    if (!error && data) {
+      setFollowingList(
+        data
+          .map((row) => row.profiles)
+          .filter((p): p is Profile => p !== null)
+      );
+    }
+
+    setShowFollowingModal(true);
+  }
+
   /* ---------------------------------------------------------
       MODAL HANDLERS
   --------------------------------------------------------- */
@@ -401,15 +516,16 @@ export default function ProfilePage() {
       <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Posts</p>
     </div>
 
-    <div>
+    <button onClick={loadFollowers} className="flex flex-col items-center">
       <p className="text-lg font-semibold">{counts.followers}</p>
       <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Followers</p>
-    </div>
+    </button>
 
-    <div>
+    <button onClick={loadFollowing} className="flex flex-col items-center">
       <p className="text-lg font-semibold">{counts.following}</p>
       <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Following</p>
-    </div>
+    </button>
+
 
   </div>
 
@@ -775,6 +891,131 @@ export default function ProfilePage() {
                   ›
                 </button>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showFollowersModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+
+            <button
+              className="absolute top-3 right-4 text-3xl font-bold text-neutral-800 dark:text-neutral-100"
+              onClick={() => setShowFollowersModal(false)}
+            >
+              ×
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4 text-neutral-900 dark:text-neutral-100">
+              Followers
+            </h2>
+
+            {followersList.length === 0 ? (
+              <p className="text-sm text-neutral-500">No followers yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {followersList.map((user) => (
+                  <li key={user.id}>
+                    <Link
+                      href={profilePath(user)}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      <img
+                        src={user.avatar_url ?? '/default-avatar.png'}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {user.display_name}
+                        </p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          @{(user as unknown as Record<string, string>).handle ??
+                            user.display_name?.toLowerCase().replace(/\s+/g, '')}
+                        </p>
+                      </div>
+
+                      {/* Follow Button */}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault(); // Prevent link click
+                          toggleFollowFromModal(user.id);
+                        }}
+                        className={`px-3 py-1 text-xs rounded-lg border ${
+                          myFollowingIds.includes(user.id)
+                            ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-white"
+                            : "bg-black text-white dark:bg-white dark:text-black"
+                        }`}
+                      >
+                        {myFollowingIds.includes(user.id) ? "Unfollow" : "Follow"}
+                      </button>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showFollowingModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+
+            <button
+              className="absolute top-3 right-4 text-3xl font-bold text-neutral-800 dark:text-neutral-100"
+              onClick={() => setShowFollowingModal(false)}
+            >
+              ×
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4 text-neutral-900 dark:text-neutral-100">
+              Following
+            </h2>
+
+            {followingList.length === 0 ? (
+              <p className="text-sm text-neutral-500">Not following anyone yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {followingList.map((user) => (
+                  <li key={user.id}>
+                    <Link
+                      href={profilePath(user)}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                    >
+                      <img
+                        src={user.avatar_url ?? '/default-avatar.png'}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                          {user.display_name}
+                        </p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          @{(user as unknown as Record<string, string>).handle ??
+                            user.display_name?.toLowerCase().replace(/\s+/g, '')}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleFollowFromModal(user.id);
+                        }}
+                        className={`px-3 py-1 text-xs rounded-lg border ${
+                          myFollowingIds.includes(user.id)
+                            ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-white"
+                            : "bg-black text-white dark:bg-white dark:text-black"
+                        }`}
+                      >
+                        {myFollowingIds.includes(user.id) ? "Unfollow" : "Follow"}
+                      </button>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>
