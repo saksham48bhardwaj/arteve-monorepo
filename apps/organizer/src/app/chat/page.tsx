@@ -266,7 +266,7 @@ export default function OrganizerBookingChatListPage() {
   const hasChats = bookings.length > 0;
 
   return (
-    <main className="mx-auto max-w-2xl p-6 space-y-4">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <h1 className="text-xl font-semibold mb-4">Messages</h1>
 
       {!hasChats && (

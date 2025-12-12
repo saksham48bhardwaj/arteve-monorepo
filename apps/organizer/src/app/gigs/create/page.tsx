@@ -73,7 +73,7 @@ export default function CreateGigPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <h1 className="text-xl font-semibold mb-4">Create a Gig</h1>
 
       {feedback && (

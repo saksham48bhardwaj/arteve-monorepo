@@ -95,7 +95,7 @@ export default function ApplicationsPage() {
   if (loading) return <main className="p-6">Loading…</main>;
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10 space-y-8 bg-white">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <h1 className="text-3xl font-semibold tracking-tight">My Applications</h1>
 
       {rows.length === 0 && (

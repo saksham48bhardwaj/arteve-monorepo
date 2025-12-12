@@ -57,8 +57,7 @@ export default function PublicVenueProfilePage() {
   const avatar = venuePhotos[0] ?? '/placeholder-venue.jpg';
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-10">
-
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER */}
       <header className="flex items-start gap-4">
         <div className="w-20 h-20 rounded-xl overflow-hidden border bg-gray-100">

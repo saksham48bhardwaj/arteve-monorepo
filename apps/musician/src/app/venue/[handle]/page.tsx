@@ -63,8 +63,7 @@ export default function PublicVenuePage() {
   const links = profile.links ?? {};
 
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-10">
-
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER */}
       <header className="flex items-center gap-5">
         <img

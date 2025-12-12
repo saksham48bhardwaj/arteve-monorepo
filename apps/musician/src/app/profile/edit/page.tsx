@@ -542,7 +542,7 @@ export default function EditProfilePage() {
       : userId.slice(0, 8);
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10 space-y-8 bg-white">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* Header / Breadcrumb */}
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>

@@ -156,8 +156,7 @@ function FindPageContent() {
 
   /* -------------------- Render -------------------- */
   return (
-    <main className="max-w-4xl mx-auto px-6 py-8 space-y-8 bg-white">
-
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* -------------------- Search Bar -------------------- */}
       <div className="flex items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 gap-3 shadow-sm">
         <button

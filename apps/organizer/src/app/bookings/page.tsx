@@ -181,7 +181,7 @@ export default function OrganizerBookingsPage() {
      RENDER
   ------------------------------------ */
   return (
-    <main className="mx-auto max-w-4xl p-6 space-y-6">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER */}
       <header className="flex items-center justify-between gap-4">
         <div>

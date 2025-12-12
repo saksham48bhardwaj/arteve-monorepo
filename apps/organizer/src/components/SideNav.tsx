@@ -64,7 +64,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+      className={`group flex items-center gap-3 rounded-xl px-3 py-2 transition ${
         active ? 'bg-[#4E7FA2]/10 text-[#1f3f59]' : 'text-slate-600 hover:bg-slate-100'
       }`}
     >
@@ -88,7 +88,7 @@ export default function SideNav() {
   const pathname = usePathname() ?? '';
 
   return (
-    <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-56 border-slate-200 bg-white/95 backdrop-blur rounded-2xl shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
+    <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-56 border-slate-200 bg-white backdrop-blur rounded-r-2xl shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
       <div className="flex h-full flex-col">
         <div className="px-4 pt-4 pb-3">
           <Link href="/" className="flex items-center gap-2">
@@ -102,7 +102,7 @@ export default function SideNav() {
           </Link>
         </div>
 
-        <nav className="flex-1 px-2 space-y-1">
+        <nav className="flex-1 px-2 space-y-3">
           {mainNav.map((item) => (
             <NavLink
               key={item.href}

@@ -54,7 +54,7 @@ export default function LoginPage() {
             <h1 className="mt-6 text-3xl lg:text-4xl font-semibold text-white">
               Discover the right artists for every event.
             </h1>
-            <p className="mt-4 text-sm lg:text-base text-white/80 max-w-md">
+            <p className="mt-4 lg:text-base text-white/80 max-w-xl">
               Build lineups, manage bookings, and keep your events running
               smoothly from a single, clean dashboard.
             </p>
@@ -79,13 +79,13 @@ export default function LoginPage() {
                 height={40}
                 className="mx-auto mt-2 mb-8"
               />
-              <p className="mt-1.5 text-sm text-[#666] text-center">
+              <p className="mt-1.5 text-[#666] text-center">
                 Find verified artists, manage bookings, and keep every event on
                 track.
               </p>
             </div>
             <div className="mb-6 flex justify-center">
-              <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-xs font-medium p-1">
+              <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-sm font-medium p-1">
                 <button
                   type="button"
                   onClick={() => setMode('signin')}
@@ -113,7 +113,7 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-[#333]">
+                <label className="block font-medium text-[#333]">
                   Work email
                 </label>
                 <input
@@ -128,7 +128,7 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-[#333]">
+                <label className="block font-medium text-[#333]">
                   Password
                 </label>
                 <input
@@ -153,7 +153,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center rounded-2xl bg-[#4E7FA2] px-4 py-2.75 text-sm font-medium text-white shadow-sm transition hover:bg-[#406785] disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex w-full items-center justify-center rounded-2xl bg-[#4E7FA2] px-4 py-2.75 font-medium text-white shadow-sm transition hover:bg-[#406785] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading
                   ? 'Please wait…'

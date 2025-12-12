@@ -104,14 +104,14 @@ export default function OrganizerNotificationsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center text-slate-500">
+      <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 flex items-center justify-center text-slate-500">
         Loading notifications…
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 pb-16">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER */}
       <div className="border-b border-slate-200 bg-white/70 backdrop-blur">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6">

@@ -92,7 +92,7 @@ export default function ChatThread() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-6 space-y-3 flex flex-col min-h-[calc(100vh-4rem)]">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <div className="flex-1 overflow-y-auto space-y-2">
         {msgs.map((m) => {
           const isMine = m.sender_id === userId;

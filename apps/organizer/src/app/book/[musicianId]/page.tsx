@@ -49,7 +49,7 @@ export default function BookMusician({ params }: { params: { musicianId: string 
   }
 
   return (
-    <main className="mx-auto max-w-lg p-6 space-y-6">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <h1 className="text-xl font-semibold">Book Musician</h1>
 
       <input className="w-full border rounded-xl px-3 py-2"

@@ -13,11 +13,11 @@ type Profile = {
   location: string | null;
   links: Record<string, string> | null;
   venue_photos: string[] | null;
-  handle: string | null; // NEW
+  handle: string | null;
 };
 
 export default function OrganizerProfilePage() {
-  const router = useRouter();
+  const router = useRouter(); 
   const [userId, setUserId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -35,14 +35,16 @@ export default function OrganizerProfilePage() {
   const [website, setWebsite] = useState('');
   const [venuePhotos, setVenuePhotos] = useState<string[]>([]);
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [handle, setHandle] = useState(''); // NEW
+  const [handle, setHandle] = useState('');
 
   // -------------------------
   // LOAD PROFILE
   // -------------------------
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login');
         return;
@@ -109,14 +111,12 @@ export default function OrganizerProfilePage() {
         return;
       }
 
-      const { data: publicUrl } = supabase.storage
-        .from('media')
-        .getPublicUrl(path);
+      const { data: publicUrl } = supabase.storage.from('media').getPublicUrl(path);
 
       if (publicUrl?.publicUrl) {
         setAvatarUrl(publicUrl.publicUrl);
       }
-    } catch (e) {
+    } catch {
       setErr('Avatar upload failed.');
     }
 
@@ -141,8 +141,7 @@ export default function OrganizerProfilePage() {
         const ext = file.name.split('.').pop() ?? 'jpg';
         const path = `venue-photos/${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-        const { error: uploadError } = await supabase
-          .storage
+        const { error: uploadError } = await supabase.storage
           .from('media')
           .upload(path, file);
 
@@ -151,10 +150,7 @@ export default function OrganizerProfilePage() {
           continue;
         }
 
-        const { data: publicUrl } = supabase
-          .storage
-          .from('media')
-          .getPublicUrl(path);
+        const { data: publicUrl } = supabase.storage.from('media').getPublicUrl(path);
 
         if (publicUrl?.publicUrl) uploaded.push(publicUrl.publicUrl);
       }
@@ -162,7 +158,7 @@ export default function OrganizerProfilePage() {
       if (uploaded.length) {
         setVenuePhotos(prev => [...prev, ...uploaded]);
       }
-    } catch (e) {
+    } catch {
       setErr('Photo upload failed.');
     }
 
@@ -180,22 +176,19 @@ export default function OrganizerProfilePage() {
     setErr(null);
 
     try {
-      // ----- Ensure we have a unique handle -----
       let finalHandle = handle?.trim() || '';
 
       if (!finalHandle) {
-        // Generate base from venue name
-        const base = (venueName || 'venue')
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-') // non-alphanum -> dash
-          .replace(/^-+|-+$/g, '')     // trim dashes
-          .substring(0, 30) || 'venue';
+        const base =
+          (venueName || 'venue')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .substring(0, 30) || 'venue';
 
         let candidate = base;
         let counter = 1;
 
-        // Loop until we find a free handle
-        // (profiles.handle has a unique index)
         while (true) {
           const { data: conflict } = await supabase
             .from('profiles')
@@ -233,7 +226,7 @@ export default function OrganizerProfilePage() {
             venue_photos: venuePhotos.length ? venuePhotos : null,
             handle: finalHandle,
           },
-          { onConflict: 'id' }
+          { onConflict: 'id' },
         );
 
       if (error) throw error;
@@ -252,62 +245,67 @@ export default function OrganizerProfilePage() {
 
   if (loading) {
     return (
-      <main className="p-6">
-        <div className="animate-pulse text-sm text-gray-500">
-          Loading profile…
-        </div>
+      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20">
+        <div className="animate-pulse text-sm text-slate-500">Loading profile…</div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-10">
-
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* PAGE HEADER */}
-      <header className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight">Your Venue Profile</h1>
-        <p className="text-sm text-gray-500">
-          This is what musicians see when they check your venue on Arteve.
+      <header className="space-y-2">
+        <p className="text-xs font-semibold tracking-[0.16em] uppercase text-[#4E7FA2]">
+          Organizer · Venue
+        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          Your Venue Profile
+        </h1>
+        <p className="text-slate-500 max-w-xl">
+          This is what musicians see when they check your venue on Arteve. Keep it
+          up to date so artists instantly understand your vibe.
         </p>
       </header>
 
       {/* PROFILE INFO CARD */}
-      <section className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 space-y-6">
+      <section className="relative rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
+        {/* Subtle gradient accent strip */}
+        <div className="pointer-events-none absolute inset-x-0 -top-px h-1 rounded-t-3xl" />
 
         {/* Avatar + Name */}
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20">
             <img
-              src={avatarUrl || "/icons/default-avatar.png"}
-              className="w-20 h-20 rounded-full object-cover border dark:border-neutral-700"
+              src={avatarUrl || '/icons/default-avatar.png'}
+              className="w-20 h-20 rounded-full object-cover border border-slate-200"
               alt="Venue avatar"
             />
-            <label className="absolute bottom-0 right-0 bg-white dark:bg-neutral-800 border rounded-full p-1 text-xs cursor-pointer shadow-sm dark:border-neutral-700">
+            <label className="absolute bottom-0 right-0 bg-white border border-slate-200 rounded-full px-2 py-1 text-[11px] cursor-pointer shadow-sm">
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
                 onChange={handleAvatarUpload}
               />
-              {uploadingAvatar ? "…" : "✎"}
+              {uploadingAvatar ? '…' : 'Edit'}
             </label>
           </div>
 
-          <div>
-            <h2 className="font-medium text-lg">{venueName || "Venue Name"}</h2>
-            <p className="text-xs text-gray-400 mt-1">
-              {handle
-                ? `@${handle}`
-                : 'A shareable handle will be generated when you save.'}
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-slate-900 truncate">
+              {venueName || 'Venue name'}
+            </h2>
+            <p className="text-sm text-slate-400 truncate">
+              {handle ? `@${handle}` : 'A shareable handle will be generated when you save.'}
             </p>
           </div>
         </div>
 
         {/* Venue Name */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Venue name</label>
+          <label className="font-medium text-slate-800">Venue name</label>
           <input
-            className="w-full border rounded-xl px-3 py-2 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
             value={venueName}
             onChange={e => setVenueName(e.target.value)}
             placeholder="Atomic Rooster"
@@ -316,61 +314,63 @@ export default function OrganizerProfilePage() {
 
         {/* About */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">About this venue</label>
+          <label className="font-medium text-slate-800">About this venue</label>
           <textarea
-            className="w-full border rounded-xl px-3 py-2 text-sm min-h-[140px] bg-white dark:bg-neutral-900 dark:border-neutral-700"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 min-h-[120px] outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
             value={bio}
             onChange={e => setBio(e.target.value)}
-            placeholder="Tell musicians about your stage, setup, crowd, ambience, capacity, etc."
+            placeholder="Tell musicians about your stage, setup, crowd, ambience, capacity, genres you prefer, etc."
           />
         </div>
 
         {/* Location */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Location</label>
+          <label className="font-medium text-slate-800">Location</label>
           <input
-            className="w-full border rounded-xl px-3 py-2 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
             value={location}
             onChange={e => setLocation(e.target.value)}
-            placeholder="303 Bank St, Ottawa, ON"
+            placeholder="303 Bank Street, Ottawa, ON"
           />
         </div>
-
       </section>
 
       {/* SOCIAL LINKS */}
-      <section className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 space-y-5">
-        <h2 className="text-base font-semibold">Online presence</h2>
+      <section className="rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-6 sm:p-7 space-y-5">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Online presence</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Add links so artists can quickly explore your venue online.
+            </p>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-          {/* IG */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Instagram</label>
+            <label className="te  xt-sm font-medium text-slate-800">Instagram</label>
             <input
-              className="w-full border rounded-xl px-3 py-2 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
               value={instagram}
               onChange={e => setInstagram(e.target.value)}
-              placeholder="@atomicrooster"
+              placeholder="@yourvenue"
             />
           </div>
 
-          {/* YouTube */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">YouTube</label>
+            <label className="font-medium text-slate-800">YouTube</label>
             <input
-              className="w-full border rounded-xl px-3 py-2 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
               value={youtube}
               onChange={e => setYoutube(e.target.value)}
               placeholder="Channel link"
             />
           </div>
 
-          {/* Website */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Website</label>
+            <label className="font-medium text-slate-800">Website</label>
             <input
-              className="w-full border rounded-xl px-3 py-2 text-sm bg-white dark:bg-neutral-900 dark:border-neutral-700"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
               value={website}
               onChange={e => setWebsite(e.target.value)}
               placeholder="https://example.com"
@@ -380,18 +380,18 @@ export default function OrganizerProfilePage() {
       </section>
 
       {/* VENUE PHOTOS */}
-      <section className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-2xl shadow-sm p-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Venue photos</h2>
+      <section className="rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-6 sm:p-7 space-y-5">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Venue photos</h2>
+            <p className="text-slate-500 mt-1">
+              Upload photos of your stage, interior, and the crowd vibe.
+            </p>
+          </div>
         </div>
 
-        <p className="text-xs text-gray-500">
-          Upload photos of your stage, interior, and the crowd vibe.
-        </p>
-
-        {/* Upload */}
         <label className="inline-flex items-center gap-2 cursor-pointer">
-          <span className="px-4 py-2 text-sm border rounded-xl bg-gray-50 hover:bg-gray-100 dark:bg-neutral-800 dark:border-neutral-700">
+          <span className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100">
             {uploadingPhotos ? 'Uploading…' : 'Upload photos'}
           </span>
           <input
@@ -403,46 +403,41 @@ export default function OrganizerProfilePage() {
           />
         </label>
 
-        {/* Gallery */}
         {venuePhotos.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {venuePhotos.map(url => (
               <div
                 key={url}
-                className="relative overflow-hidden rounded-xl border aspect-video bg-gray-100 dark:border-neutral-700"
+                className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 aspect-video"
               >
-                <img
-                  src={url}
-                  className="w-full h-full object-cover"
-                  alt="Venue photo"
-                />
+                <img src={url} className="w-full h-full object-cover" alt="Venue photo" />
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-500">No photos added yet.</p>
+          <p className="text-xs text-slate-500">No photos added yet.</p>
         )}
       </section>
 
       {/* ACTION BUTTONS */}
-      <div className="flex gap-3 pt-2">
+      <div className="flex flex-wrap gap-3 pt-2">
         <button
           onClick={saveProfile}
           disabled={saving}
-          className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium disabled:opacity-60"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#4E7FA2] text-white font-medium shadow-sm hover:bg-[#406985] disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {saving ? 'Saving…' : 'Save profile'}
         </button>
 
         <button
           onClick={signOut}
-          className="px-5 py-2.5 rounded-xl border text-sm font-medium dark:border-neutral-700"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-slate-200 font-medium text-slate-800 hover:bg-slate-50"
         >
           Sign out
         </button>
       </div>
 
-      {err && <p className="text-sm text-red-600">{err}</p>}
+      {err && <p className="text-red-600">{err}</p>}
     </main>
   );
 }

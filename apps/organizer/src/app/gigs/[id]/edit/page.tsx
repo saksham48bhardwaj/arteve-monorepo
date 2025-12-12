@@ -99,7 +99,7 @@ export default function EditGigPage() {
   if (!gig) return <main className="p-6">Gig not found.</main>;
 
   return (
-    <main className="mx-auto max-w-3xl p-6 space-y-8">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Edit Gig</h1>
         <p className="text-sm text-gray-500">

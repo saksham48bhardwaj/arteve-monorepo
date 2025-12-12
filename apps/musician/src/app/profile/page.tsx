@@ -67,21 +67,11 @@ type FollowingRow = {
     Extract storage path from PUBLIC URL
 --------------------------------------------------------- */
 function extractStoragePath(publicUrl: string): string | null {
-  console.log("DELETE DEBUG – publicUrl:", publicUrl);
-
   const marker = '/storage/v1/object/public/media/';
   const index = publicUrl.indexOf(marker);
-  if (index === -1) {
-    console.log("DELETE DEBUG – marker not found!");
-    return null;
-  }
-
-  const path = publicUrl.substring(index + marker.length);
-
-  console.log("DELETE DEBUG – extracted path:", path);
-  return path;
+  if (index === -1) return null;
+  return publicUrl.substring(index + marker.length);
 }
-
 
 /* ---------------------------------------------------------
     MAIN COMPONENT
@@ -104,13 +94,11 @@ export default function ProfilePage() {
   const [selectedMedia, setSelectedMedia] = useState<PostMedia | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Followers & Following modal
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   const [followersList, setFollowersList] = useState<Profile[]>([]);
   const [followingList, setFollowingList] = useState<Profile[]>([]);
-
   const [myFollowingIds, setMyFollowingIds] = useState<string[]>([]);
 
   const [activeTab, setActiveTab] = useState<'media' | 'about'>('media');
@@ -144,7 +132,6 @@ export default function ProfilePage() {
       }
 
       try {
-        // PROFILE
         const { data: p } = await supabase
           .from('profiles')
           .select('*')
@@ -153,19 +140,16 @@ export default function ProfilePage() {
 
         setProfile(p as Profile);
 
-        // Load counts for posts, followers, following
         const c = await fetchProfileCounts(user.id);
         setCounts(c);
 
-        // Load IDs I am following
         const { data: myFollows } = await supabase
-          .from("followers")
-          .select("following_id")
-          .eq("follower_id", user.id);
+          .from('followers')
+          .select('following_id')
+          .eq('follower_id', user.id);
 
-        setMyFollowingIds(myFollows?.map((f) => f.following_id) ?? []);
+        setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
 
-        // ACHIEVEMENTS
         const { data: a } = await supabase
           .from('achievements')
           .select('*')
@@ -173,7 +157,6 @@ export default function ProfilePage() {
           .order('created_at', { ascending: false });
         setAchievements((a ?? []) as Achievement[]);
 
-        // SHOWS
         const { data: s } = await supabase
           .from('shows')
           .select('*')
@@ -181,7 +164,6 @@ export default function ProfilePage() {
           .order('event_date', { ascending: false });
         setShows((s ?? []) as Show[]);
 
-        // SKILLS
         const { data: sk } = await supabase
           .from('skills')
           .select('*')
@@ -189,18 +171,16 @@ export default function ProfilePage() {
           .order('created_at', { ascending: false });
         setSkills((sk ?? []) as Skill[]);
 
-        // MEDIA POSTS
         const { data: posts } = await supabase
           .from('posts')
           .select('id, media_url, media_type, caption, kind, created_at')
           .eq('profile_id', user.id)
-          .in('kind', ['post', 'bit']) 
+          .in('kind', ['post', 'bit'])
           .not('media_url', 'is', null)
           .order('created_at', { ascending: false });
 
         setMedia((posts ?? []) as PostMedia[]);
 
-        // RECOMMENDATIONS
         const { data: r } = await supabase
           .from('recommendations')
           .select('*')
@@ -225,9 +205,27 @@ export default function ProfilePage() {
     return () => window.removeEventListener('keydown', esc);
   }, []);
 
-  if (loading) return <main className="p-6">Loading…</main>;
-  if (err) return <main className="p-6 text-red-600">{err}</main>;
-  if (!profile) return <main className="p-6">No profile found.</main>;
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20">
+        Loading…
+      </main>
+    );
+  }
+  if (err) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20 text-red-600">
+        {err}
+      </main>
+    );
+  }
+  if (!profile) {
+    return (
+      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20">
+        No profile found.
+      </main>
+    );
+  }
 
   /* ---------------------------------------------------------
       UPLOAD MEDIA
@@ -249,13 +247,10 @@ export default function ProfilePage() {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('media')
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
 
       const mediaType = file.type.startsWith('video') ? 'video' : 'image';
 
-      // Insert DB row
       await supabase.from('posts').insert({
         profile_id: profile.id,
         media_url: urlData.publicUrl,
@@ -263,14 +258,13 @@ export default function ProfilePage() {
         kind: 'post',
       });
 
-      // Reload media
       const { data: posts } = await supabase
         .from('posts')
         .select('id, media_url, media_type, caption, kind, created_at')
         .eq('profile_id', profile.id)
         .order('created_at', { ascending: false });
 
-      setMedia(posts ?? []);
+      setMedia((posts ?? []) as PostMedia[]);
     } catch (err) {
       console.error(err);
       alert('Failed to upload media');
@@ -283,20 +277,15 @@ export default function ProfilePage() {
     const supa = supabase;
 
     const [postsRes, followersRes, followingRes] = await Promise.all([
+      supa.from('posts').select('id', { count: 'exact', head: true }).eq('profile_id', userId),
       supa
-        .from("posts")
-        .select("id", { count: "exact", head: true })
-        .eq("profile_id", userId),
-
+        .from('followers')
+        .select('id', { count: 'exact', head: true })
+        .eq('following_id', userId),
       supa
-        .from("followers")
-        .select("id", { count: "exact", head: true })
-        .eq("following_id", userId),
-
-      supa
-        .from("followers")
-        .select("id", { count: "exact", head: true })
-        .eq("follower_id", userId),
+        .from('followers')
+        .select('id', { count: 'exact', head: true })
+        .eq('follower_id', userId),
     ]);
 
     return {
@@ -310,33 +299,15 @@ export default function ProfilePage() {
       DELETE MEDIA
   --------------------------------------------------------- */
   async function deleteMedia(item: PostMedia) {
-    console.log("DELETE CLICKED!", item);
-
-    if (!item.media_url) {
-      console.log("No media URL");
-      return;
-    }
+    if (!item.media_url) return;
 
     const storagePath = extractStoragePath(item.media_url);
+    if (!storagePath) return;
 
-    console.log("STORAGE PATH RESULT:", storagePath);
-
-    if (!storagePath) {
-      console.log("❌ Could not extract storage path");
-      return;
-    }
-
-    const { error: removeErr } = await supabase.storage
-      .from('media')
-      .remove([storagePath]);
-
-    console.log("REMOVE RESULT:", removeErr);
-
+    await supabase.storage.from('media').remove([storagePath]);
     await supabase.from('posts').delete().eq('id', item.id);
-    console.log("DB DELETE DONE");
 
     setMedia(prev => prev.filter(m => m.id !== item.id));
-
     closeModal();
   }
 
@@ -344,18 +315,16 @@ export default function ProfilePage() {
   async function loadFollowers() {
     if (!profile) return;
 
-    const { data, error } = await supabase
-      .from("followers")
-      .select("follower_id, profiles:follower_id(*)") as unknown as {
-        data: FollowerRow[] | null;
-        error: Error | null;
-      };
+    const { data, error } = (await supabase
+      .from('followers')
+      .select('follower_id, profiles:follower_id(*)')) as unknown as {
+      data: FollowerRow[] | null;
+      error: Error | null;
+    };
 
     if (!error && data) {
       setFollowersList(
-        data
-          .map((row) => row.profiles)
-          .filter((p): p is Profile => p !== null)
+        data.map(row => row.profiles).filter((p): p is Profile => p !== null),
       );
     }
 
@@ -364,55 +333,44 @@ export default function ProfilePage() {
 
   async function toggleFollowFromModal(targetId: string) {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return alert("Login required.");
+    if (!auth.user) return alert('Login required.');
 
     const me = auth.user.id;
 
-    // Already following → unfollow
     if (myFollowingIds.includes(targetId)) {
       await supabase
-        .from("followers")
+        .from('followers')
         .delete()
-        .eq("follower_id", me)
-        .eq("following_id", targetId);
+        .eq('follower_id', me)
+        .eq('following_id', targetId);
 
-      setMyFollowingIds((prev) => prev.filter((id) => id !== targetId));
-    } 
-    else {
-      // Not following → follow
-      await supabase.from("followers").insert({
+      setMyFollowingIds(prev => prev.filter(id => id !== targetId));
+      setCounts(c => ({ ...c, following: c.following - 1 }));
+    } else {
+      await supabase.from('followers').insert({
         follower_id: me,
         following_id: targetId,
       });
 
-      setMyFollowingIds((prev) => [...prev, targetId]);
+      setMyFollowingIds(prev => [...prev, targetId]);
+      setCounts(c => ({ ...c, following: c.following + 1 }));
     }
-
-    // Update visible UI inside modal too
-    setCounts((c) => ({
-      ...c,
-      following: myFollowingIds.includes(targetId)
-        ? c.following - 1
-        : c.following + 1,
-    }));
   }
 
   /* ---------------------------- Load Following ---------------------------- */
   async function loadFollowing() {
     if (!profile) return;
 
-    const { data, error } = await supabase
-      .from("followers")
-      .select("following_id, profiles:following_id(*)") as unknown as {
-        data: FollowingRow[] | null;
-        error: Error | null;
-      };
+    const { data, error } = (await supabase
+      .from('followers')
+      .select('following_id, profiles:following_id(*)')) as unknown as {
+      data: FollowingRow[] | null;
+      error: Error | null;
+    };
 
     if (!error && data) {
       setFollowingList(
-        data
-          .map((row) => row.profiles)
-          .filter((p): p is Profile => p !== null)
+        data.map(row => row.profiles).filter((p): p is Profile => p !== null),
       );
     }
 
@@ -451,164 +409,158 @@ export default function ProfilePage() {
   const genres = profile.genres ?? [];
 
   /* ---------------------------------------------------------
-      UI STARTS HERE
-  --------------------------------------------------------- */
-    /* ---------------------------------------------------------
-      UI STARTS HERE
+      UI
   --------------------------------------------------------- */
   return (
-    <main className="w-full max-w-xl mx-auto px-4 py-6 space-y-6">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
+      {/* HEADER CARD (clean white hero) */}
+      <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
+        {/* Top row: Avatar + Details */}
+        <div className="flex items-start gap-6">
+          <img
+            src={profile.avatar_url ?? '/placeholder-avatar.png'}
+            className="w-24 h-24 rounded-full object-cover border border-neutral-300"
+            alt="Profile avatar"
+          />
 
-      {/* HEADER CARD */}
-      <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm p-6 space-y-6">
-        {/* Avatar + main info */}
-         {/* Top row: Avatar + Details */}
-  <div className="flex items-start gap-6">
+          <div className="flex-1 space-y-1">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-neutral-900">
+              {profile.display_name ?? 'Unnamed artist'}
+            </h1>
 
-    {/* Avatar */}
-    <img
-      src={profile.avatar_url ?? '/placeholder-avatar.png'}
-      className="w-24 h-24 rounded-full object-cover border border-neutral-300 dark:border-neutral-700"
-    />
+            <p className="text-sm text-neutral-500">@{username}</p>
 
-    {/* Name, username, location, genres */}
-    <div className="flex-1 space-y-1">
-      <h1 className="text-xl font-semibold tracking-tight">
-        {profile.display_name ?? 'Unnamed artist'}
-      </h1>
+            {profile.location && (
+              <p className="text-sm text-neutral-600">{profile.location}</p>
+            )}
 
-      <p className="text-xs text-neutral-500 dark:text-neutral-400">
-        @{username}
-      </p>
+            {genres.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {genres.map(g => (
+                  <span
+                    key={g}
+                    className="px-3 py-1 rounded-full bg-neutral-100 text-sm text-neutral-700"
+                  >
+                    {g}
+                  </span>
+                ))}
+              </div>
+            )}
 
-      {profile.location && (
-        <p className="text-xs text-neutral-600 dark:text-neutral-300">
-          {profile.location}
-        </p>
-      )}
-
-      {genres.length > 0 && (
-        <div className="flex flex-wrap gap-2 pt-1">
-          {genres.map((g) => (
-            <span
-              key={g}
-              className="px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-900 text-xs text-neutral-700 dark:text-neutral-300"
-            >
-              {g}
-            </span>
-          ))}
+            {profile.bio && (
+              <p className="text-neutral-700 leading-snug pt-1">
+                {profile.bio}
+              </p>
+            )}
+          </div>
         </div>
-      )}
 
-      {profile.bio && (
-        <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-snug pt-1">
-          {profile.bio}
-        </p>
-      )}
-    </div>
-  </div>
+        {/* Stats row */}
+        <div className="flex justify-evenly text-center mt-2">
+          <div>
+            <p className="text-lg font-semibold text-neutral-900">{counts.posts}</p>
+            <p className="text-[11px] text-neutral-600">Posts</p>
+          </div>
 
-  {/* Stats row */}
-  <div className="flex justify-around text-center mt-2">
+          <button
+            onClick={loadFollowers}
+            className="flex flex-col items-center hover:text-neutral-900"
+          >
+            <p className="text-lg font-semibold text-neutral-900">
+              {counts.followers}
+            </p>
+            <p className="text-[11px] text-neutral-600">Followers</p>
+          </button>
 
-    <div>
-      <p className="text-lg font-semibold">{counts.posts}</p>
-      <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Posts</p>
-    </div>
+          <button
+            onClick={loadFollowing}
+            className="flex flex-col items-center hover:text-neutral-900"
+          >
+            <p className="text-lg font-semibold text-neutral-900">
+              {counts.following}
+            </p>
+            <p className="text-[11px] text-neutral-600">Following</p>
+          </button>
+        </div>
 
-    <button onClick={loadFollowers} className="flex flex-col items-center">
-      <p className="text-lg font-semibold">{counts.followers}</p>
-      <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Followers</p>
-    </button>
+        {/* Buttons row */}
+        <div className="flex flex-wrap gap-2 justify-center mt-2">
+          <Link
+            href="/profile/edit"
+            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+          >
+            Edit Profile
+          </Link>
 
-    <button onClick={loadFollowing} className="flex flex-col items-center">
-      <p className="text-lg font-semibold">{counts.following}</p>
-      <p className="text-[11px] text-neutral-600 dark:text-neutral-400">Following</p>
-    </button>
+          <Link
+            href="/bookings"
+            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+          >
+            View Bookings
+          </Link>
 
+          <button
+            onClick={() =>
+              navigator.clipboard.writeText(
+                `${window.location.origin}/profile/${profile.id}`,
+              )
+            }
+            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+          >
+            Share
+          </button>
+        </div>
 
-  </div>
-
-  {/* Buttons row */}
-  <div className="flex gap-2 justify-center mt-1">
-
-    <Link
-      href="/profile/edit"
-      className="px-4 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium"
-    >
-      Edit Profile
-    </Link>
-
-    <Link
-      href="/bookings"
-      className="px-4 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium"
-    >
-      View Bookings
-    </Link>
-
-    <button
-      onClick={() =>
-        navigator.clipboard.writeText(`${window.location.origin}/profile/${profile.id}`)
-      }
-      className="px-4 py-1.5 rounded-lg border border-neutral-300 dark:border-neutral-700 text-sm font-medium"
-    >
-      Share
-    </button>
-
-  </div>
-
-  {/* Quote */}
-  {profile.quote && (
-    <div className="px-4 py-3 rounded-xl bg-neutral-100 dark:bg-neutral-900 mt-3">
-      <p className="text-[11px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-        Artist Quote
-      </p>
-      <p className="mt-1 text-sm italic text-neutral-700 dark:text-neutral-200">
-        “{profile.quote}”
-      </p>
-    </div>
-  )}
+        {/* Quote */}
+        {profile.quote && (
+          <div className="px-4 py-3 rounded-xl bg-neutral-50 mt-3">
+            <p className="text-[11px] uppercase tracking-wide text-neutral-500">
+              Artist Quote
+            </p>
+            <p className="mt-1 italic text-neutral-800">
+              “{profile.quote}”
+            </p>
+          </div>
+        )}
       </section>
 
-      {/* TABS */}
-      <div className="flex gap-6 border-b border-neutral-200 dark:border-neutral-800 pb-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('media')}
-          className={`pb-2 text-sm font-medium ${
-            activeTab === 'media'
-              ? 'border-b-2 border-black dark:border-white text-black dark:text-white'
-              : 'text-neutral-500 dark:text-neutral-400'
-          }`}
-        >
-          Media
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('about')}
-          className={`pb-2 text-sm font-medium ${
-            activeTab === 'about'
-              ? 'border-b-2 border-black dark:border-white text-black dark:text-white'
-              : 'text-neutral-500 dark:text-neutral-400'
-          }`}
-        >
-          About
-        </button>
+      {/* TABS (Instagram-style, text-only) */}
+      <div className="border-b border-neutral-200">
+        <div className="flex justify-center gap-10">
+          {(['media', 'about'] as const).map(tab => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`relative pb-3 font-medium ${
+                activeTab === tab
+                  ? 'text-neutral-900'
+                  : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              {tab === 'media' ? 'Media' : 'About'}
+              {activeTab === tab && (
+                <span className="absolute left-0 right-0 -bottom-0.5 mx-auto h-[2px] w-8 rounded-full bg-neutral-900" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* MEDIA TAB */}
       {activeTab === 'media' && (
-        <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm p-5 space-y-4">
-          {/* Header */}
+        <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">Media</h2>
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+              <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
+                Media
+              </h2>
+              <p className="text-sm text-neutral-500 mt-1">
                 Add photos and videos from your performances.
               </p>
             </div>
 
-            <label className="cursor-pointer inline-flex items-center px-3 py-1.5 rounded-full border border-neutral-300 dark:border-neutral-700 text-xs font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900">
+            <label className="cursor-pointer inline-flex items-center px-3 py-1.5 rounded-full border border-neutral-300 text-sm font-medium hover:bg-neutral-50">
               {uploading ? 'Uploading…' : 'Upload'}
               <input
                 type="file"
@@ -619,26 +571,24 @@ export default function ProfilePage() {
             </label>
           </div>
 
-          {/* Grid */}
           {media.length === 0 ? (
-            <div className="border border-dashed border-neutral-300 dark:border-neutral-700 rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-neutral-50 dark:bg-neutral-900">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                No media uploaded yet.
-              </p>
+            <div className="border border-dashed border-neutral-300 rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-neutral-50">
+              <p className="text-neutral-600">No media uploaded yet.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {media.map((item, index) => (
                 <button
                   type="button"
                   key={item.id}
                   onClick={() => openModal(index)}
-                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-neutral-200 dark:bg-neutral-800"
+                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-neutral-200"
                 >
                   {item.media_type === 'image' ? (
                     <img
                       src={item.media_url}
                       className="absolute inset-0 w-full h-full object-cover"
+                      alt=""
                     />
                   ) : (
                     <video
@@ -657,23 +607,13 @@ export default function ProfilePage() {
       {/* ABOUT TAB */}
       {activeTab === 'about' && (
         <section className="space-y-6">
-          {/* Banner + bio + links */}
-          <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm overflow-hidden">
-            <div className="h-40 w-full relative bg-neutral-900">
-              {primaryMedia?.media_type === 'image' && (
-                <img
-                  src={primaryMedia.media_url}
-                  className="w-full h-full object-cover opacity-60"
-                />
-              )}
-              <div className="absolute inset-0 bg-black/30" />
-            </div>
-
+          {/* About + links card */}
+          <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] overflow-hidden">
             <div className="px-5 py-6 space-y-6">
               {profile.bio && (
                 <div className="space-y-1">
-                  <h2 className="text-lg font-semibold">About</h2>
-                  <p className="text-sm text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                  <h2 className="text-lg font-semibold text-neutral-900">About</h2>
+                  <p className="text-neutral-700 leading-relaxed">
                     {profile.bio}
                   </p>
                 </div>
@@ -681,9 +621,7 @@ export default function ProfilePage() {
 
               {profile.links && Object.keys(profile.links).length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                    Links
-                  </h3>
+                  <h3 className="font-semibold text-neutral-800">Links</h3>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(profile.links)
                       .filter(([, v]) => !!v)
@@ -693,7 +631,7 @@ export default function ProfilePage() {
                           href={value as string}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3 py-1 rounded-full border border-neutral-300 dark:border-neutral-700 text-xs text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                          className="px-3 py-1 rounded-full border border-neutral-300 text-sm text-neutral-700 hover:bg-neutral-50"
                         >
                           {key}
                         </a>
@@ -709,31 +647,29 @@ export default function ProfilePage() {
             {/* Left column */}
             <div className="space-y-4">
               {/* Achievements */}
-              <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2">Achievements</h2>
+              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+                  Achievements
+                </h2>
                 {achievements.length === 0 ? (
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    No achievements yet.
-                  </p>
+                  <p className="text-neutral-500">No achievements yet.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {achievements.map((a) => (
+                    {achievements.map(a => (
                       <li
                         key={a.id}
-                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-3 space-y-1"
+                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 space-y-1"
                       >
-                        <div className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                        <div className="font-medium text-neutral-900">
                           {a.title}
                         </div>
                         {a.description && (
-                          <div className="text-xs text-neutral-700 dark:text-neutral-300">
+                          <div className="text-sm text-neutral-700">
                             {a.description}
                           </div>
                         )}
                         {a.year && (
-                          <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                            {a.year}
-                          </div>
+                          <div className="text-sm text-neutral-500">{a.year}</div>
                         )}
                       </li>
                     ))}
@@ -742,27 +678,27 @@ export default function ProfilePage() {
               </section>
 
               {/* Shows */}
-              <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2">Recent shows</h2>
+              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+                  Recent shows
+                </h2>
                 {shows.length === 0 ? (
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    No shows yet.
-                  </p>
+                  <p className="text-neutral-500">No shows yet.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {shows.map((s) => (
+                    {shows.map(s => (
                       <li
                         key={s.id}
-                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-3 space-y-1"
+                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 space-y-1"
                       >
-                        <div className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                        <div className="font-medium text-neutral-900">
                           {s.title}
                         </div>
-                        <div className="text-xs text-neutral-700 dark:text-neutral-300">
+                        <div className="text-sm text-neutral-700">
                           {[s.venue, s.location].filter(Boolean).join(', ')}
                         </div>
                         {s.event_date && (
-                          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                          <div className="text-sm text-neutral-500">
                             {new Date(s.event_date).toLocaleDateString()}
                           </div>
                         )}
@@ -776,23 +712,21 @@ export default function ProfilePage() {
             {/* Right column */}
             <div className="space-y-4">
               {/* Skills */}
-              <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2">Skills</h2>
+              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-neutral-900">Skills</h2>
                 {skills.length === 0 ? (
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    No skills yet.
-                  </p>
+                  <p className="text-neutral-500">No skills yet.</p>
                 ) : (
                   <ul className="space-y-2">
-                    {skills.map((sk) => (
+                    {skills.map(sk => (
                       <li
                         key={sk.id}
-                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-3 flex justify-between items-center"
+                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 flex justify-between items-center"
                       >
-                        <span className="text-sm font-medium text-neutral-800 dark:text-neutral-100">
+                        <span className="font-medium text-neutral-900">
                           {sk.skill}
                         </span>
-                        <span className="text-xs italic text-neutral-600 dark:text-neutral-300">
+                        <span className="text-sm italic text-neutral-600">
                           {sk.level}
                         </span>
                       </li>
@@ -802,26 +736,24 @@ export default function ProfilePage() {
               </section>
 
               {/* Recommendations */}
-              <section className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-sm px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2">Recommendations</h2>
+              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+                  Recommendations
+                </h2>
                 {recommendations.length === 0 ? (
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    No recommendations yet.
-                  </p>
+                  <p className=" text-neutral-400">No recommendations yet.</p>
                 ) : (
                   <div className="space-y-3">
-                    {recommendations.map((r) => (
+                    {recommendations.map(r => (
                       <blockquote
                         key={r.id}
-                        className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-3"
+                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3"
                       >
-                        <p className="text-sm italic text-neutral-800 dark:text-neutral-100">
+                        <p className="italic text-neutral-900">
                           “{r.content}”
                         </p>
                         {r.author && (
-                          <p className="text-xs mt-1 text-neutral-500 dark:text-neutral-400">
-                            — {r.author}
-                          </p>
+                          <p className="text-xs mt-1 text-neutral-500">— {r.author}</p>
                         )}
                       </blockquote>
                     ))}
@@ -836,14 +768,12 @@ export default function ProfilePage() {
       {/* MEDIA MODAL */}
       {selectedMedia && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          {/* background click */}
           <button
             type="button"
             className="absolute inset-0 cursor-pointer"
             onClick={closeModal}
           />
           <div className="relative z-50 w-full max-w-3xl px-4">
-            {/* DELETE */}
             <button
               type="button"
               onClick={() => deleteMedia(selectedMedia)}
@@ -852,7 +782,6 @@ export default function ProfilePage() {
               Delete
             </button>
 
-            {/* CLOSE */}
             <button
               type="button"
               onClick={closeModal}
@@ -865,6 +794,7 @@ export default function ProfilePage() {
               <img
                 src={selectedMedia.media_url}
                 className="w-full max-h-[90vh] object-contain rounded-2xl"
+                alt=""
               />
             ) : (
               <video
@@ -896,59 +826,57 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* FOLLOWERS MODAL */}
       {showFollowersModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
-
+          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
             <button
-              className="absolute top-3 right-4 text-3xl font-bold text-neutral-800 dark:text-neutral-100"
+              className="absolute top-3 right-4 text-3xl font-bold text-neutral-800"
               onClick={() => setShowFollowersModal(false)}
             >
               ×
             </button>
 
-            <h2 className="text-xl font-semibold mb-4 text-neutral-900 dark:text-neutral-100">
-              Followers
-            </h2>
+            <h2 className="text-xl font-semibold mb-4 text-neutral-900">Followers</h2>
 
             {followersList.length === 0 ? (
               <p className="text-sm text-neutral-500">No followers yet.</p>
             ) : (
               <ul className="space-y-4">
-                {followersList.map((user) => (
+                {followersList.map(user => (
                   <li key={user.id}>
                     <Link
                       href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
                     >
                       <img
                         src={user.avatar_url ?? '/default-avatar.png'}
                         className="w-12 h-12 rounded-full object-cover"
+                        alt=""
                       />
 
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        <p className="text-sm font-medium text-neutral-900">
                           {user.display_name}
                         </p>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                        <p className="text-xs text-neutral-500">
                           @{(user as unknown as Record<string, string>).handle ??
                             user.display_name?.toLowerCase().replace(/\s+/g, '')}
                         </p>
                       </div>
 
-                      {/* Follow Button */}
                       <button
-                        onClick={(e) => {
-                          e.preventDefault(); // Prevent link click
+                        onClick={e => {
+                          e.preventDefault();
                           toggleFollowFromModal(user.id);
                         }}
                         className={`px-3 py-1 text-xs rounded-lg border ${
                           myFollowingIds.includes(user.id)
-                            ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-white"
-                            : "bg-black text-white dark:bg-white dark:text-black"
+                            ? 'bg-neutral-200 text-neutral-800'
+                            : 'bg-black text-white'
                         }`}
                       >
-                        {myFollowingIds.includes(user.id) ? "Unfollow" : "Follow"}
+                        {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
                       </button>
                     </Link>
                   </li>
@@ -959,58 +887,57 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* FOLLOWING MODAL */}
       {showFollowingModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
-
+          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
             <button
-              className="absolute top-3 right-4 text-3xl font-bold text-neutral-800 dark:text-neutral-100"
+              className="absolute top-3 right-4 text-3xl font-bold text-neutral-800"
               onClick={() => setShowFollowingModal(false)}
             >
               ×
             </button>
 
-            <h2 className="text-xl font-semibold mb-4 text-neutral-900 dark:text-neutral-100">
-              Following
-            </h2>
+            <h2 className="text-xl font-semibold mb-4 text-neutral-900">Following</h2>
 
             {followingList.length === 0 ? (
               <p className="text-sm text-neutral-500">Not following anyone yet.</p>
             ) : (
               <ul className="space-y-4">
-                {followingList.map((user) => (
+                {followingList.map(user => (
                   <li key={user.id}>
                     <Link
                       href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
                     >
                       <img
                         src={user.avatar_url ?? '/default-avatar.png'}
                         className="w-12 h-12 rounded-full object-cover"
+                        alt=""
                       />
 
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                        <p className="text-sm font-medium text-neutral-900">
                           {user.display_name}
                         </p>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                        <p className="text-xs text-neutral-500">
                           @{(user as unknown as Record<string, string>).handle ??
                             user.display_name?.toLowerCase().replace(/\s+/g, '')}
                         </p>
                       </div>
 
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.preventDefault();
                           toggleFollowFromModal(user.id);
                         }}
                         className={`px-3 py-1 text-xs rounded-lg border ${
                           myFollowingIds.includes(user.id)
-                            ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-white"
-                            : "bg-black text-white dark:bg-white dark:text-black"
+                            ? 'bg-neutral-200 text-neutral-800'
+                            : 'bg-black text-white'
                         }`}
                       >
-                        {myFollowingIds.includes(user.id) ? "Unfollow" : "Follow"}
+                        {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
                       </button>
                     </Link>
                   </li>
@@ -1023,20 +950,3 @@ export default function ProfilePage() {
     </main>
   );
 }
-
-/* ---------------------------------------------------------
-    STAT BLOCK
---------------------------------------------------------- */
-function StatBlock({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/80 py-3">
-      <div className="text-base font-semibold text-neutral-900 dark:text-neutral-50">
-        {value}
-      </div>
-      <div className="text-[11px] text-neutral-600 dark:text-neutral-400">
-        {label}
-      </div>
-    </div>
-  );
-}
-

@@ -95,7 +95,7 @@ export default function NewBitPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 space-y-6">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <h1 className="text-xl font-semibold">New Bit</h1>
       <p className="text-sm text-gray-500">Upload a short vertical clip.</p>
 

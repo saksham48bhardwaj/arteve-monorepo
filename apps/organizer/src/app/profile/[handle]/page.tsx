@@ -55,10 +55,6 @@ type BaseProfile = {
   quote: string | null;
 };
 
-/* ---------------------------------------------------------------------- */
-/*  ORGANIZER PUBLIC VIEW                                                 */
-/* ---------------------------------------------------------------------- */
-
 export default function OrganizerMusicianProfilePage() {
   const { handle } = useParams<{ handle: string }>();
 
@@ -84,14 +80,11 @@ export default function OrganizerMusicianProfilePage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  /* ------------------------- Load Full Profile ------------------------- */
-
   useEffect(() => {
     if (!handle) return;
 
     (async () => {
       try {
-        // Fetch profile
         const { data: p, error: pErr } = await supabase
           .from('profiles')
           .select('*')
@@ -103,18 +96,15 @@ export default function OrganizerMusicianProfilePage() {
         const prof = p as BaseProfile;
         setProfile(prof);
 
-        // Fetch stats
         const [postsRes, followersRes, followingRes] = await Promise.all([
           supabase
             .from('posts')
             .select('id', { count: 'exact', head: true })
             .eq('profile_id', prof.id),
-
           supabase
             .from('followers')
             .select('id', { count: 'exact', head: true })
             .eq('following_id', prof.id),
-
           supabase
             .from('followers')
             .select('id', { count: 'exact', head: true })
@@ -127,7 +117,6 @@ export default function OrganizerMusicianProfilePage() {
           following: followingRes.count || 0,
         });
 
-        // Check if organizer follows this musician
         const { data: auth } = await supabase.auth.getUser();
         const currentUserId = auth.user?.id;
 
@@ -142,7 +131,6 @@ export default function OrganizerMusicianProfilePage() {
           setIsFollowing(!!followData);
         }
 
-        // Fetch musician sections
         const [
           { data: postData },
           { data: a },
@@ -155,7 +143,6 @@ export default function OrganizerMusicianProfilePage() {
             .select('*')
             .eq('profile_id', prof.id)
             .order('created_at', { ascending: false }),
-
           supabase.from('achievements').select('*').eq('profile_id', prof.id),
           supabase.from('shows').select('*').eq('profile_id', prof.id),
           supabase.from('skills').select('*').eq('profile_id', prof.id),
@@ -178,12 +165,12 @@ export default function OrganizerMusicianProfilePage() {
     })();
   }, [handle]);
 
-  /* ------------------------- Follow toggle ------------------------- */
-
   async function toggleFollow() {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return alert('Login required.');
-
+    if (!auth.user) {
+      alert('Login required.');
+      return;
+    }
     if (!profile) return;
 
     if (isFollowing) {
@@ -194,7 +181,7 @@ export default function OrganizerMusicianProfilePage() {
         .eq('following_id', profile.id);
 
       setIsFollowing(false);
-      setCounts((c) => ({ ...c, followers: c.followers - 1 }));
+      setCounts(c => ({ ...c, followers: c.followers - 1 }));
     } else {
       await supabase.from('followers').insert({
         follower_id: auth.user.id,
@@ -202,11 +189,9 @@ export default function OrganizerMusicianProfilePage() {
       });
 
       setIsFollowing(true);
-      setCounts((c) => ({ ...c, followers: c.followers + 1 }));
+      setCounts(c => ({ ...c, followers: c.followers + 1 }));
     }
   }
-
-  /* --------------------------- Modal Controls --------------------------- */
 
   function openModal(i: number) {
     setSelectedIndex(i);
@@ -226,100 +211,109 @@ export default function OrganizerMusicianProfilePage() {
     setSelectedMedia(posts[prev]);
   }
 
-  /* --------------------------- UI States --------------------------- */
+  if (loading) {
+    return (
+      <main className="w-full mx-auto max-w-3xl px-4 sm:px-6 md:px-0 pt-10 pb-24">
+        Loading profile…
+      </main>
+    );
+  }
 
-  if (loading) return <main className="p-6">Loading profile…</main>;
-  if (err || !profile)
-    return <main className="p-6 text-red-600">Error: {err}</main>;
+  if (err || !profile) {
+    return (
+      <main className="w-full mx-auto max-w-3xl px-4 sm:px-6 md:px-0 pt-10 pb-24 text-red-600">
+        Error: {err}
+      </main>
+    );
+  }
 
   const genres = profile.genres ?? [];
 
-  /* --------------------------- FULL UI --------------------------- */
-
   return (
-    <main className="w-full max-w-xl mx-auto px-4 py-6 space-y-6">
-
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER CARD */}
-      <section className="rounded-3xl border border-neutral-200 bg-white shadow-sm p-6 space-y-6">
+      <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
         <div className="flex items-start gap-6">
           <img
             src={profile.avatar_url ?? '/default-avatar.png'}
-            className="w-24 h-24 rounded-full object-cover border"
+            className="w-24 h-24 rounded-full object-cover border border-neutral-300"
+            alt=""
           />
 
           <div className="flex-1 space-y-1">
-            <h1 className="text-xl font-semibold">{profile.display_name}</h1>
-            <p className="text-xs text-neutral-500">@{profile.handle}</p>
+            <h1 className="text-xl sm:text-2xl font-semibold text-neutral-900">
+              {profile.display_name}
+            </h1>
+            <p className="text-[13px] text-neutral-500">@{profile.handle}</p>
             {profile.location && (
-              <p className="text-xs text-neutral-600">{profile.location}</p>
+              <p className="text-[13px] text-neutral-600">
+                {profile.location}
+              </p>
             )}
 
             {genres.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-1">
-                {genres.map((g) => (
+                {genres.map(g => (
                   <span
                     key={g}
-                    className="px-3 py-1 rounded-full bg-neutral-100 text-xs"
+                    className="px-3 py-1 rounded-full bg-neutral-100 text-[13px] text-neutral-700"
                   >
                     {g}
                   </span>
                 ))}
               </div>
             )}
+
+            {profile.bio && (
+              <p className="text-neutral-700 leading-snug pt-1 whitespace-pre-line">
+                {profile.bio}
+              </p>
+            )}
           </div>
         </div>
 
         {/* STATS */}
-        <div className="flex justify-around text-center mt-2">
-          <div>
-            <p className="text-lg font-semibold">{counts.posts}</p>
-            <p className="text-[11px] text-neutral-500">Posts</p>
-          </div>
-
-          <div>
-            <p className="text-lg font-semibold">{counts.followers}</p>
-            <p className="text-[11px] text-neutral-500">Followers</p>
-          </div>
-
-          <div>
-            <p className="text-lg font-semibold">{counts.following}</p>
-            <p className="text-[11px] text-neutral-500">Following</p>
-          </div>
+        <div className="flex justify-evenly text-center mt-2">
+          <StatPill label="Posts" value={counts.posts} />
+          <StatPill label="Followers" value={counts.followers} />
+          <StatPill label="Following" value={counts.following} />
         </div>
 
         {/* PUBLIC ACTION BUTTONS */}
-        <div className="flex gap-2 justify-center mt-1">
+        <div className="flex gap-2 justify-center mt-2 flex-wrap">
           <button
             onClick={toggleFollow}
-            className="px-4 py-1.5 rounded-lg border text-sm"
+            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
           >
             {isFollowing ? 'Unfollow' : 'Follow'}
           </button>
 
           <Link
             href={`/chat/${profile.id}`}
-            className="px-4 py-1.5 rounded-lg border text-sm"
+            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
           >
             Message
           </Link>
 
           <Link
             href={`/book/${profile.id}`}
-            className="px-4 py-1.5 rounded-lg bg-black text-white text-sm rounded-lg"
+            className="px-4 py-1.5 rounded-xl bg-neutral-900 text-white font-medium rounded-xl hover:bg-black"
           >
             Book
           </Link>
 
-          <button className="px-4 py-1.5 rounded-lg border text-sm">Save</button>
+          <button className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50">
+            Save
+          </button>
         </div>
 
         {/* QUOTE */}
         {profile.quote && (
-          <div className="px-4 py-3 rounded-xl bg-neutral-100">
+          <div className="px-4 py-3 rounded-xl bg-neutral-50">
             <p className="text-[11px] uppercase tracking-wide text-neutral-500">
               Artist Quote
             </p>
-            <p className="mt-1 text-sm italic text-neutral-700">
+            <p className="mt-1 italic text-neutral-800">
               “{profile.quote}”
             </p>
           </div>
@@ -327,49 +321,47 @@ export default function OrganizerMusicianProfilePage() {
       </section>
 
       {/* TABS */}
-      <div className="flex gap-6 border-b pb-1">
-        <button
-          onClick={() => setActiveTab('media')}
-          className={`pb-2 text-sm font-medium ${
-            activeTab === 'media'
-              ? 'border-b-2 border-black text-black'
-              : 'text-neutral-500'
-          }`}
-        >
-          Media
-        </button>
-
-        <button
-          onClick={() => setActiveTab('about')}
-          className={`pb-2 text-sm font-medium ${
-            activeTab === 'about'
-              ? 'border-b-2 border-black text-black'
-              : 'text-neutral-500'
-          }`}
-        >
-          About
-        </button>
+      <div className="border-b border-neutral-200">
+        <div className="flex justify-center gap-10">
+          {(['media', 'about'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`relative pb-3 font-medium ${
+                activeTab === tab
+                  ? 'text-neutral-900'
+                  : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              {tab === 'media' ? 'Media' : 'About'}
+              {activeTab === tab && (
+                <span className="absolute left-0 right-0 -bottom-0.5 mx-auto h-[2px] w-8 rounded-full bg-neutral-900" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* MEDIA TAB */}
       {activeTab === 'media' && (
-        <section className="rounded-3xl border bg-white shadow-sm p-5">
+        <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5 sm:p-6">
           {posts.length === 0 ? (
-            <p className="text-sm text-neutral-500 text-center py-8">
+            <p className="text-[13px] text-neutral-500 text-center py-8">
               No media uploaded yet.
             </p>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {posts.map((item, i) => (
                 <button
                   key={item.id}
                   onClick={() => openModal(i)}
-                  className="relative w-full pb-[100%] rounded-xl overflow-hidden bg-neutral-100"
+                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-neutral-200"
                 >
                   {item.media_type === 'image' ? (
                     <img
                       src={item.media_url}
                       className="absolute inset-0 w-full h-full object-cover"
+                      alt=""
                     />
                   ) : (
                     <video
@@ -388,11 +380,13 @@ export default function OrganizerMusicianProfilePage() {
       {/* ABOUT TAB */}
       {activeTab === 'about' && (
         <section className="space-y-6">
-          <section className="rounded-3xl border bg-white shadow-sm p-5">
+          <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5">
             {profile.bio && (
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold">About</h2>
-                <p className="text-sm leading-relaxed whitespace-pre-line">
+              <div className="mb-4 space-y-2">
+                <h2 className="text-lg font-semibold text-neutral-900">
+                  About
+                </h2>
+                <p className="text-neutral-700 leading-relaxed whitespace-pre-line">
                   {profile.bio}
                 </p>
               </div>
@@ -400,7 +394,9 @@ export default function OrganizerMusicianProfilePage() {
 
             {profile.links && Object.keys(profile.links).length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold mb-1">Links</h3>
+                <h3 className="font-semibold mb-2 text-neutral-900">
+                  Links
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(profile.links)
                     .filter(([, v]) => v)
@@ -409,7 +405,7 @@ export default function OrganizerMusicianProfilePage() {
                         key={k}
                         target="_blank"
                         href={v as string}
-                        className="px-3 py-1 rounded-full border text-xs"
+                        className="px-3 py-1 rounded-full border border-neutral-300 text-[13px] text-neutral-800 hover:bg-neutral-50"
                       >
                         {k}
                       </a>
@@ -420,25 +416,33 @@ export default function OrganizerMusicianProfilePage() {
           </section>
 
           {/* Achievements */}
-          <section className="rounded-3xl border bg-white shadow-sm p-5">
-            <h2 className="text-lg font-semibold mb-2">Achievements</h2>
+          <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5">
+            <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              Achievements
+            </h2>
             {achievements.length === 0 ? (
-              <p className="text-sm text-neutral-500">No achievements yet.</p>
+              <p className="text-[13px] text-neutral-500">
+                No achievements yet.
+              </p>
             ) : (
               <ul className="space-y-2">
-                {achievements.map((a) => (
+                {achievements.map(a => (
                   <li
                     key={a.id}
-                    className="rounded-xl border bg-neutral-50 p-3 space-y-1"
+                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-3 space-y-1"
                   >
-                    <p className="text-sm font-medium">{a.title}</p>
+                    <p className="font-medium text-neutral-900">
+                      {a.title}
+                    </p>
                     {a.description && (
-                      <p className="text-xs text-neutral-700">
+                      <p className="text-[13px] text-neutral-700">
                         {a.description}
                       </p>
                     )}
                     {a.year && (
-                      <p className="text-xs text-neutral-500">{a.year}</p>
+                      <p className="text-[13px] text-neutral-500">
+                        {a.year}
+                      </p>
                     )}
                   </li>
                 ))}
@@ -447,24 +451,27 @@ export default function OrganizerMusicianProfilePage() {
           </section>
 
           {/* Recent Shows */}
-          <section className="rounded-3xl border bg-white shadow-sm p-5">
-            <h2 className="text-lg font-semibold mb-2">Recent Shows</h2>
-
+          <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5">
+            <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              Recent shows
+            </h2>
             {shows.length === 0 ? (
-              <p className="text-sm text-neutral-500">No shows yet.</p>
+              <p className="text-[13px] text-neutral-500">No shows yet.</p>
             ) : (
               <ul className="space-y-2">
-                {shows.map((s) => (
+                {shows.map(s => (
                   <li
                     key={s.id}
-                    className="rounded-xl border bg-neutral-50 p-3 space-y-1"
+                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-3 space-y-1"
                   >
-                    <p className="text-sm font-medium">{s.title}</p>
-                    <p className="text-xs text-neutral-700">
+                    <p className="font-medium text-neutral-900">
+                      {s.title}
+                    </p>
+                    <p className="text-[13px] text-neutral-700">
                       {[s.venue, s.location].filter(Boolean).join(', ')}
                     </p>
                     {s.event_date && (
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-[13px] text-neutral-500">
                         {new Date(s.event_date).toLocaleDateString()}
                       </p>
                     )}
@@ -475,20 +482,23 @@ export default function OrganizerMusicianProfilePage() {
           </section>
 
           {/* Skills */}
-          <section className="rounded-3xl border bg-white shadow-sm p-5">
-            <h2 className="text-lg font-semibold mb-2">Skills</h2>
-
+          <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5">
+            <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              Skills
+            </h2>
             {skills.length === 0 ? (
-              <p className="text-sm text-neutral-500">No skills yet.</p>
+              <p className="text-[13px] text-neutral-500">No skills yet.</p>
             ) : (
               <ul className="space-y-2">
-                {skills.map((sk) => (
+                {skills.map(sk => (
                   <li
                     key={sk.id}
-                    className="rounded-xl border bg-neutral-50 p-3 flex justify-between"
+                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-3 flex justify-between items-center"
                   >
-                    <span className="text-sm font-medium">{sk.skill}</span>
-                    <span className="text-xs italic text-neutral-500">
+                    <span className="font-medium text-neutral-900">
+                      {sk.skill}
+                    </span>
+                    <span className="text-[13px] italic text-neutral-600">
                       {sk.level}
                     </span>
                   </li>
@@ -498,19 +508,22 @@ export default function OrganizerMusicianProfilePage() {
           </section>
 
           {/* Recommendations */}
-          <section className="rounded-3xl border bg-white shadow-sm p-5">
-            <h2 className="text-lg font-semibold mb-2">Recommendations</h2>
-
+          <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5">
+            <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              Recommendations
+            </h2>
             {recommendations.length === 0 ? (
-              <p className="text-sm text-neutral-500">None yet.</p>
+              <p className="text-[13px] text-neutral-500">None yet.</p>
             ) : (
               <div className="space-y-3">
-                {recommendations.map((rec) => (
+                {recommendations.map(rec => (
                   <blockquote
                     key={rec.id}
-                    className="rounded-xl border bg-neutral-50 p-3"
+                    className="rounded-2xl border border-neutral-200 bg-neutral-50 p-3"
                   >
-                    <p className="text-sm italic">“{rec.content}”</p>
+                    <p className="italic text-neutral-900">
+                      “{rec.content}”
+                    </p>
                     {rec.author && (
                       <p className="text-xs mt-1 text-neutral-500">
                         — {rec.author}
@@ -528,21 +541,25 @@ export default function OrganizerMusicianProfilePage() {
       {selectedMedia && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
           <button className="absolute inset-0" onClick={closeModal} />
-          <div className="relative max-w-2xl w-full px-4">
+          <div className="relative max-w-3xl w-full px-4">
             <button
               onClick={closeModal}
-              className="absolute top-2 right-3 text-white text-3xl font-bold"
+              className="absolute top-2 right-4 text-3xl font-bold text-white"
             >
               ×
             </button>
 
             {selectedMedia.media_type === 'image' ? (
-              <img src={selectedMedia.media_url} className="w-full rounded-2xl" />
+              <img
+                src={selectedMedia.media_url}
+                className="w-full rounded-2xl max-h-[90vh] object-contain"
+                alt=""
+              />
             ) : (
               <video
                 src={selectedMedia.media_url}
                 controls
-                className="w-full rounded-2xl"
+                className="w-full rounded-2xl max-h-[90vh]"
               />
             )}
 
@@ -550,13 +567,13 @@ export default function OrganizerMusicianProfilePage() {
               <>
                 <button
                   onClick={showPrev}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white text-4xl"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-4xl text-white"
                 >
                   ‹
                 </button>
                 <button
                   onClick={showNext}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white text-4xl"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-4xl text-white"
                 >
                   ›
                 </button>
@@ -566,5 +583,15 @@ export default function OrganizerMusicianProfilePage() {
         </div>
       )}
     </main>
+  );
+}
+
+/* Small stat block reused */
+function StatPill({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <div className="text-lg font-semibold text-neutral-900">{value}</div>
+      <div className="text-[11px] text-neutral-600">{label}</div>
+    </div>
   );
 }

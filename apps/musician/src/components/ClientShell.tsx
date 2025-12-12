@@ -10,28 +10,37 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   const isLoginPage = pathname === '/login';
 
   return (
-    <>
-      {!isLoginPage && (
-        <div className="md:hidden relative z-50">
-          <TopNav />
-        </div>
-      )}
+    <div className="min-h-screen w-full flex">
       
+      {/* SIDENAV (Desktop) */}
       {!isLoginPage && (
-        <div className="hidden md:flex relative z-50">
+        <aside className="hidden md:flex fixed top-0 left-0 h-screen w-64 border-neutral-200 bg-white z-40">
           <SideNav />
-        </div>
+        </aside>
       )}
 
-     <main className="relative mx-auto max-w-5xl pt-14 md:pt-4 md:pl-56 pb-20">
-        {children}
-      </main>
+      {/* MAIN CONTENT AREA */}
+      <div className={`flex-1 w-full ${!isLoginPage ? 'md:ml-64' : ''}`}>
+        
+        {/* Top Nav (Mobile only) */}
+        {!isLoginPage && (
+          <div className="md:hidden fixed top-0 left-0 w-full z-50 bg-white">
+            <TopNav />
+          </div>
+        )}
 
+        {/* Page content (children) */}
+        <div className={`${!isLoginPage ? 'pt-14 md:pt-0 pb-20' : ''}`}>
+          {children}
+        </div>
+      </div>
+
+      {/* Bottom Nav (Mobile only) */}
       {!isLoginPage && (
-        <div className="fixed bottom-0 left-0 w-full z-50">
+        <div className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-white">
           <BottomNav />
         </div>
       )}
-    </>
+    </div>
   );
 }

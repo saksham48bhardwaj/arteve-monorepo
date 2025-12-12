@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { supabase } from '@arteve/supabase/client';
+import { supabase } from '@arteve/supabase';
 
 type MediaItem = { id: string; url: string; type: 'image' | 'video' };
 

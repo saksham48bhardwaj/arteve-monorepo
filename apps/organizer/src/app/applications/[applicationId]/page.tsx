@@ -348,7 +348,7 @@ export default function ApplicationDetailPage() {
       : 'bg-gray-50 text-gray-800 border-gray-200';
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-8 space-y-8 bg-white">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* PAGE TITLE */}
       <header className="flex items-center justify-between gap-4">
         <div>

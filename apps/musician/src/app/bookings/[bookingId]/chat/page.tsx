@@ -241,7 +241,7 @@ export default function MusicianBookingChatPage() {
   let lastDateLabel = '';
 
   return (
-    <main className="mx-auto max-w-2xl h-[calc(100vh-4rem)] flex flex-col bg-white">
+    <main className="w-full max-w-5xl mx-auto h-[calc(100vh-4rem)] flex flex-col bg-white">
       {/* Header (Instagram DM style) */}
       <header className="flex items-center gap-3 px-4 py-3 border-b sticky top-0 bg-white z-10">
         <button

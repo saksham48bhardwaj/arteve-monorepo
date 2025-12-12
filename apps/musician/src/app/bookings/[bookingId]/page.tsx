@@ -187,7 +187,7 @@ export default function BookingDetailPage() {
     booking.status === 'canceled_by_musician';
 
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-6">
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <button className="text-sm text-gray-600" onClick={() => router.back()}>
         ← Back
       </button>

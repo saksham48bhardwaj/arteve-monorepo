@@ -187,8 +187,7 @@ export default function PublicProfilePage() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto p-6 space-y-10">
-
+    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER */}
       <section className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
         <img
