@@ -12,6 +12,11 @@ const mainNav = [
   { href: '/profile', label: 'Profile', icon: 'user' },
 ];
 
+const secondaryNav = [
+  { href: '/chat', label: 'Messages', icon: 'message' },
+  { href: '/notifications', label: 'Notifications', icon: 'bell' },
+];
+
 function Icon({ name }: { name: string }) {
   switch (name) {
     case 'home':
@@ -43,6 +48,19 @@ function Icon({ name }: { name: string }) {
         <>
           <circle cx="12" cy="8" r="4" />
           <path d="M6 20a6 6 0 0 1 12 0" />
+        </>
+      );
+    case 'message':
+      return (
+        <>
+          <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z"></path>
+        </>
+      );
+    case 'bell':
+      return (
+        <>
+          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14V11a6 6 0 1 0-12 0v3a2 2 0 0 1-.6 1.4L4 17h5"></path>
+          <path d="M9 17v1a3 3 0 0 0 6 0v-1"></path>
         </>
       );
     default:
@@ -113,6 +131,18 @@ export default function SideNav() {
               }
             />
           ))}
+          <div className="mt-4 pt-3 border-t border-slate-200">
+            {secondaryNav.map((item) => (
+              <NavLink
+                key={item.href}
+                {...item}
+                active={
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + '/')
+                }
+              />
+            ))}
+          </div>
         </nav>
 
         <div className="border-t border-slate-200 px-4 py-3 text-xs text-slate-500">

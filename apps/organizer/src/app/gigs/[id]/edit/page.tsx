@@ -100,63 +100,69 @@ export default function EditGigPage() {
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Edit Gig</h1>
-        <p className="text-sm text-gray-500">
-          Update gig details and manage its status.
+      {/* PAGE HEADER */}
+      <header className="space-y-2">
+        <p className="text-xs font-semibold tracking-[0.16em] uppercase text-[#4E7FA2]">
+          Organizer · Gigs
+        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          Edit Gig
+        </h1>
+        <p className="text-slate-500 max-w-xl">
+          Update gig details, budget, and availability. Changes will be visible to musicians immediately.
         </p>
       </header>
 
       {feedback && (
-        <div className="text-sm text-red-700 bg-red-50 border border-red-200 px-4 py-2 rounded-lg">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {feedback}
         </div>
       )}
 
-      {/* CARD */}
+      {/* MAIN CARD */}
       <form
         onSubmit={handleSave}
-        className="bg-white border rounded-2xl p-6 space-y-6 shadow-sm"
+        className="relative rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6"
       >
         {/* TITLE */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Title</label>
+        <div className="space-y-1.5">
+          <label className="font-medium text-slate-800">Gig title</label>
           <input
-            className="w-full border rounded-xl px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Event title"
+            placeholder="Wedding reception, club night, studio session…"
           />
         </div>
 
         {/* DESCRIPTION */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Description</label>
+        <div className="space-y-1.5">
+          <label className="font-medium text-slate-800">Description</label>
           <textarea
-            className="w-full border rounded-xl px-3 py-2 text-sm min-h-[120px]"
+            className="w-full min-h-[120px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe this gig…"
+            placeholder="Describe the gig, expectations, duration, setup, etc."
           />
         </div>
 
         {/* DATE + TIME */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Event date</label>
+          <div className="space-y-1.5">
+            <label className="font-medium text-slate-800">Event date</label>
             <input
               type="date"
-              className="w-full border rounded-xl px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Event time</label>
+          <div className="space-y-1.5">
+            <label className="font-medium text-slate-800">Event time</label>
             <input
               type="time"
-              className="w-full border rounded-xl px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
               value={eventTime}
               onChange={(e) => setEventTime(e.target.value)}
             />
@@ -164,76 +170,82 @@ export default function EditGigPage() {
         </div>
 
         {/* LOCATION */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Location</label>
+        <div className="space-y-1.5">
+          <label className="font-medium text-slate-800">Location</label>
           <input
-            className="w-full border rounded-xl px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="Ottawa, Ontario"
+            placeholder="Venue name or address"
           />
         </div>
 
         {/* BUDGET */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Min budget</label>
+          <div className="space-y-1.5">
+            <label className="font-medium text-slate-800">Min budget</label>
             <input
               type="number"
-              className="w-full border rounded-xl px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
               value={budgetMin}
               onChange={(e) => setBudgetMin(e.target.value)}
-              placeholder="150"
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium">Max budget</label>
+          <div className="space-y-1.5">
+            <label className="font-medium text-slate-800">Max budget</label>
             <input
               type="number"
-              className="w-full border rounded-xl px-3 py-2 text-sm"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
               value={budgetMax}
               onChange={(e) => setBudgetMax(e.target.value)}
-              placeholder="300"
             />
           </div>
         </div>
 
         {/* GENRES */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Genres</label>
+        <div className="space-y-1.5">
+          <label className="font-medium text-slate-800">Genres</label>
           <input
-            className="w-full border rounded-xl px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
             value={genres}
             onChange={(e) => setGenres(e.target.value)}
             placeholder="rock, pop, jazz"
           />
         </div>
 
-        {/* STATUS DROPDOWN */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Status</label>
+        {/* STATUS */}
+        <div className="space-y-1.5">
+          <label className="font-medium text-slate-800">Status</label>
           <select
             value={status}
             onChange={(e) =>
               setStatus(e.target.value as 'open' | 'closed' | 'booked')
             }
-            className="w-full border rounded-xl px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
           >
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-            <option value="booked">Booked</option>
+            <option value="open">Open — accepting artists</option>
+            <option value="booked">Booked — artist confirmed</option>
+            <option value="closed">Closed — no longer accepting</option>
           </select>
         </div>
 
-        {/* SAVE BUTTON */}
-        <div>
+        {/* ACTIONS */}
+        <div className="flex flex-wrap gap-3 pt-4">
           <button
             type="submit"
             disabled={saving}
-            className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm disabled:opacity-60"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#4E7FA2] text-white font-medium shadow-sm hover:bg-[#406985] disabled:opacity-60"
           >
             {saving ? 'Saving…' : 'Save changes'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-slate-200 font-medium text-slate-800 hover:bg-slate-50"
+          >
+            Cancel
           </button>
         </div>
       </form>

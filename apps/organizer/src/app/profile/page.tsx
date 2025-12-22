@@ -37,6 +37,18 @@ export default function OrganizerProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [handle, setHandle] = useState('');
 
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+
+  const [followersList, setFollowersList] = useState<Profile[]>([]);
+  const [followingList, setFollowingList] = useState<Profile[]>([]);
+
+  const [showFollowModal, setShowFollowModal] = useState<
+    'followers' | 'following' | null
+  >(null);
+
+  const [myFollowingIds, setMyFollowingIds] = useState<string[]>([]);
+
   // -------------------------
   // LOAD PROFILE
   // -------------------------
@@ -51,6 +63,30 @@ export default function OrganizerProfilePage() {
       }
 
       setUserId(user.id);
+
+      // Fetch follower / following counts
+      const [followersRes, followingRes] = await Promise.all([
+        supabase
+          .from('followers')
+          .select('id', { count: 'exact', head: true })
+          .eq('following_id', user.id),
+
+        supabase
+          .from('followers')
+          .select('id', { count: 'exact', head: true })
+          .eq('follower_id', user.id),
+      ]);
+
+      setFollowersCount(followersRes.count || 0);
+      setFollowingCount(followingRes.count || 0);
+
+      // Fetch who I am following (for button state)
+      const { data: myFollows } = await supabase
+        .from('followers')
+        .select('following_id')
+        .eq('follower_id', user.id);
+
+      setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
 
       const { data, error } = await supabase
         .from('profiles')
@@ -84,6 +120,61 @@ export default function OrganizerProfilePage() {
       setLoading(false);
     })();
   }, [router]);
+
+  async function toggleFollowFromModal(targetId: string) {
+    if (!userId) return;
+    if (userId === targetId) return; // 🚫 self-follow protection
+
+    const alreadyFollowing = myFollowingIds.includes(targetId);
+
+    if (alreadyFollowing) {
+      await supabase
+        .from('followers')
+        .delete()
+        .eq('follower_id', userId)
+        .eq('following_id', targetId);
+    } else {
+      await supabase.from('followers').insert({
+        follower_id: userId,
+        following_id: targetId,
+      });
+    }
+
+    // 🔥 THIS is what you were missing
+    await refreshFollowStats();
+
+    // Update modal list instantly
+    setMyFollowingIds(prev =>
+      alreadyFollowing
+        ? prev.filter(id => id !== targetId)
+        : [...prev, targetId],
+    );
+  }
+
+  async function refreshFollowStats() {
+    if (!userId) return;
+
+    const [followersRes, followingRes] = await Promise.all([
+      supabase
+        .from('followers')
+        .select('id', { count: 'exact', head: true })
+        .eq('following_id', userId),
+
+      supabase
+        .from('followers')
+        .select('id', { count: 'exact', head: true })
+        .eq('follower_id', userId),
+    ]);
+
+    await refreshFollowStats();
+
+    const { data: myFollows } = await supabase
+      .from('followers')
+      .select('following_id')
+      .eq('follower_id', userId);
+
+    setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
+  }
 
   // -------------------------
   // UPLOAD AVATAR
@@ -238,6 +329,36 @@ export default function OrganizerProfilePage() {
     }
   }
 
+  async function loadFollowers() {
+    if (!userId) return;
+
+    const { data } = await supabase
+      .from('followers')
+      .select('profiles!followers_follower_id_fkey(*)')
+      .eq('following_id', userId);
+
+    setFollowersList(
+      (data ?? []).flatMap(r => r.profiles).filter((p): p is Profile => p !== null)
+    );
+
+    setShowFollowModal('followers');
+  }
+
+  async function loadFollowing() {
+    if (!userId) return;
+
+    const { data } = await supabase
+      .from('followers')
+      .select('profiles!followers_following_id_fkey(*)')
+      .eq('follower_id', userId);
+
+    setFollowingList(
+      (data ?? []).flatMap(r => r.profiles).filter((p): p is Profile => p !== null)
+    );
+
+    setShowFollowModal('following');
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     router.push('/login');
@@ -299,6 +420,22 @@ export default function OrganizerProfilePage() {
               {handle ? `@${handle}` : 'A shareable handle will be generated when you save.'}
             </p>
           </div>
+        </div>
+
+        <div className="flex gap-8 mt-2">
+          <button onClick={loadFollowers}>
+            <div className="text-lg font-semibold text-slate-900">
+              {followersCount}
+            </div>
+            <div className="text-xs text-slate-500">Followers</div>
+          </button>
+
+          <button onClick={loadFollowing}>
+            <div className="text-lg font-semibold text-slate-900">
+              {followingCount}
+            </div>
+            <div className="text-xs text-slate-500">Following</div>
+          </button>
         </div>
 
         {/* Venue Name */}
@@ -438,6 +575,56 @@ export default function OrganizerProfilePage() {
       </div>
 
       {err && <p className="text-red-600">{err}</p>}
+
+      {showFollowModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <button
+            className="absolute inset-0"
+            onClick={async () => {
+              setShowFollowModal(null);
+              await refreshFollowStats();
+            }}
+          />
+
+          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 max-h-[70vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">
+              {showFollowModal === 'followers' ? 'Followers' : 'Following'}
+            </h2>
+
+            <ul className="space-y-3">
+              {(showFollowModal === 'followers'
+                ? followersList
+                : followingList
+              ).map(p => (
+                <li key={p.id} className="flex items-center gap-3">
+                  <img
+                    src={p.avatar_url ?? '/default-avatar.png'}
+                    className="w-10 h-10 rounded-full object-cover border"
+                  />
+
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{p.display_name}</p>
+                    <p className="text-xs text-slate-500">@{p.handle}</p>
+                  </div>
+
+                  {userId !== p.id && (
+                    <button
+                      onClick={() => toggleFollowFromModal(p.id)}
+                      className={`px-3 py-1 text-xs rounded-lg border ${
+                        myFollowingIds.includes(p.id)
+                          ? 'bg-slate-200'
+                          : 'bg-slate-900 text-white'
+                      }`}
+                    >
+                      {myFollowingIds.includes(p.id) ? 'Unfollow' : 'Follow'}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

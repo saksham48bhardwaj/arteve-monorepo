@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { supabase } from '@arteve/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function CreateGigPage() {
   const [title, setTitle] = useState('');
@@ -13,6 +14,7 @@ export default function CreateGigPage() {
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
   const [genres, setGenres] = useState(''); // comma separated
+  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -58,15 +60,7 @@ export default function CreateGigPage() {
       console.error(error);
       setFeedback('Failed to create gig. Please try again.');
     } else {
-      setFeedback('Gig created successfully!');
-      setTitle('');
-      setDescription('');
-      setEventDate('');
-      setEventTime('');
-      setLocation('');
-      setBudgetMin('');
-      setBudgetMax('');
-      setGenres('');
+      router.push('/gigs');
     }
 
     setLoading(false);

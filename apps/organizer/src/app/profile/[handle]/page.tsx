@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
+import { useRouter } from 'next/navigation';
 
 /* ----------------------------- Shared Types ----------------------------- */
 
@@ -55,8 +56,17 @@ type BaseProfile = {
   quote: string | null;
 };
 
+type FollowProfile = {
+  id: string;
+  display_name: string | null;
+  handle: string | null;
+  avatar_url: string | null;
+};
+
 export default function OrganizerMusicianProfilePage() {
   const { handle } = useParams<{ handle: string }>();
+
+  const router = useRouter();
 
   const [profile, setProfile] = useState<BaseProfile | null>(null);
   const [posts, setPosts] = useState<PostMedia[]>([]);
@@ -79,6 +89,40 @@ export default function OrganizerMusicianProfilePage() {
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+
+  const [showFollowModal, setShowFollowModal] = useState<
+    'followers' | 'following' | null
+  >(null);
+
+  const [followersList, setFollowersList] = useState<FollowProfile[]>([]);
+  const [followingList, setFollowingList] = useState<FollowProfile[]>([]);
+  const [loadingFollows, setLoadingFollows] = useState(false);
+
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [myFollowingIds, setMyFollowingIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!handle) return;
+
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+
+      const { data: myProfile } = await supabase
+        .from('profiles')
+        .select('id, handle, role')
+        .eq('id', auth.user.id)
+        .maybeSingle();
+
+      // 🚨 Organizer trying to view their OWN public profile
+      if (
+        myProfile?.role === 'organizer' &&
+        myProfile.handle === handle
+      ) {
+        router.replace('/profile'); // private page
+      }
+    })();
+  }, [handle, router]);
 
   useEffect(() => {
     if (!handle) return;
@@ -119,6 +163,17 @@ export default function OrganizerMusicianProfilePage() {
 
         const { data: auth } = await supabase.auth.getUser();
         const currentUserId = auth.user?.id;
+
+        if (auth.user) {
+          setViewerId(auth.user.id);
+
+          const { data: myFollows } = await supabase
+            .from('followers')
+            .select('following_id')
+            .eq('follower_id', auth.user.id);
+
+          setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
+        }
 
         if (currentUserId) {
           const { data: followData } = await supabase
@@ -193,6 +248,80 @@ export default function OrganizerMusicianProfilePage() {
     }
   }
 
+  async function toggleFollowFromModal(targetId: string) {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
+
+    // 🚫 prevent self-follow
+    if (auth.user.id === targetId) return;
+
+    const me = auth.user.id;
+    const alreadyFollowing = myFollowingIds.includes(targetId);
+
+    if (alreadyFollowing) {
+      await supabase
+        .from('followers')
+        .delete()
+        .eq('follower_id', me)
+        .eq('following_id', targetId);
+
+      setMyFollowingIds(prev => prev.filter(id => id !== targetId));
+    } else {
+      await supabase.from('followers').insert({
+        follower_id: me,
+        following_id: targetId,
+      });
+
+      setMyFollowingIds(prev => [...prev, targetId]);
+    }
+  }
+  
+  async function loadFollowers() {
+    if (!profile) return;
+    setLoadingFollows(true);
+
+    const { data } = await supabase
+      .from('followers')
+      .select(
+        `profiles!followers_follower_id_fkey (
+          id,
+          display_name,
+          handle,
+          avatar_url
+        )`
+      )
+      .eq('following_id', profile.id);
+
+    setFollowersList(
+      (data ?? []).flatMap(d => d.profiles).filter(Boolean) as FollowProfile[]
+    );
+
+    setLoadingFollows(false);
+  }
+
+  async function loadFollowing() {
+    if (!profile) return;
+    setLoadingFollows(true);
+
+    const { data } = await supabase
+      .from('followers')
+      .select(
+        `profiles!followers_following_id_fkey (
+          id,
+          display_name,
+          handle,
+          avatar_url
+        )`
+      )
+      .eq('follower_id', profile.id);
+
+    setFollowingList(
+      (data ?? []).flatMap(d => d.profiles).filter(Boolean) as FollowProfile[]
+    );
+
+    setLoadingFollows(false);
+  }
+
   function openModal(i: number) {
     setSelectedIndex(i);
     setSelectedMedia(posts[i]);
@@ -213,7 +342,7 @@ export default function OrganizerMusicianProfilePage() {
 
   if (loading) {
     return (
-      <main className="w-full mx-auto max-w-3xl px-4 sm:px-6 md:px-0 pt-10 pb-24">
+      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24">
         Loading profile…
       </main>
     );
@@ -221,7 +350,7 @@ export default function OrganizerMusicianProfilePage() {
 
   if (err || !profile) {
     return (
-      <main className="w-full mx-auto max-w-3xl px-4 sm:px-6 md:px-0 pt-10 pb-24 text-red-600">
+      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 text-red-600">
         Error: {err}
       </main>
     );
@@ -275,8 +404,24 @@ export default function OrganizerMusicianProfilePage() {
         {/* STATS */}
         <div className="flex justify-evenly text-center mt-2">
           <StatPill label="Posts" value={counts.posts} />
-          <StatPill label="Followers" value={counts.followers} />
-          <StatPill label="Following" value={counts.following} />
+
+          <button
+            onClick={() => {
+              setShowFollowModal('followers');
+              loadFollowers();
+            }}
+          >
+            <StatPill label="Followers" value={counts.followers} />
+          </button>
+
+          <button
+            onClick={() => {
+              setShowFollowModal('following');
+              loadFollowing();
+            }}
+          >
+            <StatPill label="Following" value={counts.following} />
+          </button>
         </div>
 
         {/* PUBLIC ACTION BUTTONS */}
@@ -578,6 +723,68 @@ export default function OrganizerMusicianProfilePage() {
                   ›
                 </button>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showFollowModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+          <button
+            className="absolute inset-0"
+            onClick={() => setShowFollowModal(null)}
+          />
+
+          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 max-h-[70vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold mb-4">
+              {showFollowModal === 'followers' ? 'Followers' : 'Following'}
+            </h2>
+
+            {loadingFollows ? (
+              <p className="text-sm text-neutral-500">Loading…</p>
+            ) : (
+              <ul className="space-y-3">
+                {(showFollowModal === 'followers'
+                  ? followersList
+                  : followingList
+                ).map(p => (
+                  <li
+                    key={p.id}
+                    className="flex items-center gap-3"
+                  >
+                    <img
+                      src={p.avatar_url ?? '/default-avatar.png'}
+                      className="w-10 h-10 rounded-full object-cover border"
+                    />
+
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">
+                        {p.display_name ?? 'Unnamed'}
+                      </p>
+                      {p.handle && (
+                        <p className="text-xs text-neutral-500">
+                          @{p.handle}
+                        </p>
+                      )}
+                    </div>
+
+                    <Link
+                      href={`/profile/${p.handle}`}
+                      className="text-xs underline"
+                    >
+                      View
+                    </Link>
+                  </li>
+                ))}
+
+                {(showFollowModal === 'followers'
+                  ? followersList.length === 0
+                  : followingList.length === 0) && (
+                  <p className="text-sm text-neutral-500">
+                    No users found.
+                  </p>
+                )}
+              </ul>
             )}
           </div>
         </div>

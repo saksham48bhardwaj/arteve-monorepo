@@ -36,6 +36,7 @@ type Recommendation = {
 type Profile = {
   id: string;
   display_name: string | null;
+  handle: string | null;
   avatar_url: string | null;
   bio: string | null;
   genres: string[] | null;
@@ -401,12 +402,40 @@ export default function ProfilePage() {
     setSelectedMedia(media[prev]);
   }
 
-  const username =
-    profile.display_name?.trim().toLowerCase().replace(/\s+/g, '') ??
-    profile.id.slice(0, 8);
+  const username = profile.handle;
 
   const primaryMedia = media.at(0) ?? null;
   const genres = profile.genres ?? [];
+
+  const handle =
+    (profile as unknown as Record<string, string>).handle ??
+    profile.display_name?.trim().toLowerCase().replace(/\s+/g, '') ??
+    profile.id;
+
+  const publicProfileUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/profile/${handle}`
+      : '';
+      
+    async function handleShare() {
+    try {
+      // Prefer native share on mobile
+      if (navigator.share) {
+        await navigator.share({
+          title: profile?.display_name ?? 'Artist on Arteve',
+          text: `Check out ${profile?.display_name ?? 'this artist'} on Arteve`,
+          url: publicProfileUrl,
+        });
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(publicProfileUrl);
+        alert('Profile link copied to clipboard');
+      }
+    } catch (err) {
+      console.error('Share failed:', err);
+    }
+  }
+
 
   /* ---------------------------------------------------------
       UI
@@ -493,18 +522,14 @@ export default function ProfilePage() {
           </Link>
 
           <Link
-            href="/bookings"
+            href="/gigs"
             className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
           >
-            View Bookings
+            My Gigs
           </Link>
 
           <button
-            onClick={() =>
-              navigator.clipboard.writeText(
-                `${window.location.origin}/profile/${profile.id}`,
-              )
-            }
+            onClick={handleShare}
             className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
           >
             Share

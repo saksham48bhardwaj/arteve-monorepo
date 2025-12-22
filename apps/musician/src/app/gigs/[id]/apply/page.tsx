@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams,useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 
 type Gig = {
@@ -51,6 +51,7 @@ type Recommendation = {
 
 export default function ApplyToGigPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
 
   const [gig, setGig] = useState<Gig | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -157,8 +158,7 @@ export default function ApplyToGigPage() {
       console.error(error);
       setFeedback('Failed to submit application.');
     } else {
-      setFeedback('Application submitted successfully.');
-      setMessage('');
+      router.push('/gigs');
     }
 
     setSubmitting(false);

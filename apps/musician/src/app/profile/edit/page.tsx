@@ -12,6 +12,7 @@ import { supabase } from '@arteve/supabase/client';
 type Profile = {
   id: string;
   display_name: string | null;
+  handle: string | null;
   avatar_url: string | null;
   bio: string | null;
   location: string | null;
@@ -59,6 +60,7 @@ export default function EditProfilePage() {
   const [quote, setQuote] = useState('');
   const [location, setLocation] = useState('');
   const [genres, setGenres] = useState(''); // comma separated
+  const [handle, setHandle] = useState('');
 
   const [instagram, setInstagram] = useState('');
   const [youtube, setYoutube] = useState('');
@@ -90,6 +92,8 @@ export default function EditProfilePage() {
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [skillName, setSkillName] = useState('');
   const [skillLevel, setSkillLevel] = useState('');
+
+  
 
   useEffect(() => {
     (async () => {
@@ -129,6 +133,7 @@ export default function EditProfilePage() {
         setQuote(p.quote ?? '');
         setLocation(p.location ?? '');
         setGenres((p.genres ?? []).join(', '));
+        setHandle(p.handle ?? '');
 
         const links = p.links ?? {};
         setInstagram(links.instagram ?? '');
@@ -216,6 +221,12 @@ export default function EditProfilePage() {
     setErr(null);
     setSuccess(null);
 
+    if (!handle.trim()) {
+      setErr('User handle cannot be empty.');
+      setSaving(false);
+      return;
+    }
+
     try {
       const genresArr = genres
         .split(',')
@@ -231,6 +242,7 @@ export default function EditProfilePage() {
         {
           id: userId,
           display_name: displayName || null,
+          handle: handle || null,
           avatar_url: avatarUrl ?? null,
           bio: bio || null,
           quote: quote || null,
@@ -536,10 +548,9 @@ export default function EditProfilePage() {
   if (loading) return <main className="p-6">Loading profile…</main>;
   if (!userId) return <main className="p-6">No user session.</main>;
 
-  const username =
-    displayName.trim().length > 0
-      ? displayName.toLowerCase().replace(/\s+/g, '')
-      : userId.slice(0, 8);
+  const username = handle || 'yourname';
+
+  const publicHandle = handle;
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
@@ -556,13 +567,6 @@ export default function EditProfilePage() {
             Update how organizers and fans see you on Arteve.
           </p>
         </div>
-
-        <a
-          href={`/profile/${userId}`}
-          className="inline-flex items-center justify-center rounded-full border border-gray-300 px-4 py-2 text-xs md:text-sm text-gray-700 hover:bg-gray-50"
-        >
-          View public profile →
-        </a>
       </header>
 
       {/* MAIN PROFILE CARD + BASIC FIELDS */}
@@ -600,6 +604,25 @@ export default function EditProfilePage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Artist name"
+              />
+
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-gray-700 uppercase tracking-[0.16em]">
+                User Handle
+              </label>
+              <input
+                className="w-full border border-gray-200 rounded-2xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/80"
+                value={handle}
+                onChange={(e) =>
+                  setHandle(
+                    e.target.value
+                      .toLowerCase()
+                      .replace(/[^a-z0-9_]/g, '')
+                  )
+                }
+                placeholder="yourname"
               />
               <p className="text-xs text-gray-500">
                 @{username}
@@ -701,14 +724,14 @@ export default function EditProfilePage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => router.push(`/profile/${userId}`)}
+              onClick={() => router.push(`/profile`)}
               className="px-4 py-2 rounded-full border border-gray-300 text-xs md:text-sm text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || !handle.trim()}
               className="px-4 py-2 rounded-full bg-black text-white text-xs md:text-sm disabled:opacity-60"
             >
               {saving ? 'Saving…' : 'Save profile'}

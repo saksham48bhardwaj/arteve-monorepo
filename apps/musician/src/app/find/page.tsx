@@ -260,7 +260,7 @@ function FindPageContent() {
               <div
                 key={v.id}
                 className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-gray-50 transition"
-                onClick={() => router.push(`/venue/${v.handle}`)}  // FIXED
+                onClick={() => router.push(`/profile/${v.handle}`)}  // FIXED
               >
                 <div className="flex items-center gap-4">
                   <img

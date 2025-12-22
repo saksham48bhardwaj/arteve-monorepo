@@ -24,6 +24,7 @@ type Gig = {
 
 type Organizer = {
   id: string;
+  handle: string | null;
   display_name: string | null;
   avatar_url: string | null;
   location: string | null;
@@ -55,7 +56,7 @@ export default function GigDetailPage() {
 
         const { data: org } = await supabase
           .from('profiles')
-          .select('id, display_name, avatar_url, location')
+          .select('id, handle, display_name, avatar_url, location')
           .eq('id', g.organizer_id)
           .maybeSingle();
 
@@ -141,7 +142,7 @@ export default function GigDetailPage() {
               <p className="text-sm text-gray-600">{organizer.location}</p>
             )}
             <Link
-              href={`/profile/${organizer.id}`}
+              href={`/profile/${organizer.handle}`}
               className="text-sm text-blue-600 underline"
             >
               View organizer profile →

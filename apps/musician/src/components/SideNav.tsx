@@ -15,6 +15,8 @@ const mainNav = [
 
 const secondaryNav = [
   { href: '/bookings', label: 'Bookings', icon: 'calendar' },
+  { href: '/chat', label: 'Messages', icon: 'message' },
+  { href: '/notifications', label: 'Notifications', icon: 'bell' },
 ];
 
 function Icon({ name }: { name: string }) {
@@ -58,6 +60,19 @@ function Icon({ name }: { name: string }) {
           <path d="M3 10h18" />
           <path d="M9 3v4" />
           <path d="M15 3v4" />
+        </>
+      );
+      case 'message':
+      return (
+        <>
+          <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z"></path>
+        </>
+      );
+    case 'bell':
+      return (
+        <>
+          <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14V11a6 6 0 1 0-12 0v3a2 2 0 0 1-.6 1.4L4 17h5"></path>
+          <path d="M9 17v1a3 3 0 0 0 6 0v-1"></path>
         </>
       );
     default:

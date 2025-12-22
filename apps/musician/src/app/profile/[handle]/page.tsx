@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
+import { useRouter } from 'next/navigation';
 
 /* ----------------------------- Shared Types ----------------------------- */
 
@@ -109,6 +110,7 @@ async function fetchProfileCounts(userId: string) {
 
 export default function PublicProfilePage() {
   const { handle } = useParams<{ handle: string }>();
+  const router = useRouter();
 
   const [profile, setProfile] = useState<BaseProfile | null>(null);
 
@@ -142,17 +144,52 @@ export default function PublicProfilePage() {
 
   const [activeTab, setActiveTab] = useState<'media' | 'about'>('media');
 
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
+  const [viewerId, setViewerId] = useState<string | null>(null);  
+
   const [counts, setCounts] = useState({
     posts: 0,
     followers: 0,
     following: 0,
   });
 
+  const canMessage =
+  !!profile &&
+  !!viewerId &&
+  viewerId !== profile.id &&
+  !(
+    viewerRole === 'organizer' &&
+    profile.role === 'organizer'
+  );
+
   const [isFollowing, setIsFollowing] = useState(false);
 
   function profilePath(user: BaseProfile) {
     return user.handle ? `/profile/${user.handle}` : `/profile/${user.id}`;
   }
+  
+  useEffect(() => {
+    if (!handle) return;
+
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+
+      const { data: myProfile } = await supabase
+        .from('profiles')
+        .select('id, handle, role')
+        .eq('id', auth.user.id)
+        .maybeSingle();
+
+      // 🚨 Musician trying to view THEIR OWN public profile
+      if (
+        myProfile?.role === 'musician' &&
+        myProfile.handle === handle
+      ) {
+        router.replace('/profile'); // private musician profile
+      }
+    })();
+  }, [handle, router]);
 
   /* -------------------------------------------- */
   /*  LOAD DATA                                   */
@@ -178,7 +215,22 @@ export default function PublicProfilePage() {
         const c = await fetchProfileCounts(prof.id);
         setCounts(c);
 
-        // Organizer public page (venues)
+        // 🔑 ALWAYS load viewer info first
+        const { data: auth } = await supabase.auth.getUser();
+
+        if (auth.user) {
+          setViewerId(auth.user.id);
+
+          const { data: viewerProfile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', auth.user.id)
+            .maybeSingle();
+
+          setViewerRole(viewerProfile?.role ?? null);
+        }
+
+        // THEN branch by profile type
         if (prof.role === 'organizer') {
           const { data: gigsData, error: gigsErr } = await supabase
             .from('gigs')
@@ -188,13 +240,42 @@ export default function PublicProfilePage() {
 
           if (gigsErr) throw gigsErr;
           setOrganizerGigs((gigsData ?? []) as OrganizerGig[]);
-          setLoading(false);
-          return;
+        }
+
+        if (auth.user) {
+          const currentUserId = auth.user.id;
+
+          const { data: myFollows } = await supabase
+            .from('followers')
+            .select('following_id')
+            .eq('follower_id', currentUserId);
+
+          setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
+
+          const { data: followData } = await supabase
+            .from('followers')
+            .select('*')
+            .eq('follower_id', currentUserId)
+            .eq('following_id', prof.id)
+            .maybeSingle();
+
+          setIsFollowing(!!followData);
         }
 
         // 2) MUSICIAN VIEW
-        const { data: auth } = await supabase.auth.getUser();
         const currentUserId = auth.user?.id;
+
+        if (auth.user) {
+          setViewerId(auth.user.id);
+
+          const { data: viewerProfile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', auth.user.id)
+            .maybeSingle();
+
+          setViewerRole(viewerProfile?.role ?? null);
+        }
 
         if (currentUserId) {
           const { data: myFollows } = await supabase
@@ -283,7 +364,7 @@ export default function PublicProfilePage() {
   /* -------------------------------------------- */
   if (loading) {
     return (
-      <main className="w-full mx-auto max-w-3xl px-4 sm:px-6 md:px-0 pt-10 pb-24">
+      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24">
         Loading profile…
       </main>
     );
@@ -291,7 +372,7 @@ export default function PublicProfilePage() {
 
   if (err || !profile) {
     return (
-      <main className="w-full mx-auto max-w-3xl px-4 sm:px-6 md:px-0 pt-10 pb-24 text-red-600">
+      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 text-red-600">
         Error: {err}
       </main>
     );
@@ -303,12 +384,144 @@ export default function PublicProfilePage() {
   /*                    ORGANIZER PROFILE PAGE (VENUE)                      */
   /* ====================================================================== */
 
+  const FollowersAndFollowingModals = (
+    <>
+      {/* FOLLOWERS MODAL */}
+      {showFollowersModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+            <button
+              className="absolute top-3 right-4 text-3xl font-bold text-neutral-900"
+              onClick={() => setShowFollowersModal(false)}
+            >
+              ×
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4 text-neutral-900">
+              Followers
+            </h2>
+
+            {followersList.length === 0 ? (
+              <p className="text-[13px] text-neutral-500">No followers yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {followersList.map(user => (
+                  <li key={user.id}>
+                    <Link
+                      href={profilePath(user)}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
+                    >
+                      <img
+                        src={user.avatar_url ?? '/default-avatar.png'}
+                        className="w-12 h-12 rounded-full object-cover"
+                        alt=""
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium text-neutral-900">
+                          {user.display_name}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          @{user.handle}
+                        </p>
+                      </div>
+
+                      {viewerId !== user.id && (
+                        <button
+                          onClick={e => {
+                            e.preventDefault();
+                            toggleFollowFromModal(user.id);
+                          }}
+                          className={`px-3 py-1 text-xs rounded-lg border ${
+                            myFollowingIds.includes(user.id)
+                              ? 'bg-neutral-200 text-neutral-800'
+                              : 'bg-neutral-900 text-white'
+                          }`}
+                        >
+                          {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
+                        </button>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FOLLOWING MODAL */}
+      {showFollowingModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+            <button
+              className="absolute top-3 right-4 text-3xl font-bold text-neutral-900"
+              onClick={() => setShowFollowingModal(false)}
+            >
+              ×
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4 text-neutral-900">
+              Following
+            </h2>
+
+            {followingList.length === 0 ? (
+              <p className="text-[13px] text-neutral-500">
+                Not following anyone yet.
+              </p>
+            ) : (
+              <ul className="space-y-4">
+                {followingList.map(user => (
+                  <li key={user.id}>
+                    <Link
+                      href={profilePath(user)}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
+                    >
+                      <img
+                        src={user.avatar_url ?? '/default-avatar.png'}
+                        className="w-12 h-12 rounded-full object-cover"
+                        alt=""
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium text-neutral-900">
+                          {user.display_name}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          @{user.handle}
+                        </p>
+                      </div>
+
+                      {viewerId !== user.id && (
+                        <button
+                          onClick={e => {
+                            e.preventDefault();
+                            toggleFollowFromModal(user.id);
+                          }}
+                          className={`px-3 py-1 text-xs rounded-lg border ${
+                            myFollowingIds.includes(user.id)
+                              ? 'bg-neutral-200 text-neutral-800'
+                              : 'bg-neutral-900 text-white'
+                          }`}
+                        >
+                          {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
+                        </button>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   if (isOrganizer) {
     const venuePhotos = profile.venue_photos ?? [];
     const primaryVenuePhoto = venuePhotos[0] ?? null;
 
     return (
-      <main className="w-full mx-auto max-w-3xl px-4 sm:px-6 md:px-0 pt-10 pb-24 space-y-8">
+      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 space-y-8">
         {/* HEADER / HERO CARD */}
         <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] overflow-hidden">
           <div className="h-48 md:h-64 w-full relative bg-neutral-800">
@@ -319,7 +532,7 @@ export default function PublicProfilePage() {
                 className="w-full h-full object-cover opacity-70"
               />
             )}
-            <div className="absolute inset-0 bg-black/35" />
+            <div className="absolute inset-0 bg-black/35 pointer-events-none" />
             <div className="absolute bottom-6 left-6 right-6 md:left-10 md:right-10 flex flex-col gap-3">
               <h1 className="text-2xl md:text-3xl font-semibold text-white">
                 {profile.display_name}
@@ -329,10 +542,47 @@ export default function PublicProfilePage() {
                   {profile.location}
                 </p>
               )}
+
+              <div className="flex flex-wrap gap-2 mt-4">
+                {viewerId && viewerId !== profile.id && (
+                  <button
+                    onClick={toggleFollow}
+                    className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+                  >
+                    {isFollowing ? 'Unfollow' : 'Follow'}
+                  </button>
+                )}
+
+                <button
+                  onClick={shareProfile}
+                  className="px-4 py-1.5 rounded-xl border border-neutral-300 bg-white font-medium hover:bg-neutral-50"
+                >
+                  Share
+                </button>
+              </div>
               <div className="flex gap-8 mt-1">
-                <StatPill label="Posts" value={counts.posts} inverse />
-                <StatPill label="Followers" value={counts.followers} inverse />
-                <StatPill label="Following" value={counts.following} inverse />
+
+                <button
+                  onClick={loadFollowers}
+                  className="flex flex-col items-center"
+                >
+                  <StatPill
+                    label="Followers"
+                    value={counts.followers}
+                    inverse
+                  />
+                </button>
+
+                <button
+                  onClick={loadFollowing}
+                  className="flex flex-col items-center"
+                >
+                  <StatPill
+                    label="Following"
+                    value={counts.following}
+                    inverse
+                  />
+                </button>
               </div>
             </div>
           </div>
@@ -436,7 +686,7 @@ export default function PublicProfilePage() {
               className="absolute inset-0"
               onClick={() => setVenueModalUrl(null)}
             />
-            <div className="relative max-w-3xl w-full px-4">
+            <div className="relative max-w-5xl w-full px-4">
               <img
                 src={venueModalUrl}
                 className="rounded-2xl max-h-[90vh] w-full object-contain"
@@ -451,6 +701,8 @@ export default function PublicProfilePage() {
             </div>
           </div>
         )}
+
+        {FollowersAndFollowingModals}
       </main>
     );
   }
@@ -462,6 +714,22 @@ export default function PublicProfilePage() {
   const primaryMedia = posts[0];
   const genres = Array.isArray(profile.genres) ? profile.genres : [];
   const username = profile.handle;
+
+  function shareProfile() {
+    if (!profile) return;
+
+    const url = `${window.location.origin}/profile/${profile.handle}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: profile.display_name ?? 'Artist profile',
+        url,
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Profile link copied!');
+    }
+  }
 
   function openModal(i: number) {
     setSelectedIndex(i);
@@ -511,8 +779,11 @@ export default function PublicProfilePage() {
 
   async function toggleFollowFromModal(targetId: string) {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      alert('Please log in to follow artists.');
+    if (!auth.user) return;
+
+    // 🚫 ABSOLUTE SELF-FOLLOW BLOCK
+    if (auth.user.id === targetId) {
+      console.warn('Self-follow prevented');
       return;
     }
 
@@ -582,7 +853,7 @@ export default function PublicProfilePage() {
   /* ====================================================================== */
 
   return (
-    <main className="w-full mx-auto max-w-3xl px-4 sm:px-6 md:px-0 pt-10 pb-24 space-y-8">
+    <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 space-y-8">
       {/* HEADER CARD */}
       <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
         {/* Top Row */}
@@ -652,33 +923,35 @@ export default function PublicProfilePage() {
 
         {/* Actions */}
         <div className="flex flex-wrap gap-2 justify-center mt-2">
+          {viewerId && viewerId !== profile.id && (
+            <button
+              onClick={toggleFollow}
+              className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+            >
+              {isFollowing ? 'Unfollow' : 'Follow'}
+            </button>
+          )}
+
+          {canMessage && (
+            <button
+              onClick={() => router.push(`/chat/new?user=${profile.handle}`)}
+              className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+            >
+              Message
+            </button>
+          )}
+
+          {viewerRole === 'organizer' && viewerId !== profile.id && (
+            <Link
+              href={`/book/${profile.handle}`}
+              className="px-4 py-1.5 rounded-xl bg-neutral-900 text-white font-medium hover:bg-black"
+            >
+              Book
+            </Link>
+          )}
+
           <button
-            onClick={toggleFollow}
-            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
-          >
-            {isFollowing ? 'Unfollow' : 'Follow'}
-          </button>
-
-          <Link
-            href={`/chat/${profile.id}`}
-            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
-          >
-            Message
-          </Link>
-
-          <Link
-            href={`/book/${profile.id}`}
-            className="px-4 py-1.5 rounded-xl bg-neutral-900 text-white font-medium rounded-xl hover:bg-black"
-          >
-            Book
-          </Link>
-
-          <button
-            onClick={() =>
-              navigator.clipboard.writeText(
-                `${window.location.origin}/profile/${profile.id}`,
-              )
-            }
+            onClick={shareProfile}
             className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
           >
             Share
@@ -937,7 +1210,7 @@ export default function PublicProfilePage() {
             className="absolute inset-0"
             onClick={closeModal}
           />
-          <div className="relative max-w-3xl w-full px-4">
+          <div className="relative max-w-5xl w-full px-4">
             <button
               type="button"
               onClick={closeModal}
@@ -1022,21 +1295,21 @@ export default function PublicProfilePage() {
                         </p>
                       </div>
 
-                      <button
-                        onClick={e => {
-                          e.preventDefault();
-                          toggleFollowFromModal(user.id);
-                        }}
-                        className={`px-3 py-1 text-xs rounded-lg border ${
-                          myFollowingIds.includes(user.id)
-                            ? 'bg-neutral-200 text-neutral-800'
-                            : 'bg-neutral-900 text-white'
-                        }`}
-                      >
-                        {myFollowingIds.includes(user.id)
-                          ? 'Unfollow'
-                          : 'Follow'}
-                      </button>
+                      {viewerId !== user.id && (
+                        <button
+                          onClick={e => {
+                            e.preventDefault();
+                            toggleFollowFromModal(user.id);
+                          }}
+                          className={`px-3 py-1 text-xs rounded-lg border ${
+                            myFollowingIds.includes(user.id)
+                              ? 'bg-neutral-200 text-neutral-800'
+                              : 'bg-neutral-900 text-white'
+                          }`}
+                        >
+                          {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
+                        </button>
+                      )}
                     </Link>
                   </li>
                 ))}
@@ -1088,21 +1361,21 @@ export default function PublicProfilePage() {
                         </p>
                       </div>
 
-                      <button
-                        onClick={e => {
-                          e.preventDefault();
-                          toggleFollowFromModal(user.id);
-                        }}
-                        className={`px-3 py-1 text-xs rounded-lg border ${
-                          myFollowingIds.includes(user.id)
-                            ? 'bg-neutral-200 text-neutral-800'
-                            : 'bg-neutral-900 text-white'
-                        }`}
-                      >
-                        {myFollowingIds.includes(user.id)
-                          ? 'Unfollow'
-                          : 'Follow'}
-                      </button>
+                      {viewerId !== user.id && (
+                        <button
+                          onClick={e => {
+                            e.preventDefault();
+                            toggleFollowFromModal(user.id);
+                          }}
+                          className={`px-3 py-1 text-xs rounded-lg border ${
+                            myFollowingIds.includes(user.id)
+                              ? 'bg-neutral-200 text-neutral-800'
+                              : 'bg-neutral-900 text-white'
+                          }`}
+                        >
+                          {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
+                        </button>
+                      )}
                     </Link>
                   </li>
                 ))}

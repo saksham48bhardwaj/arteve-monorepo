@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@arteve/supabase/client';
 
+function generateRandomHandle(prefix = 'artist') {
+  return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,19 +24,38 @@ export default function LoginPage() {
 
     try {
       if (mode === 'signup') {
-        // 1️⃣ create user
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+        // 1️⃣ Create auth user
+        const { data: signUpData, error: signUpError } =
+          await supabase.auth.signUp({
+            email,
+            password,
+          });
+
         if (signUpError) throw signUpError;
 
-        // 2️⃣ immediately sign them in (signUp doesn't always start a session)
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        // 2️⃣ Ensure session exists
+        const { error: signInError } =
+          await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
         if (signInError) throw signInError;
+
+        // 3️⃣ Create profile with random handle
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          const randomHandle = generateRandomHandle('artist');
+
+          await supabase.from('profiles').upsert({
+            id: user.id,
+            role: 'musician',
+            handle: randomHandle,
+          });
+        }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,

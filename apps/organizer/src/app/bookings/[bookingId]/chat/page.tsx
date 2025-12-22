@@ -34,6 +34,12 @@ type BookingHeaderRow = {
   } | null;
 };
 
+type TypingMessage = {
+  payload: {
+    sender_id: string;
+  };
+};
+
 export default function OrganizerBookingChatPage() {
   const { bookingId } = useParams<{ bookingId: string }>();
   const router = useRouter();
@@ -57,7 +63,7 @@ export default function OrganizerBookingChatPage() {
   const channel = useMemo(
     () =>
       supabase.channel(`booking-chat-${bookingId}`, {
-        config: { broadcast: { self: true } },
+        config: { broadcast: { self: false } },
       }),
     [bookingId]
   );
@@ -159,18 +165,14 @@ export default function OrganizerBookingChatPage() {
     );
 
     // Typing indicator
-    channel.on('broadcast', { event: 'typing' }, (payload) => {
-      if (payload.sender_id !== userId) {
-        setOtherTyping(true);
+    channel.on('broadcast', { event: 'typing' }, (msg: TypingMessage) => {
+      const senderId = msg?.payload?.sender_id;
+      if (!senderId || senderId === userId) return;
 
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-        }
+      setOtherTyping(true);
 
-        typingTimeoutRef.current = setTimeout(() => {
-          setOtherTyping(false);
-        }, 2000);
-      }
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => setOtherTyping(false), 2000);
     });
 
     channel.subscribe();
@@ -189,27 +191,43 @@ export default function OrganizerBookingChatPage() {
   async function sendMessage() {
     if (!userId || !content.trim()) return;
 
+    const text = content.trim();
+    setContent('');
+
     const { data: booking } = await supabase
       .from('bookings')
       .select('musician_id, organizer_id')
       .eq('id', bookingId)
       .maybeSingle<{ musician_id: string; organizer_id: string }>();
 
-    if (!booking) return;
+    if (!booking) {
+      setContent(text);
+      return;
+    }
 
     const recipientId =
-      booking.musician_id === userId
-        ? booking.organizer_id
-        : booking.musician_id;
+      booking.musician_id === userId ? booking.organizer_id : booking.musician_id;
 
-    await supabase.from('booking_messages').insert({
-      booking_id: bookingId,
-      sender_id: userId,
-      recipient_id: recipientId,
-      content: content.trim(),
-    });
+    const { data: inserted, error } = await supabase
+      .from('booking_messages')
+      .insert({
+        booking_id: bookingId,
+        sender_id: userId,
+        recipient_id: recipientId,
+        content: text,
+      })
+      .select('*')
+      .single();
 
-    setContent('');
+    if (error) {
+      setContent(text);
+      console.error(error);
+      return;
+    }
+
+    setMsgs(prev =>
+      prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted]
+    );
   }
 
   // Typing event
