@@ -3,9 +3,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRealtimeNotifications } from '@arteve/shared/notifications/realtime';
+import { usePathname } from 'next/navigation';
 
 export default function TopNav() {
   const { unread } = useRealtimeNotifications();
+  const pathname = usePathname() ?? '';
+  
+  if (pathname.endsWith('/chat') && pathname !== '/chat') {
+    return null;
+  } 
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">

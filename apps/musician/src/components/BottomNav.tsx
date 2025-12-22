@@ -27,10 +27,16 @@ function Item({
 }
 
 export default function BottomNav() {
-  const p = usePathname();
-  const pNonNull = p ?? '';
+  
+  const pathname = usePathname() ?? '';
+
+  if (pathname.endsWith('/chat') && pathname !== '/chat') {
+    return null;
+  }
+
+  const pathnameNonNull = pathname ?? '';
   const is = (path: string) =>
-    pNonNull === path || pNonNull.startsWith(path + '/');
+    pathnameNonNull === path || pathnameNonNull.startsWith(path + '/');
 
   const tabs = [
     {

@@ -8,6 +8,7 @@ import SideNav from './SideNav';
 export default function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
+  const isChatPage = pathname?.endsWith('/chat') && pathname !== '/chat';
 
   return (
     <div className="min-h-screen w-full flex">
@@ -30,7 +31,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
         )}
 
         {/* Page content (children) */}
-        <div className={`${!isLoginPage ? 'pt-14 md:pt-0 pb-20' : ''}`}>
+        <div className={`${!isLoginPage && !isChatPage ? 'pt-14 md:pt-0 pb-20' : ''}`}>
           {children}
         </div>
       </div>

@@ -30,6 +30,10 @@ function Tab({
 export default function BottomNav() {
   const pathname = usePathname() ?? '';
 
+  if (pathname.endsWith('/chat') && pathname !== '/chat') {
+    return null;
+  }
+
   const tabs = [
     {
       href: '/',

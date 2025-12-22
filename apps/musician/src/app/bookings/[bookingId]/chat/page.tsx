@@ -257,7 +257,7 @@ export default function MusicianBookingChatPage() {
   let lastDateLabel = '';
 
   return (
-    <main className="w-full max-w-5xl mx-auto h-[calc(100vh-4rem)] flex flex-col bg-white">
+    <main className="w-full max-w-5xl mx-auto h-screen flex flex-col bg-white overflow-hidden">
       {/* Header (Instagram DM style) */}
       <header className="flex items-center gap-3 px-4 py-3 border-b sticky top-0 bg-white z-10">
         <button
@@ -359,7 +359,7 @@ export default function MusicianBookingChatPage() {
           e.preventDefault();
           sendMessage();
         }}
-        className="px-3 py-2 border-t flex items-center gap-2 bg-white"
+        className="shrink-0 px-3 py-2 border-t flex items-center gap-2 bg-white"
       >
         <input
           className="flex-1 rounded-full bg-gray-100 px-4 py-2 text-sm outline-none"
