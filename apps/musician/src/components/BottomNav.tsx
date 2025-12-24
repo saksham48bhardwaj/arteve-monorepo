@@ -30,7 +30,7 @@ export default function BottomNav() {
   
   const pathname = usePathname() ?? '';
 
-  if (pathname.endsWith('/chat') && pathname !== '/chat') {
+  if (pathname.endsWith('/chat')  && pathname !== '/chat' || pathname.startsWith('/chat/')) {
     return null;
   }
 

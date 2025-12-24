@@ -33,6 +33,7 @@ export async function middleware(req: NextRequest) {
   // Public routes — allow access without session
   const isPublic =
     pathname === '/login' ||
+    pathname === '/reset-password' ||
     pathname.startsWith('/auth') ||
     pathname.startsWith('/icons') ||
     pathname.startsWith('/_next') ||
@@ -53,5 +54,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|auth).*)',
+  ],
 };

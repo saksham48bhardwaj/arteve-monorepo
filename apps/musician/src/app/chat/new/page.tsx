@@ -4,6 +4,8 @@ import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 
+export const dynamic = 'force-dynamic';
+
 export default function NewChatPage() {
   return (
     <Suspense fallback={<Loading />}>

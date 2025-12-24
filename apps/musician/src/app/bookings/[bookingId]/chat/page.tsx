@@ -359,7 +359,7 @@ export default function MusicianBookingChatPage() {
           e.preventDefault();
           sendMessage();
         }}
-        className="shrink-0 px-3 py-2 border-t flex items-center gap-2 bg-white"
+        className="shrink-0 px-3 pt-2 pb-8 border-t flex items-center gap-2 bg-white"
       >
         <input
           className="flex-1 rounded-full bg-gray-100 px-4 py-2 text-sm outline-none"

@@ -12,6 +12,30 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
+  const [resetSent, setResetSent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function handleForgotPassword() {
+    if (!email) {
+      setMsg('Please enter your email first');
+      return;
+    }
+
+    setLoading(true);
+    setMsg(null);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      setMsg(error.message);
+    } else {
+      setResetSent(true);
+    }
+
+    setLoading(false);
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -131,17 +155,59 @@ export default function LoginPage() {
                 <label className="block font-medium text-[#333]">
                   Password
                 </label>
-                <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#333] placeholder:text-slate-400 outline-none transition focus:border-[#4E7FA2] focus:bg-white focus:ring-2 focus:ring-[#4E7FA2]/15"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete={
-                    mode === 'signin' ? 'current-password' : 'new-password'
-                  }
-                />
+                <div className="relative">
+                  <input
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-11 text-sm text-[#333] placeholder:text-slate-400 outline-none transition focus:border-[#4E7FA2] focus:bg-white focus:ring-2 focus:ring-[#4E7FA2]/15"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete={
+                      mode === 'signin' ? 'current-password' : 'new-password'
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      /* Eye Off */
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5 0-9.27-3-11-8 1.21-3.06 3.34-5.44 6-6.67" />
+                        <path d="M1 1l22 22" />
+                        <path d="M9.53 9.53A3.5 3.5 0 0 0 12 15.5a3.5 3.5 0 0 0 2.47-5.97" />
+                      </svg>
+                    ) : (
+                      /* Eye */
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {msg && (
@@ -161,6 +227,24 @@ export default function LoginPage() {
                   ? 'Create your organizer account'
                   : 'Sign in'}
               </button>
+
+              {mode === 'signin' && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs text-[#4E7FA2] hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {resetSent && (
+                <div className="rounded-2xl border border-green-200 bg-green-50 px-3.5 py-2 text-xs text-green-700">
+                  Password reset link sent. Check your email.
+                </div>
+              )}
 
               <p className="text-[11px] leading-relaxed text-slate-500 text-center">
                 By continuing, you agree to Arteve&apos;s&nbsp;
