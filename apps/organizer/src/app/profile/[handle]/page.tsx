@@ -147,11 +147,11 @@ export default function OrganizerMusicianProfilePage() {
             .eq('profile_id', prof.id),
           supabase
             .from('followers')
-            .select('id', { count: 'exact', head: true })
+            .select('follower_id', { count: 'exact', head: true })
             .eq('following_id', prof.id),
           supabase
             .from('followers')
-            .select('id', { count: 'exact', head: true })
+            .select('follower_id', { count: 'exact', head: true })
             .eq('follower_id', prof.id),
         ]);
 
@@ -433,12 +433,12 @@ export default function OrganizerMusicianProfilePage() {
             {isFollowing ? 'Unfollow' : 'Follow'}
           </button>
 
-          <Link
-            href={`/chat/${profile.id}`}
+          <button
+            onClick={() => router.push(`/chat/new?user=${profile.handle}`)}
             className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
           >
             Message
-          </Link>
+          </button>
 
           <Link
             href={`/book/${profile.id}`}

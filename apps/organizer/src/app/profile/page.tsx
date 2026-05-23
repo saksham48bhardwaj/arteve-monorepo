@@ -68,12 +68,12 @@ export default function OrganizerProfilePage() {
       const [followersRes, followingRes] = await Promise.all([
         supabase
           .from('followers')
-          .select('id', { count: 'exact', head: true })
+          .select('follower_id', { count: 'exact', head: true })
           .eq('following_id', user.id),
 
         supabase
           .from('followers')
-          .select('id', { count: 'exact', head: true })
+          .select('follower_id', { count: 'exact', head: true })
           .eq('follower_id', user.id),
       ]);
 
@@ -157,16 +157,17 @@ export default function OrganizerProfilePage() {
     const [followersRes, followingRes] = await Promise.all([
       supabase
         .from('followers')
-        .select('id', { count: 'exact', head: true })
+        .select('follower_id', { count: 'exact', head: true })
         .eq('following_id', userId),
 
       supabase
         .from('followers')
-        .select('id', { count: 'exact', head: true })
+        .select('follower_id', { count: 'exact', head: true })
         .eq('follower_id', userId),
     ]);
 
-    await refreshFollowStats();
+    setFollowersCount(followersRes.count || 0);
+    setFollowingCount(followingRes.count || 0);
 
     const { data: myFollows } = await supabase
       .from('followers')

@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useRealtimeNotifications } from '@arteve/shared/notifications/realtime';
 import LogoutButton from './logout-button';
 import { usePathname } from 'next/navigation';
-import path from 'path';
 
 export default function TopNav() {
   const { unread } = useRealtimeNotifications();

@@ -89,11 +89,11 @@ async function fetchProfileCounts(userId: string) {
       .eq('profile_id', userId),
     supa
       .from('followers')
-      .select('id', { count: 'exact', head: true })
+      .select('follower_id', { count: 'exact', head: true })
       .eq('following_id', userId),
     supa
       .from('followers')
-      .select('id', { count: 'exact', head: true })
+      .select('follower_id', { count: 'exact', head: true })
       .eq('follower_id', userId),
   ]);
 

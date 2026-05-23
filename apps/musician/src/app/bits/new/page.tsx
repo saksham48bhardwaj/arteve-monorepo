@@ -68,7 +68,6 @@ export default function NewBitPage() {
       const { data: publicUrlData } = supabase.storage
         .from('media')
         .getPublicUrl(filePath);
-        console.log("BIT UPLOAD PATH:", filePath);
 
       const mediaUrl = publicUrlData.publicUrl;
 

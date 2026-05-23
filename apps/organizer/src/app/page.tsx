@@ -12,7 +12,7 @@ type Post = {
   media_type: 'image' | 'video';
   caption: string | null;
   created_at: string;
-  is_bit: boolean | null;
+  kind: 'post' | 'bit' | null;
   profiles: {
     id: string;
     display_name: string | null;
@@ -63,7 +63,7 @@ export default function OrganizerHomePage() {
           media_type,
           caption,
           created_at,
-          is_bit,
+          kind,
           profiles:profiles!profile_id (
             id,
             display_name,
@@ -72,7 +72,7 @@ export default function OrganizerHomePage() {
           )
         `
         )
-        .eq('is_bit', true)
+        .eq('kind', 'bit')
         .order('created_at', { ascending: false })
         .limit(12);
 
@@ -106,7 +106,7 @@ export default function OrganizerHomePage() {
           media_type,
           caption,
           created_at,
-          is_bit,
+          kind,
           profiles:profiles!profile_id (
             id,
             display_name,
@@ -129,7 +129,7 @@ export default function OrganizerHomePage() {
           post_comments_count:post_comments(count)
         `
         )
-        .eq('is_bit', false)
+        .eq('kind', 'post')
         .order('created_at', { ascending: false })
         .range(from, to);
 

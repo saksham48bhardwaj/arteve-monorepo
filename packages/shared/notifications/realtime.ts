@@ -4,7 +4,7 @@ import { supabase } from '@arteve/supabase/client';
 import { useEffect, useState } from 'react';
 
 type NotificationRow = {
-  id: string;
+  id: number;
   user_id: string;
   read_at: string | null;
 } & Record<string, unknown>;

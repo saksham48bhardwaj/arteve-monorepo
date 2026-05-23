@@ -281,11 +281,11 @@ export default function ProfilePage() {
       supa.from('posts').select('id', { count: 'exact', head: true }).eq('profile_id', userId),
       supa
         .from('followers')
-        .select('id', { count: 'exact', head: true })
+        .select('follower_id', { count: 'exact', head: true })
         .eq('following_id', userId),
       supa
         .from('followers')
-        .select('id', { count: 'exact', head: true })
+        .select('follower_id', { count: 'exact', head: true })
         .eq('follower_id', userId),
     ]);
 

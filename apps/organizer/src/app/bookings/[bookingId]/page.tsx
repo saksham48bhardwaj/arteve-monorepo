@@ -38,6 +38,7 @@ type MusicianProfile = {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
+  handle: string | null;
   genres: string[] | null;
   location: string | null;
 };
@@ -217,7 +218,7 @@ export default function OrganizerBookingDetailPage() {
             ) : null}
 
             <Link
-              href={`/musician/${musician?.id}`}
+              href={`/profile/${musician?.handle ?? musician?.id}`}
               className="text-xs underline text-blue-600 mt-2 inline-block"
             >
               View full profile →

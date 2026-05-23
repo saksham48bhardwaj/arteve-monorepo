@@ -62,7 +62,7 @@ function NewChatContent() {
       // Create new conversation
       const { data: convo } = await supabase
         .from('conversations')
-        .insert({})
+        .insert({ created_by: user.id })
         .select()
         .single();
 

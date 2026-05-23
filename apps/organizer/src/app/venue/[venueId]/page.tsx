@@ -9,6 +9,7 @@ type Profile = {
   display_name: string | null;
   bio: string | null;
   location: string | null;
+  handle: string | null;
   links: Record<string, string> | null;
   venue_photos: string[] | null;
 };
@@ -155,7 +156,7 @@ export default function PublicVenueProfilePage() {
         </button>
 
         <button
-          onClick={() => router.push(`/messages/create?to=${venueId}`)}
+          onClick={() => router.push(`/chat/new?user=${venue.handle}`)}
           className="px-4 py-2 rounded-xl border text-sm"
         >
           Message organizer
