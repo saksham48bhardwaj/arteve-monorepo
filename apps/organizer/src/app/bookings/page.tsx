@@ -216,17 +216,17 @@ export default function OrganizerBookingsPage() {
 
       {/* EMPTY STATE */}
       {!loading && filtered.length === 0 && (
-        <div className="rounded-3xl border border-dashed border-line-strong bg-surface-sunken px-6 py-10 text-center space-y-3">
-          <p className="text-base font-medium text-ink-strong">No bookings here yet.</p>
-          <p className="text-sm text-ink-subtle">
-            Find a musician you love and send them a booking request — they'll appear here once they respond.
+        <div className="empty-state">
+          <p className="empty-title">No bookings here yet.</p>
+          <p className="empty-body">
+            Find a musician you love and send them a booking request — they&apos;ll appear here once they respond.
           </p>
-          <a
+          <Link
             href="/find"
-            className="inline-block rounded-xl bg-black px-4 py-2 text-sm font-medium text-white"
+            className="btn btn-primary mt-5 inline-flex"
           >
             Find a musician
-          </a>
+          </Link>
         </div>
       )}
 
