@@ -96,28 +96,28 @@ export default function NewPostPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Preview */}
-        <div className="rounded-2xl border px-6 py-6 flex flex-col items-center gap-4">
+        <div className="rounded-2xl border px-6 py-6 flex flex-col items-center gap-4 border-line">
           {previewUrl ? (
             file?.type.startsWith('video') ? (
               <video
                 src={previewUrl}
-                className="max-h-80 rounded-xl border"
+                className="max-h-80 rounded-xl border border-line"
                 controls
               />
             ) : (
               <img
                 src={previewUrl}
                 alt="Preview"
-                className="max-h-80 rounded-xl border object-contain"
+                className="max-h-80 rounded-xl border object-contain border-line"
               />
             )
           ) : (
-            <div className="h-40 w-full max-w-md rounded-xl border border-dashed flex items-center justify-center text-sm text-gray-500">
+            <div className="h-40 w-full max-w-md rounded-xl border border-dashed flex items-center justify-center text-sm text-ink-subtle border-line">
               Choose an image or video to get started.
             </div>
           )}
 
-          <label className="inline-flex cursor-pointer items-center rounded-full border px-4 py-2 text-sm hover:bg-gray-50">
+          <label className="inline-flex cursor-pointer items-center rounded-full border px-4 py-2 text-sm hover:bg-surface-sunken border-line">
             Choose file
             <input
               type="file"
@@ -140,7 +140,7 @@ export default function NewPostPage() {
           />
         </div>
 
-        {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+        {errorMsg && <p className="text-sm text-danger">{errorMsg}</p>}
 
         <button
           type="submit"

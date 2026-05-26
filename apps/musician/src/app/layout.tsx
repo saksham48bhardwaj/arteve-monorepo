@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#000000" />
       </head>
 
-      <body className="h-full min-h-screen bg-white text-neutral-900 dark:bg-[#0A0A0A] dark:text-neutral-200 transition-colors duration-300">
+      <body className="h-full min-h-screen bg-surface-muted text-ink antialiased">
         <PresenceProvider>
           <ClientShell>
             {children}

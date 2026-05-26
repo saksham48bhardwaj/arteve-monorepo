@@ -274,7 +274,7 @@ export default function OrganizerHomePage() {
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
             Discover Musicians
           </h1>
-          <p className="mt-2 text-sm text-slate-500 md:text-base">
+          <p className="mt-2 text-sm text-ink-subtle md:text-base">
             Scroll recent performances and shortlist artists for your next event.
           </p>
         </div>
@@ -284,12 +284,12 @@ export default function OrganizerHomePage() {
       {bits.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-ink">
               Featured Bits
             </h2>
             <button
               type="button"
-              className="text-xs font-medium text-slate-500 hover:text-slate-800"
+              className="text-xs font-medium text-ink-subtle hover:text-ink-strong"
             >
               See all
             </button>
@@ -299,7 +299,7 @@ export default function OrganizerHomePage() {
             {bits.slice(0, 10).map(post => (
               <article
                 key={post.id}
-                className="relative h-56 w-40 shrink-0 overflow-hidden rounded-3xl bg-slate-900 sm:h-64 sm:w-48"
+                className="relative h-56 w-40 shrink-0 overflow-hidden rounded-3xl bg-ink-strong sm:h-64 sm:w-48"
               >
                 {post.media_type === 'video' ? (
                   <video
@@ -332,7 +332,7 @@ export default function OrganizerHomePage() {
 
       {/* Feed */}
       <section className="space-y-5">
-        <h2 className="text-base font-semibold text-slate-900">
+        <h2 className="text-base font-semibold text-ink-strong">
           Recent performances
         </h2>
 
@@ -342,17 +342,17 @@ export default function OrganizerHomePage() {
             {[0, 1, 2].map(i => (
               <div
                 key={i}
-                className="animate-pulse overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                className="animate-pulse overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-sm"
               >
-                <div className="mb-4 h-4 w-32 rounded-full bg-slate-100" />
-                <div className="h-56 w-full rounded-2xl bg-slate-100" />
+                <div className="mb-4 h-4 w-32 rounded-full bg-surface-sunken" />
+                <div className="h-56 w-full rounded-2xl bg-surface-sunken" />
               </div>
             ))}
           </div>
         )}
 
         {errorMsg && !isInitialLoading && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">
+          <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-xs text-danger">
             {errorMsg}
           </div>
         )}
@@ -366,7 +366,7 @@ export default function OrganizerHomePage() {
             return (
               <article
                 key={post.id}
-                className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
+                className="overflow-hidden rounded-3xl border border-line bg-surface shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
               >
                 {/* Card header */}
                 <div className="px-6 pt-6 pb-4">
@@ -381,17 +381,17 @@ export default function OrganizerHomePage() {
                     />
 
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-ink-strong">
                         {post.profiles?.display_name ?? 'Musician'}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-ink-subtle">
                         Tap to view full profile
                       </p>
                     </div>
                   </Link>
 
                   {post.caption && (
-                    <p className="mt-4 text-sm text-slate-800">
+                    <p className="mt-4 text-sm text-ink-strong">
                       {post.caption}
                     </p>
                   )}
@@ -415,22 +415,22 @@ export default function OrganizerHomePage() {
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-6 px-6 py-4 text-xs text-slate-600">
+                <div className="flex items-center gap-6 px-6 py-4 text-xs text-ink-muted">
                   <button
                     onClick={() => toggleLike(post.id)}
-                    className="font-medium hover:text-slate-900"
+                    className="font-medium hover:text-ink-strong"
                   >
                     👍 {likes}
                   </button>
 
                   <button
                     onClick={() => setCommentModalPost(post)}
-                    className="font-medium hover:text-slate-900"
+                    className="font-medium hover:text-ink-strong"
                   >
                     💬 {comments}
                   </button>
 
-                  <button className="ml-auto rounded-full bg-slate-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-slate-800">
+                  <button className="ml-auto rounded-full bg-ink-strong px-4 py-1.5 text-xs font-medium text-white hover:bg-ink-strong">
                     Shortlist
                   </button>
                 </div>
@@ -459,11 +459,11 @@ export default function OrganizerHomePage() {
                         <div>
                           <Link
                             href={`/profile/${c.profiles?.handle ?? ''}`}
-                            className="font-medium text-slate-900"
+                            className="font-medium text-ink-strong"
                           >
                             {c.profiles?.display_name ?? 'User'}
                           </Link>
-                          <p className="text-slate-700">{c.comment}</p>
+                          <p className="text-ink">{c.comment}</p>
                         </div>
                       </div>
                     ))}
@@ -486,7 +486,7 @@ export default function OrganizerHomePage() {
         {!isInitialLoading && hasMore && (
           <div
             ref={loaderRef}
-            className="flex items-center justify-center py-6 text-xs text-slate-400"
+            className="flex items-center justify-center py-6 text-xs text-ink-subtle"
           >
             {isFetchingMore ? 'Loading more performances…' : ''}
           </div>
@@ -496,7 +496,7 @@ export default function OrganizerHomePage() {
       {/* VIEW ALL COMMENTS MODAL */}
       {viewCommentsPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="max-h-[80vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[80vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-surface p-6 shadow-xl">
             <h2 className="text-lg font-semibold">
               All comments on {viewCommentsPost.profiles?.display_name}
             </h2>
@@ -520,11 +520,11 @@ export default function OrganizerHomePage() {
                 <div>
                   <Link
                     href={`/profile/${c.profiles?.handle ?? ''}`}
-                    className="font-medium text-slate-900"
+                    className="font-medium text-ink-strong"
                   >
                     {c.profiles?.display_name ?? 'User'}
                   </Link>
-                  <p className="text-slate-700">{c.comment}</p>
+                  <p className="text-ink">{c.comment}</p>
                 </div>
               </div>
             ))}
@@ -532,7 +532,7 @@ export default function OrganizerHomePage() {
             <div className="flex justify-end">
               <button
                 onClick={() => setViewCommentsPost(null)}
-                className="rounded-lg bg-slate-200 px-4 py-2 text-sm"
+                className="rounded-lg bg-line-strong px-4 py-2 text-sm"
               >
                 Close
               </button>
@@ -544,7 +544,7 @@ export default function OrganizerHomePage() {
       {/* ADD COMMENT MODAL */}
       {commentModalPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md space-y-4 rounded-2xl bg-surface p-6 shadow-xl">
             <h2 className="text-lg font-semibold">
               Comment on {commentModalPost.profiles?.display_name}
             </h2>
@@ -553,20 +553,20 @@ export default function OrganizerHomePage() {
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
               placeholder="Write your comment..."
-              className="h-28 w-full rounded-lg border border-slate-200 p-3 text-sm"
+              className="h-28 w-full rounded-lg border border-line p-3 text-sm"
             />
 
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setCommentModalPost(null)}
-                className="rounded-lg bg-slate-200 px-4 py-2 text-sm"
+                className="rounded-lg bg-line-strong px-4 py-2 text-sm"
               >
                 Cancel
               </button>
 
               <button
                 onClick={addComment}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white"
+                className="rounded-lg bg-brand px-4 py-2 text-sm text-white"
               >
                 Post
               </button>

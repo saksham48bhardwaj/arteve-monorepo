@@ -100,6 +100,8 @@ export type GigFilters = {
   genre?: string;
   minBudget?: number | null;
   maxBudget?: number | null;
+  dateFrom?: string | null;  // ISO date (YYYY-MM-DD)
+  dateTo?: string | null;
 };
 
 export async function searchGigs(
@@ -128,8 +130,12 @@ export async function searchGigs(
   if (filters.genre) q = q.contains('genres', [filters.genre]);
   if (filters.minBudget) q = q.gte('budget_min', filters.minBudget);
   if (filters.maxBudget) q = q.lte('budget_max', filters.maxBudget);
+  if (filters.dateFrom) q = q.gte('event_date', filters.dateFrom);
+  if (filters.dateTo) q = q.lte('event_date', filters.dateTo);
 
-  const { data, error } = await q.range(from, to);
+  const { data, error } = await q
+    .order('event_date', { ascending: true })
+    .range(from, to);
 
   if (error) throw error;
 

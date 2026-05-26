@@ -104,7 +104,7 @@ export default function OrganizerNotificationsPage() {
 
   if (loading) {
     return (
-      <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 flex items-center justify-center text-slate-500">
+      <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 flex items-center justify-center text-ink-subtle">
         Loading notifications…
       </main>
     );
@@ -113,14 +113,14 @@ export default function OrganizerNotificationsPage() {
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER */}
-      <div className="border-b border-slate-200 bg-white/70 backdrop-blur">
+      <div className="border-b border-line bg-white/70 backdrop-blur">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
+              <h1 className="text-xl sm:text-2xl font-semibold text-ink-strong">
                 Notifications
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              <p className="text-xs sm:text-sm text-ink-subtle mt-1">
                 Your recent activity, updates, and requests.
               </p>
             </div>
@@ -129,7 +129,7 @@ export default function OrganizerNotificationsPage() {
               <button
                 onClick={markAllAsRead}
                 disabled={marking}
-                className="rounded-full border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                className="rounded-full border border-line-strong px-4 py-1.5 text-sm font-medium text-ink hover:bg-surface-sunken disabled:opacity-50"
               >
                 {marking ? 'Marking…' : 'Mark all as read'}
               </button>
@@ -142,8 +142,8 @@ export default function OrganizerNotificationsPage() {
               onClick={() => setShowUnreadOnly(false)}
               className={`px-4 py-1.5 rounded-full text-sm border transition ${
                 !showUnreadOnly
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  ? 'bg-ink-strong text-white border-ink-strong'
+                  : 'bg-surface text-ink border-line-strong hover:bg-surface-sunken'
               }`}
             >
               All
@@ -153,8 +153,8 @@ export default function OrganizerNotificationsPage() {
               onClick={() => setShowUnreadOnly(true)}
               className={`px-4 py-1.5 rounded-full text-sm border transition ${
                 showUnreadOnly
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  ? 'bg-ink-strong text-white border-ink-strong'
+                  : 'bg-surface text-ink border-line-strong hover:bg-surface-sunken'
               }`}
             >
               Unread
@@ -166,7 +166,7 @@ export default function OrganizerNotificationsPage() {
       {/* LIST */}
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 space-y-4">
         {filteredItems.length === 0 && (
-          <p className="text-slate-500 text-sm text-center py-10">
+          <p className="text-ink-subtle text-sm text-center py-10">
             No notifications found.
           </p>
         )}
@@ -175,8 +175,8 @@ export default function OrganizerNotificationsPage() {
           <a
             key={n.id}
             href={`${resolveNotificationLink(n)}?notification_id=${n.id}`}
-            className={`flex items-start gap-4 p-5 rounded-3xl border transition shadow-sm hover:shadow bg-white ${
-              !n.read_at ? 'border-blue-200 bg-blue-50/50' : 'border-slate-200'
+            className={`flex items-start gap-4 p-5 rounded-3xl border transition shadow-sm hover:shadow bg-surface ${
+              !n.read_at ? 'border-blue-200 bg-brand-50/50' : 'border-line'
             }`}
           >
             {/* ICON */}
@@ -186,13 +186,13 @@ export default function OrganizerNotificationsPage() {
 
             {/* TEXT */}
             <div className="flex-1">
-              <p className="font-medium text-slate-900">
+              <p className="font-medium text-ink-strong">
                 {n.title || 'Notification'}
               </p>
               {n.body && (
-                <p className="text-slate-600 text-sm mt-1">{n.body}</p>
+                <p className="text-ink-muted text-sm mt-1">{n.body}</p>
               )}
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-ink-subtle mt-1">
                 {new Date(n.created_at).toLocaleString()}
               </p>
             </div>

@@ -46,7 +46,7 @@ export default function PublicVenuePage() {
 
   if (loading) {
     return (
-      <main className="p-6 text-center text-gray-500">
+      <main className="p-6 text-center text-ink-subtle">
         Loading venue…
       </main>
     );
@@ -54,7 +54,7 @@ export default function PublicVenuePage() {
 
   if (!profile) {
     return (
-      <main className="p-6 text-center text-gray-500">
+      <main className="p-6 text-center text-ink-subtle">
         Venue not found.
       </main>
     );
@@ -69,7 +69,7 @@ export default function PublicVenuePage() {
         <img
           src={profile.avatar_url || '/default-avatar.png'}
           alt="Venue"
-          className="w-20 h-20 rounded-2xl object-cover border"
+          className="w-20 h-20 rounded-2xl object-cover border border-line"
         />
 
         <div>
@@ -78,20 +78,20 @@ export default function PublicVenuePage() {
           </h1>
 
           {profile.handle && (
-            <p className="text-sm text-gray-500">@{profile.handle}</p>
+            <p className="text-sm text-ink-subtle">@{profile.handle}</p>
           )}
 
           {profile.location && (
-            <p className="text-sm text-gray-600 mt-1">{profile.location}</p>
+            <p className="text-sm text-ink-muted mt-1">{profile.location}</p>
           )}
         </div>
       </header>
 
       {/* BIO */}
       {profile.bio && (
-        <section className="bg-white border rounded-2xl p-6 shadow-sm space-y-2">
+        <section className="bg-surface border rounded-2xl p-6 shadow-sm space-y-2 border-line">
           <h2 className="text-lg font-semibold">About</h2>
-          <p className="text-gray-700 whitespace-pre-line">
+          <p className="text-ink whitespace-pre-line">
             {profile.bio}
           </p>
         </section>
@@ -99,14 +99,14 @@ export default function PublicVenuePage() {
 
       {/* PHOTOS */}
       {profile.venue_photos && profile.venue_photos.length > 0 && (
-        <section className="bg-white border rounded-2xl p-6 shadow-sm space-y-4">
+        <section className="bg-surface border rounded-2xl p-6 shadow-sm space-y-4 border-line">
           <h2 className="text-lg font-semibold">Venue Photos</h2>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {profile.venue_photos.map((url) => (
               <div
                 key={url}
-                className="aspect-video rounded-xl overflow-hidden border bg-gray-100"
+                className="aspect-video rounded-xl overflow-hidden border bg-surface-sunken border-line"
               >
                 <img
                   src={url}
@@ -121,7 +121,7 @@ export default function PublicVenuePage() {
 
       {/* LINKS */}
       {(links.instagram || links.youtube || links.website) && (
-        <section className="bg-white border rounded-2xl p-6 shadow-sm space-y-3">
+        <section className="bg-surface border rounded-2xl p-6 shadow-sm space-y-3 border-line">
           <h2 className="text-lg font-semibold">Online Presence</h2>
 
           <ul className="space-y-2 text-sm">
@@ -165,7 +165,7 @@ export default function PublicVenuePage() {
       {/* BACK BUTTON */}
       <button
         onClick={() => router.back()}
-        className="px-4 py-2 rounded-xl border text-sm hover:bg-gray-100 transition"
+        className="px-4 py-2 rounded-xl border text-sm hover:bg-surface-sunken transition border-line"
       >
         ← Back
       </button>

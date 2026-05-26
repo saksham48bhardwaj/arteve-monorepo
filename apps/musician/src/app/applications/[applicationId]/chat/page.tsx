@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useRef, useState, Fragment } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
+import { Button } from '@arteve/ui/components';
 
 type Message = {
   id: string;
@@ -12,131 +13,121 @@ type Message = {
   application_id: string;
 };
 
-export default function ChatThread() {
+export default function ApplicationChatThread() {
   const { applicationId } = useParams<{ applicationId: string }>();
+  const router = useRouter();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [msgs, setMsgs] = useState<Message[]>([]);
   const [body, setBody] = useState('');
   const [loading, setLoading] = useState(true);
-
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Load initial messages + user
   async function loadMessages() {
     const { data: { user } } = await supabase.auth.getUser();
     setUserId(user?.id ?? null);
-
     const { data, error } = await supabase
       .from('messages')
       .select('*')
       .eq('application_id', applicationId)
       .order('created_at', { ascending: true });
-
-    if (!error && data) {
-      setMsgs(data as Message[]);
-    }
-
+    if (!error && data) setMsgs(data as Message[]);
     setLoading(false);
   }
 
-  useEffect(() => {
-    loadMessages();
-  }, [applicationId]);
+  useEffect(() => { loadMessages(); }, [applicationId]);
 
-  // Realtime updates
   useEffect(() => {
     const channel = supabase
       .channel(`application-chat-${applicationId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `application_id=eq.${applicationId}`,
-        },
-        (payload) => {
-          setMsgs((prev) => [...prev, payload.new as Message]);
-        }
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `application_id=eq.${applicationId}` },
+        (payload) => setMsgs((prev) => [...prev, payload.new as Message]),
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [applicationId]);
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [msgs]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
 
-  // Send message
   async function sendMessage() {
     if (!userId || !body.trim()) return;
-
     const { error } = await supabase.from('messages').insert({
       application_id: applicationId,
       sender_id: userId,
       body: body.trim(),
     });
-
-    if (!error) {
-      setBody('');
-    }
+    if (!error) setBody('');
   }
 
   if (loading) {
-    return <main className="p-6">Loading chat…</main>;
+    return (
+      <main className="chat-shell">
+        <header className="chat-header">
+          <div className="skeleton h-3 w-32" />
+        </header>
+        <div className="chat-stream" />
+      </main>
+    );
   }
 
+  let lastDateLabel = '';
+
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
-      <div className="flex-1 overflow-y-auto space-y-2">
+    <main className="chat-shell">
+      <header className="chat-header">
+        <button type="button" onClick={() => router.back()} className="chat-back-btn" aria-label="Back">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink-strong">Application chat</p>
+          <p className="text-xs text-ink-subtle">Talk to the organizer about your application</p>
+        </div>
+      </header>
+
+      <div className="chat-stream">
+        {msgs.length === 0 && (
+          <div className="text-center text-sm text-ink-subtle py-12">
+            No messages yet — introduce yourself.
+          </div>
+        )}
         {msgs.map((m) => {
           const isMine = m.sender_id === userId;
-
+          const date = new Date(m.created_at);
+          const dateLabel = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+          const showDate = dateLabel !== lastDateLabel;
+          if (showDate) lastDateLabel = dateLabel;
           return (
-            <div
-              key={m.id}
-              className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[70%] rounded-2xl px-3 py-2 text-sm ${
-                  isMine
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
-              >
-                {m.body}
+            <Fragment key={m.id}>
+              {showDate && (<div className="chat-day-divider"><span>{dateLabel}</span></div>)}
+              <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                <div className={`chat-bubble ${isMine ? 'chat-bubble-mine' : 'chat-bubble-theirs'}`}>
+                  {m.body}
+                  <div className={isMine ? 'chat-meta-mine' : 'chat-meta-theirs'}>
+                    {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
               </div>
-            </div>
+            </Fragment>
           );
         })}
-
         <div ref={endRef} />
       </div>
 
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          sendMessage();
-        }}
-        className="flex gap-2 border-t pt-2"
+        onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+        className="chat-input-bar"
       >
         <input
-          className="flex-1 border rounded-full px-3 py-2"
+          className="chat-input"
           placeholder="Type a message…"
           value={body}
           onChange={(e) => setBody(e.target.value)}
         />
-        <button
-          type="submit"
-          className="px-4 py-2 border rounded-full bg-blue-600 text-white"
-        >
-          Send
-        </button>
+        <Button type="submit" disabled={!body.trim()}>Send</Button>
       </form>
     </main>
   );

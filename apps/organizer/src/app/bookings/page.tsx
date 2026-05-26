@@ -71,12 +71,12 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  accepted: 'bg-green-100 text-green-800',
-  declined: 'bg-red-100 text-red-800',
-  cancelled: 'bg-gray-200 text-gray-800',
-  canceled_by_organizer: 'bg-gray-200 text-gray-800',
-  canceled_by_musician: 'bg-gray-200 text-gray-800',
+  pending: 'bg-yellow-100 text-warning',
+  accepted: 'bg-success/10 text-success',
+  declined: 'bg-danger/10 text-danger',
+  cancelled: 'bg-line-strong text-ink-strong',
+  canceled_by_organizer: 'bg-line-strong text-ink-strong',
+  canceled_by_musician: 'bg-line-strong text-ink-strong',
   completed: 'bg-blue-100 text-blue-800',
 };
 
@@ -85,7 +85,7 @@ function getStatusLabel(status: string): string {
 }
 
 function getStatusClass(status: string): string {
-  return STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-800';
+  return STATUS_STYLES[status] ?? 'bg-surface-sunken text-ink-strong';
 }
 
 /* ------------------------------------
@@ -186,7 +186,7 @@ export default function OrganizerBookingsPage() {
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Bookings</h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-ink-muted">
             View and manage all bookings created from your gigs.
           </p>
         </div>
@@ -202,7 +202,7 @@ export default function OrganizerBookingsPage() {
               className={`px-4 py-1 rounded-full border whitespace-nowrap ${
                 filter === key
                   ? 'bg-black text-white'
-                  : 'bg-white text-gray-700'
+                  : 'bg-surface text-ink'
               }`}
             >
               {key === 'all' ? 'All' : getStatusLabel(key)}
@@ -212,11 +212,22 @@ export default function OrganizerBookingsPage() {
       </div>
 
       {/* LOADING */}
-      {loading && <p className="text-sm text-gray-600">Loading bookings…</p>}
+      {loading && <p className="text-sm text-ink-muted">Loading bookings…</p>}
 
       {/* EMPTY STATE */}
       {!loading && filtered.length === 0 && (
-        <p className="text-sm text-gray-500">No bookings found.</p>
+        <div className="rounded-3xl border border-dashed border-line-strong bg-surface-sunken px-6 py-10 text-center space-y-3">
+          <p className="text-base font-medium text-ink-strong">No bookings here yet.</p>
+          <p className="text-sm text-ink-subtle">
+            Find a musician you love and send them a booking request — they'll appear here once they respond.
+          </p>
+          <a
+            href="/find"
+            className="inline-block rounded-xl bg-black px-4 py-2 text-sm font-medium text-white"
+          >
+            Find a musician
+          </a>
+        </div>
       )}
 
       {/* BOOKING LIST */}
@@ -225,7 +236,7 @@ export default function OrganizerBookingsPage() {
           <Link
             key={b.id}
             href={`/bookings/${b.id}`}
-            className="block border rounded-xl p-4 hover:bg-gray-50 transition"
+            className="block border rounded-xl p-4 hover:bg-surface-sunken transition border-line"
           >
             <div className="flex justify-between items-center gap-4">
               {/* Left side */}
@@ -237,10 +248,10 @@ export default function OrganizerBookingsPage() {
                 />
 
                 <div>
-                  <p className="text-sm text-gray-500">{b.musician_name}</p>
+                  <p className="text-sm text-ink-subtle">{b.musician_name}</p>
                   <p className="font-semibold">{b.event_title}</p>
 
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ink-subtle mt-1">
                     {b.event_date &&
                       new Date(b.event_date).toLocaleDateString(undefined, {
                         year: 'numeric',
@@ -251,7 +262,7 @@ export default function OrganizerBookingsPage() {
                   </p>
 
                   {(b.budget_min !== null || b.budget_max !== null) && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-ink-subtle">
                       Budget:{' '}
                       {b.budget_min ? `$${b.budget_min}` : 'TBD'}
                       {b.budget_max ? ` – $${b.budget_max}` : ''}

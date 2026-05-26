@@ -308,10 +308,14 @@ export default function ApplicationDetailPage() {
     setSaving(false);
   }
 
-  if (loading) return <main className="p-6">Loading…</main>;
+  if (loading) return (
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading…</p></div>
+    </main>
+  );
   if (error || !app) {
     return (
-      <main className="p-6 text-sm text-red-600">
+      <main className="p-6 text-sm text-danger">
         {error ?? 'Failed to load application.'}
       </main>
     );
@@ -340,12 +344,12 @@ export default function ApplicationDetailPage() {
 
   const statusClasses =
     app.status === 'pending'
-      ? 'bg-amber-50 text-amber-800 border-amber-200'
+      ? 'bg-warning/5 text-warning border-warning/30'
       : app.status === 'accepted'
       ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
       : app.status === 'rejected'
       ? 'bg-rose-50 text-rose-800 border-rose-200'
-      : 'bg-gray-50 text-gray-800 border-gray-200';
+      : 'bg-surface-sunken text-ink-strong border-line';
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
@@ -355,7 +359,7 @@ export default function ApplicationDetailPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             Application details
           </h1>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-ink-subtle mt-1">
             Applied on {appliedDate}
           </p>
         </div>
@@ -368,12 +372,12 @@ export default function ApplicationDetailPage() {
       </header>
 
       {/* MUSICIAN HEADER CARD */}
-      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-5 flex gap-4">
+      <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-5 flex gap-4">
         <div className="flex-shrink-0">
           <img
             src={p?.avatar_url ?? '/placeholder-avatar.png'}
             alt={p?.display_name ?? 'Musician'}
-            className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border border-gray-200"
+            className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border border-line"
           />
         </div>
 
@@ -384,7 +388,7 @@ export default function ApplicationDetailPage() {
                 {p?.display_name ?? 'Unknown musician'}
               </p>
               {p?.location && (
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-ink-subtle mt-0.5">
                   {p.location}
                 </p>
               )}
@@ -392,7 +396,7 @@ export default function ApplicationDetailPage() {
           </div>
 
           {p?.quote && (
-            <blockquote className="text-xs md:text-sm italic text-gray-700 border-l-2 border-gray-200 pl-3">
+            <blockquote className="text-xs md:text-sm italic text-ink border-l-2 border-line pl-3">
               “{p.quote}”
             </blockquote>
           )}
@@ -402,7 +406,7 @@ export default function ApplicationDetailPage() {
               {p.genres.map((g) => (
                 <span
                   key={g}
-                  className="px-2.5 py-0.5 rounded-full bg-gray-50 border border-gray-200 text-[11px] text-gray-700"
+                  className="px-2.5 py-0.5 rounded-full bg-surface-sunken border border-line text-[11px] text-ink"
                 >
                   {g}
                 </span>
@@ -415,21 +419,21 @@ export default function ApplicationDetailPage() {
       {/* BIO + MESSAGE */}
       <section className="grid md:grid-cols-2 gap-6">
         {p?.bio && (
-          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4 space-y-2">
-            <h2 className="text-sm font-semibold text-gray-700">
+          <div className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4 space-y-2">
+            <h2 className="text-sm font-semibold text-ink">
               Bio
             </h2>
-            <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+            <p className="text-sm text-ink-strong whitespace-pre-line leading-relaxed">
               {p.bio}
             </p>
           </div>
         )}
 
-        <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4 space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700">
+        <div className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4 space-y-2">
+          <h2 className="text-sm font-semibold text-ink">
             Application message
           </h2>
-          <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+          <p className="text-sm text-ink-strong whitespace-pre-line leading-relaxed">
             {app.message || 'No message provided.'}
           </p>
         </div>
@@ -440,12 +444,12 @@ export default function ApplicationDetailPage() {
         {/* LEFT COLUMN */}
         <div className="space-y-6">
           {/* Achievements */}
-          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
-            <h3 className="text-sm font-semibold text-gray-700">
+          <div className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4">
+            <h3 className="text-sm font-semibold text-ink">
               Achievements
             </h3>
             {achievements.length === 0 ? (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-subtle">
                 No achievements listed.
               </p>
             ) : (
@@ -453,18 +457,18 @@ export default function ApplicationDetailPage() {
                 {achievements.map((a) => (
                   <li
                     key={a.id}
-                    className="border border-gray-100 bg-gray-50 rounded-2xl px-3 py-2"
+                    className="border border-line bg-surface-sunken rounded-2xl px-3 py-2"
                   >
-                    <div className="text-xs font-medium text-gray-900">
+                    <div className="text-xs font-medium text-ink-strong">
                       {a.title}
                     </div>
                     {a.description && (
-                      <div className="text-[11px] text-gray-700 mt-0.5">
+                      <div className="text-[11px] text-ink mt-0.5">
                         {a.description}
                       </div>
                     )}
                     {a.year && (
-                      <div className="text-[10px] text-gray-500 mt-1">
+                      <div className="text-[10px] text-ink-subtle mt-1">
                         {a.year}
                       </div>
                     )}
@@ -475,12 +479,12 @@ export default function ApplicationDetailPage() {
           </div>
 
           {/* Shows */}
-          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
-            <h3 className="text-sm font-semibold text-gray-700">
+          <div className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4">
+            <h3 className="text-sm font-semibold text-ink">
               Recent shows
             </h3>
             {shows.length === 0 ? (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-subtle">
                 No shows listed.
               </p>
             ) : (
@@ -488,16 +492,16 @@ export default function ApplicationDetailPage() {
                 {shows.map((s) => (
                   <li
                     key={s.id}
-                    className="border border-gray-100 bg-gray-50 rounded-2xl px-3 py-2"
+                    className="border border-line bg-surface-sunken rounded-2xl px-3 py-2"
                   >
-                    <div className="text-xs font-medium text-gray-900">
+                    <div className="text-xs font-medium text-ink-strong">
                       {s.title}
                     </div>
-                    <div className="text-[11px] text-gray-700">
+                    <div className="text-[11px] text-ink">
                       {[s.venue, s.location].filter(Boolean).join(', ')}
                     </div>
                     {s.event_date && (
-                      <div className="text-[10px] text-gray-500 mt-1">
+                      <div className="text-[10px] text-ink-subtle mt-1">
                         {new Date(s.event_date).toLocaleDateString()}
                       </div>
                     )}
@@ -511,12 +515,12 @@ export default function ApplicationDetailPage() {
         {/* RIGHT COLUMN */}
         <div className="space-y-6">
           {/* Skills */}
-          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
-            <h3 className="text-sm font-semibold text-gray-700">
+          <div className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4">
+            <h3 className="text-sm font-semibold text-ink">
               Skills
             </h3>
             {skills.length === 0 ? (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-subtle">
                 No skills listed.
               </p>
             ) : (
@@ -524,13 +528,13 @@ export default function ApplicationDetailPage() {
                 {skills.map((sk) => (
                   <li
                     key={sk.id}
-                    className="border border-gray-100 bg-gray-50 rounded-2xl px-3 py-2 flex items-center justify-between"
+                    className="border border-line bg-surface-sunken rounded-2xl px-3 py-2 flex items-center justify-between"
                   >
-                    <span className="text-xs font-medium text-gray-900">
+                    <span className="text-xs font-medium text-ink-strong">
                       {sk.skill}
                     </span>
                     {sk.level && (
-                      <span className="text-[11px] italic text-gray-600">
+                      <span className="text-[11px] italic text-ink-muted">
                         {sk.level}
                       </span>
                     )}
@@ -541,12 +545,12 @@ export default function ApplicationDetailPage() {
           </div>
 
           {/* Recommendations */}
-          <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
-            <h3 className="text-sm font-semibold text-gray-700">
+          <div className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4">
+            <h3 className="text-sm font-semibold text-ink">
               Recommendations
             </h3>
             {recommendations.length === 0 ? (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-subtle">
                 No recommendations yet.
               </p>
             ) : (
@@ -554,13 +558,13 @@ export default function ApplicationDetailPage() {
                 {recommendations.map((r) => (
                   <blockquote
                     key={r.id}
-                    className="border-l-4 border-gray-200 bg-gray-50 rounded-2xl pl-3 pr-2 py-2"
+                    className="border-l-4 border-line bg-surface-sunken rounded-2xl pl-3 pr-2 py-2"
                   >
-                    <p className="text-xs text-gray-800 italic">
+                    <p className="text-xs text-ink-strong italic">
                       “{r.content}”
                     </p>
                     {r.author && (
-                      <p className="text-[11px] text-gray-500 mt-1">
+                      <p className="text-[11px] text-ink-subtle mt-1">
                         — {r.author}
                       </p>
                     )}
@@ -572,15 +576,15 @@ export default function ApplicationDetailPage() {
 
           {/* Media preview (kept minimal) */}
           {media.length > 0 && (
-            <div className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4">
-              <h3 className="text-sm font-semibold text-gray-700">
+            <div className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4">
+              <h3 className="text-sm font-semibold text-ink">
                 Media preview
               </h3>
               <div className="mt-2 flex flex-wrap gap-2">
                 {media.slice(0, 3).map((item) => (
                   <div
                     key={item.id}
-                    className="w-16 h-16 rounded-xl overflow-hidden bg-gray-200"
+                    className="w-16 h-16 rounded-xl overflow-hidden bg-line-strong"
                   >
                     {item.type === 'video' ? (
                       <video
@@ -598,7 +602,7 @@ export default function ApplicationDetailPage() {
                   </div>
                 ))}
                 {media.length > 3 && (
-                  <span className="text-[11px] text-gray-500 flex items-center">
+                  <span className="text-[11px] text-ink-subtle flex items-center">
                     +{media.length - 3} more
                   </span>
                 )}
@@ -610,8 +614,8 @@ export default function ApplicationDetailPage() {
 
       {/* LINKS */}
       {p?.links && Object.keys(p.links).filter((k) => !!p.links?.[k]).length > 0 && (
-        <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4 space-y-2">
-          <h2 className="text-sm font-semibold text-gray-700">Links</h2>
+        <section className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4 space-y-2">
+          <h2 className="text-sm font-semibold text-ink">Links</h2>
           <div className="flex flex-wrap gap-2 text-xs">
             {Object.entries(p.links)
               .filter(([, v]) => !!v)
@@ -621,7 +625,7 @@ export default function ApplicationDetailPage() {
                   href={value as string}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1 rounded-full border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="px-3 py-1 rounded-full border border-line-strong text-ink hover:bg-surface-sunken"
                 >
                   {key}
                 </a>
@@ -631,9 +635,9 @@ export default function ApplicationDetailPage() {
       )}
 
       {/* ACTIONS */}
-      <section className="pt-2 border-t border-gray-100 space-y-3">
+      <section className="pt-2 border-t border-line space-y-3">
         {!canAct && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ink-subtle">
             This application has already been {statusLabel.toLowerCase()}.
           </p>
         )}
@@ -650,7 +654,7 @@ export default function ApplicationDetailPage() {
             <button
               onClick={declineApplication}
               disabled={saving}
-              className="flex-1 rounded-full border border-gray-300 text-sm font-medium py-2.5 hover:bg-gray-50 disabled:opacity-60"
+              className="flex-1 rounded-full border border-line-strong text-sm font-medium py-2.5 hover:bg-surface-sunken disabled:opacity-60"
             >
               {saving ? 'Processing…' : 'Decline'}
             </button>

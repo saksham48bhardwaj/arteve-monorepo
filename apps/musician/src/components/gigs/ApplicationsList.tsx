@@ -57,10 +57,10 @@ export default function ApplicationsList() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  if (loading) return <p className="text-sm text-slate-500">Loading applications…</p>;
+  if (loading) return <p className="text-sm text-ink-subtle">Loading applications…</p>;
 
   if (rows.length === 0) {
-    return <p className="text-sm text-slate-500">You haven’t applied to any gigs yet.</p>;
+    return <p className="text-sm text-ink-subtle">You haven’t applied to any gigs yet.</p>;
   }
 
   return (
@@ -69,12 +69,12 @@ export default function ApplicationsList() {
         <a
           key={a.id}
           href={`/gigs/${a.gigs?.id}`}
-          className="block rounded-2xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+          className="block rounded-2xl border border-line bg-white p-4 hover:bg-surface-sunken"
         >
           <div className="flex justify-between gap-4">
             <div>
               <div className="font-medium">{a.gigs?.title ?? 'Gig'}</div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-ink-subtle">
                 {(a.gigs?.location ?? '—')} · {(a.gigs?.event_date ?? 'TBD')}
               </div>
             </div>
@@ -86,17 +86,17 @@ export default function ApplicationsList() {
         </a>
       ))}
 
-      {err && <p className="text-red-600">{err}</p>}
+      {err && <p className="text-danger">{err}</p>}
     </div>
   );
 }
 
 function StatusPill({ status }: { status: Row['status'] }) {
   const styles = {
-    applied: 'bg-slate-100 text-slate-700',
+    applied: 'bg-surface-sunken text-ink',
     shortlisted: 'bg-amber-100 text-amber-900',
-    accepted: 'bg-green-100 text-green-900',
-    rejected: 'bg-red-100 text-red-900',
+    accepted: 'bg-success/10 text-green-900',
+    rejected: 'bg-danger/10 text-red-900',
   }[status];
 
   return (

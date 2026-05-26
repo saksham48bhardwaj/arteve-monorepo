@@ -100,15 +100,15 @@ export default function GigApplicationsPage() {
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Applications</h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-ink-muted">
           Review applications submitted to this gig.
         </p>
       </header>
 
-      {loading && <p className="text-gray-600">Loading applications…</p>}
+      {loading && <p className="text-ink-muted">Loading applications…</p>}
 
       {!loading && applications.length === 0 && (
-        <p className="text-sm text-gray-500">No applications yet.</p>
+        <p className="text-sm text-ink-subtle">No applications yet.</p>
       )}
 
       {/* Application cards */}
@@ -117,28 +117,28 @@ export default function GigApplicationsPage() {
           <div
             key={app.id}
             onClick={() => goToApplication(app.id)}
-            className="rounded-3xl border border-gray-200 bg-white shadow-sm px-5 py-4 flex items-center justify-between gap-4 hover:bg-gray-50 transition cursor-pointer"
+            className="rounded-3xl border border-line bg-surface shadow-sm px-5 py-4 flex items-center justify-between gap-4 hover:bg-surface-sunken transition cursor-pointer"
           >
             {/* Left side */}
             <div className="flex items-center gap-4">
               <img
                 src={app.musician_avatar_url ?? '/default-avatar.png'}
                 alt={app.musician_name ?? 'Musician'}
-                className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                className="w-12 h-12 rounded-full object-cover border border-line"
               />
 
               <div className="space-y-0.5">
-                <p className="font-medium text-sm md:text-base text-gray-900">
+                <p className="font-medium text-sm md:text-base text-ink-strong">
                   {app.musician_name}
                 </p>
 
                 {app.message && (
-                  <p className="text-xs md:text-sm text-gray-500 line-clamp-1">
+                  <p className="text-xs md:text-sm text-ink-subtle line-clamp-1">
                     {app.message}
                   </p>
                 )}
 
-                <p className="text-[11px] text-gray-400">
+                <p className="text-[11px] text-ink-subtle">
                   Applied {new Date(app.created_at).toLocaleDateString()}
                 </p>
               </div>
@@ -158,9 +158,9 @@ function StatusPill({ status }: { status: Application['status'] }) {
     'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border';
 
   const map = {
-    pending: `${base} bg-yellow-50 text-yellow-800 border-yellow-200`,
-    accepted: `${base} bg-green-50 text-green-800 border-green-200`,
-    declined: `${base} bg-red-50 text-red-800 border-red-200`
+    pending: `${base} bg-warning/5 text-warning border-warning/30`,
+    accepted: `${base} bg-success/5 text-success border-success/30`,
+    declined: `${base} bg-danger/5 text-danger border-danger/30`
   };
 
   const label =
@@ -175,7 +175,7 @@ function StatusPill({ status }: { status: Application['status'] }) {
   const classes =
     status in map
       ? map[status as keyof typeof map]
-      : `${base} bg-gray-50 text-gray-700 border-gray-200`;
+      : `${base} bg-surface-sunken text-ink border-line`;
 
   return <span className={classes}>{label}</span>;
 }

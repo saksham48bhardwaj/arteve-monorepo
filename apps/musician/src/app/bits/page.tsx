@@ -286,7 +286,7 @@ export default function BitsReelsPage() {
       {/* COMMENT SHEET */}
       {commentOpenFor !== null && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-end z-50">
-          <div className="w-full max-w-md bg-white rounded-t-3xl p-5 space-y-4 h-[65vh] overflow-y-auto">
+          <div className="w-full max-w-md bg-surface rounded-t-3xl p-5 space-y-4 h-[65vh] overflow-y-auto">
             <h2 className="text-lg font-semibold">Comments</h2>
 
             <div className="space-y-3">
@@ -306,7 +306,7 @@ export default function BitsReelsPage() {
               ))}
 
               {comments.length === 0 && (
-                <p className="text-gray-500 text-sm">No comments yet.</p>
+                <p className="text-ink-subtle text-sm">No comments yet.</p>
               )}
             </div>
 
@@ -314,7 +314,7 @@ export default function BitsReelsPage() {
               <input
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="flex-1 border rounded-full px-3 py-2 text-sm"
+                className="flex-1 border rounded-full px-3 py-2 text-sm border-line"
                 placeholder="Add a comment…"
               />
               <button
@@ -327,7 +327,7 @@ export default function BitsReelsPage() {
 
             <button
               onClick={() => setCommentOpenFor(null)}
-              className="text-gray-500 text-center w-full py-2 text-sm"
+              className="text-ink-subtle text-center w-full py-2 text-sm"
             >
               Close
             </button>

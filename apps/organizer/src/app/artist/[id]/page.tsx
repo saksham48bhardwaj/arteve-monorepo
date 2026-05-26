@@ -152,11 +152,18 @@ export default function PublicProfilePage() {
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
-  if (loading) return <main className="p-6">Loading profile…</main>;
+  if (loading) return (
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading profile…</p></div>
+    </main>
+  );
   if (err || !profile) {
     return (
-      <main className="p-6 text-red-600">
-        Error: {err ?? 'Profile not found'}
+      <main className="page page-narrow">
+        <div className="card card-padded">
+          <p className="text-sm font-medium text-danger">Error</p>
+          <p className="mt-1 text-sm text-ink-muted">{err ?? 'Profile not found'}</p>
+        </div>
       </main>
     );
   }
@@ -193,43 +200,43 @@ export default function PublicProfilePage() {
         <img
           src={profile.avatar_url || '/default-avatar.png'}
           alt={profile.display_name ?? 'Artist avatar'}
-          className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border"
+          className="w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover border border-line"
         />
         <div className="flex-1 text-center sm:text-left space-y-2">
           <div>
             <h1 className="text-3xl font-semibold">{profile.display_name}</h1>
-            <p className="text-gray-600">
+            <p className="text-ink-muted">
               @{profile.display_name?.toLowerCase().replace(/\s+/g, '') ?? profile.id.slice(0, 8)}
             </p>
           </div>
-          <p className="text-gray-800">{profile.bio}</p>
+          <p className="text-ink-strong">{profile.bio}</p>
           {profile.location && (
-            <p className="text-sm text-gray-500">{profile.location}</p>
+            <p className="text-sm text-ink-subtle">{profile.location}</p>
           )}
 
           <div className="mt-4 flex justify-center sm:justify-start gap-3">
             <Link 
               href={`/book/${profile.id}`}
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl inline-flex items-center justify-center"
+              className="px-4 py-2 bg-brand text-white rounded-xl inline-flex items-center justify-center"
             >
               Book Musician
             </Link>
-            <button className="px-4 py-2 border rounded-xl">Follow</button>
+            <button className="px-4 py-2 border rounded-xl border-line">Follow</button>
           </div>
 
           {/* Stats */}
           <div className="mt-4 flex justify-center sm:justify-start gap-10 text-center">
             <div>
               <div className="text-xl font-semibold">{profile.stats_posts ?? 0}</div>
-              <div className="text-sm text-gray-600">Posts</div>
+              <div className="text-sm text-ink-muted">Posts</div>
             </div>
             <div>
               <div className="text-xl font-semibold">{profile.stats_followers ?? 0}</div>
-              <div className="text-sm text-gray-600">Followers</div>
+              <div className="text-sm text-ink-muted">Followers</div>
             </div>
             <div>
               <div className="text-xl font-semibold">{profile.stats_following ?? 0}</div>
-              <div className="text-sm text-gray-600">Following</div>
+              <div className="text-sm text-ink-muted">Following</div>
             </div>
           </div>
         </div>
@@ -240,7 +247,7 @@ export default function PublicProfilePage() {
         <button
           onClick={() => setActiveTab('media')}
           className={`pb-2 text-lg font-medium ${
-            activeTab === 'media' ? 'border-b-2 border-black' : 'text-gray-500'
+            activeTab === 'media' ? 'border-b-2 border-black' : 'text-ink-subtle'
           }`}
         >
           Media
@@ -248,7 +255,7 @@ export default function PublicProfilePage() {
         <button
           onClick={() => setActiveTab('about')}
           className={`pb-2 text-lg font-medium ${
-            activeTab === 'about' ? 'border-b-2 border-black' : 'text-gray-500'
+            activeTab === 'about' ? 'border-b-2 border-black' : 'text-ink-subtle'
           }`}
         >
           About
@@ -260,14 +267,14 @@ export default function PublicProfilePage() {
         <section>
           <h2 className="text-xl font-semibold mb-3">Media</h2>
           {media.length === 0 ? (
-            <p className="text-gray-500">No media uploaded yet.</p>
+            <p className="text-ink-subtle">No media uploaded yet.</p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {media.map((item, index) => (
                 <div
                   key={item.id}
                   onClick={() => openModal(index)}
-                  className="relative w-full pb-[100%] bg-gray-100 overflow-hidden rounded-md cursor-pointer hover:opacity-90 transition"
+                  className="relative w-full pb-[100%] bg-surface-sunken overflow-hidden rounded-md cursor-pointer hover:opacity-90 transition"
                 >
                   {item.type === 'image' ? (
                     <img
@@ -297,15 +304,15 @@ export default function PublicProfilePage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">Achievements</h2>
             {achievements.length === 0 ? (
-              <p className="text-gray-500">No achievements added yet.</p>
+              <p className="text-ink-subtle">No achievements added yet.</p>
             ) : (
-              <ul className="space-y-2 text-gray-800">
+              <ul className="space-y-2 text-ink-strong">
                 {achievements.map(a => (
-                  <li key={a.id} className="border p-3 rounded-md bg-gray-50">
+                  <li key={a.id} className="border p-3 rounded-md bg-surface-sunken border-line">
                     <strong>{a.title}</strong><br />
                     {a.description}
                     {a.year && (
-                      <div className="text-sm text-gray-500">({a.year})</div>
+                      <div className="text-sm text-ink-subtle">({a.year})</div>
                     )}
                   </li>
                 ))}
@@ -317,11 +324,11 @@ export default function PublicProfilePage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">Recent Shows</h2>
             {shows.length === 0 ? (
-              <p className="text-gray-500">No shows added yet.</p>
+              <p className="text-ink-subtle">No shows added yet.</p>
             ) : (
-              <ul className="space-y-2 text-gray-800">
+              <ul className="space-y-2 text-ink-strong">
                 {shows.map(s => (
-                  <li key={s.id} className="border p-3 rounded-md bg-gray-50">
+                  <li key={s.id} className="border p-3 rounded-md bg-surface-sunken border-line">
                     <strong>{s.title}</strong>{' — '}
                     {[s.venue, s.location].filter(Boolean).join(', ')}
                     {s.event_date && (
@@ -340,16 +347,16 @@ export default function PublicProfilePage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">Skills</h2>
             {skills.length === 0 ? (
-              <p className="text-gray-500">No skills added yet.</p>
+              <p className="text-ink-subtle">No skills added yet.</p>
             ) : (
-              <ul className="grid sm:grid-cols-2 gap-3 text-gray-800">
+              <ul className="grid sm:grid-cols-2 gap-3 text-ink-strong">
                 {skills.map(sk => (
                   <li
                     key={sk.id}
-                    className="border p-3 rounded-md bg-gray-50 flex justify-between"
+                    className="border p-3 rounded-md bg-surface-sunken flex justify-between border-line"
                   >
                     <span>{sk.skill}</span>
-                    <span className="italic text-sm text-gray-600">
+                    <span className="italic text-sm text-ink-muted">
                       {sk.level}
                     </span>
                   </li>
@@ -362,16 +369,16 @@ export default function PublicProfilePage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">Recommendations</h2>
             {recommendations.length === 0 ? (
-              <p className="text-gray-500">No recommendations yet.</p>
+              <p className="text-ink-subtle">No recommendations yet.</p>
             ) : (
               <div className="space-y-4">
                 {recommendations.map(r => (
                   <blockquote
                     key={r.id}
-                    className="border-l-4 pl-4 py-2 bg-gray-50 rounded-md italic text-gray-700"
+                    className="border-l-4 pl-4 py-2 bg-surface-sunken rounded-md italic text-ink"
                   >
                     “{r.content}”
-                    <div className="text-sm mt-1 text-gray-500">
+                    <div className="text-sm mt-1 text-ink-subtle">
                       — {r.author}
                     </div>
                   </blockquote>

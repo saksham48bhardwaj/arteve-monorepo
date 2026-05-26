@@ -27,7 +27,11 @@ import {
 // -------------------------------------------
 export default function FindPageWrapper() {
   return (
-    <Suspense fallback={<div className="p-6">Loading...</div>}>
+    <Suspense fallback={(
+    <div className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading…</p></div>
+    </div>
+  )}>
       <FindPageContent />
     </Suspense>
   );
@@ -158,10 +162,10 @@ function FindPageContent() {
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* -------------------- Search Bar -------------------- */}
-      <div className="flex items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 gap-3 shadow-sm">
+      <div className="flex items-center rounded-2xl border border-line bg-surface-sunken px-4 py-3 gap-3 shadow-sm">
         <button
           onClick={() => setShowFilters(true)}
-          className="text-gray-600 hover:text-black transition"
+          className="text-ink-muted hover:text-black transition"
         >
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path
@@ -176,14 +180,14 @@ function FindPageContent() {
         <input
           type="text"
           placeholder="Search anything…"
-          className="flex-1 bg-transparent outline-none text-gray-800 placeholder:text-gray-500"
+          className="flex-1 bg-transparent outline-none text-ink-strong placeholder:text-ink-subtle"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
       </div>
 
       {/* -------------------- Tabs -------------------- */}
-      <div className="flex gap-6 border-b border-gray-200 pb-2 overflow-x-auto scrollbar-hide">
+      <div className="flex gap-6 border-b border-line pb-2 overflow-x-auto scrollbar-hide">
 
         {TABS.map((t) => (
           <button
@@ -192,7 +196,7 @@ function FindPageContent() {
             className={`pb-2 text-base font-medium tracking-tight transition ${
               currentTab === t.key
                 ? 'text-black border-b-2 border-black'
-                : 'text-gray-500 hover:text-gray-800'
+                : 'text-ink-subtle hover:text-ink-strong'
             }`}
           >
             {t.label}
@@ -205,11 +209,11 @@ function FindPageContent() {
       <section className="space-y-4">
 
         {loading && page === 1 && (
-          <p className="text-sm text-gray-500">Loading…</p>
+          <p className="text-sm text-ink-subtle">Loading…</p>
         )}
 
         {!loading && results.length === 0 && (
-          <p className="text-sm text-gray-500 pt-4 text-center">
+          <p className="text-sm text-ink-subtle pt-4 text-center">
             No results found.
           </p>
         )}
@@ -221,12 +225,12 @@ function FindPageContent() {
             return (
               <div
                 key={p.handle}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition"
+                className="rounded-2xl border border-line bg-surface shadow-sm p-4 flex items-center gap-4 cursor-pointer hover:bg-surface-sunken transition"
                 onClick={() => router.push(`/profile/${p.handle}`)}
               >
                 <img
                   src={p.avatar_url || '/default-avatar.png'}
-                  className="w-12 h-12 rounded-2xl object-cover border"
+                  className="w-12 h-12 rounded-2xl object-cover border border-line"
                 />
                 <div>
                   <p className="font-medium">{p.display_name}</p>
@@ -240,11 +244,11 @@ function FindPageContent() {
             return (
               <div
                 key={g.id}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-gray-50 transition"
+                className="rounded-2xl border border-line bg-surface shadow-sm p-4 cursor-pointer hover:bg-surface-sunken transition"
                 onClick={() => router.push(`/gigs/${g.id}`)}
               >
-                <p className="font-semibold text-gray-900">{g.title}</p>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="font-semibold text-ink-strong">{g.title}</p>
+                <p className="text-sm text-ink-muted mt-1">
                   {g.location ?? 'Unknown location'}
                   {g.budget_min != null && g.budget_max != null && (
                     <> · ${g.budget_min}–${g.budget_max}</>
@@ -259,18 +263,18 @@ function FindPageContent() {
             return (
               <div
                 key={v.id}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-gray-50 transition"
+                className="rounded-2xl border border-line bg-surface shadow-sm p-4 cursor-pointer hover:bg-surface-sunken transition"
                 onClick={() => router.push(`/profile/${v.handle}`)}  // FIXED
               >
                 <div className="flex items-center gap-4">
                   <img
                     src={v.avatar_url || '/default-avatar.png'}
-                    className="w-12 h-12 rounded-xl object-cover border"
+                    className="w-12 h-12 rounded-xl object-cover border border-line"
                     alt=""
                   />
                   <div>
                     <p className="font-semibold">{v.display_name ?? 'Unknown Venue'}</p>
-                    <p className="text-sm text-gray-600">{v.location ?? ''}</p>
+                    <p className="text-sm text-ink-muted">{v.location ?? ''}</p>
                   </div>
                 </div>
               </div>
@@ -282,9 +286,9 @@ function FindPageContent() {
             return (
               <div
                 key={p.id}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:bg-gray-50 transition"
+                className="rounded-2xl border border-line bg-surface shadow-sm p-4 hover:bg-surface-sunken transition"
               >
-                <p className="text-gray-800">{p.content || p.text}</p>
+                <p className="text-ink-strong">{p.content || p.text}</p>
               </div>
             );
           }
@@ -294,10 +298,10 @@ function FindPageContent() {
             return (
               <div
                 key={ev.id}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:bg-gray-50 transition"
+                className="rounded-2xl border border-line bg-surface shadow-sm p-4 hover:bg-surface-sunken transition"
               >
                 <p className="font-semibold">{ev.title}</p>
-                <p className="text-sm text-gray-600">{ev.location}</p>
+                <p className="text-sm text-ink-muted">{ev.location}</p>
               </div>
             );
           }
@@ -308,7 +312,7 @@ function FindPageContent() {
         {hasMore && (
           <div
             ref={loadMoreRef}
-            className="py-6 text-center text-gray-400 text-sm"
+            className="py-6 text-center text-ink-subtle text-sm"
           >
             {loading ? 'Loading more...' : ''}
           </div>
@@ -318,13 +322,13 @@ function FindPageContent() {
       {/* -------------------- Filter Sheet -------------------- */}
       {showFilters && (
         <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
-          <div className="bg-white w-full max-w-md rounded-t-3xl p-6 space-y-6 shadow-xl">
+          <div className="bg-surface w-full max-w-md rounded-t-3xl p-6 space-y-6 shadow-xl">
 
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold">Filters</h2>
               <button
                 onClick={() => setShowFilters(false)}
-                className="text-gray-500"
+                className="text-ink-subtle"
               >
                 Close
               </button>
@@ -332,13 +336,13 @@ function FindPageContent() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink mb-1">
                   Location
                 </label>
                 <input
                   type="text"
                   placeholder="City or area"
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2"
+                  className="w-full border border-line-strong rounded-xl px-3 py-2"
                   value={filters.location}
                   onChange={(e) =>
                     handleFilterChange('location', e.target.value)
@@ -347,13 +351,13 @@ function FindPageContent() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink mb-1">
                   Genre
                 </label>
                 <input
                   type="text"
                   placeholder="Rock, Jazz, Pop…"
-                  className="w-full border border-gray-300 rounded-xl px-3 py-2"
+                  className="w-full border border-line-strong rounded-xl px-3 py-2"
                   value={filters.genre}
                   onChange={(e) =>
                     handleFilterChange('genre', e.target.value)
@@ -363,13 +367,13 @@ function FindPageContent() {
 
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink mb-1">
                     Min Budget
                   </label>
                   <input
                     type="number"
                     placeholder="100"
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2"
                     value={filters.minBudget ?? ''}
                     onChange={(e) =>
                       handleFilterChange('minBudget', e.target.value)
@@ -378,16 +382,46 @@ function FindPageContent() {
                 </div>
 
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink mb-1">
                     Max Budget
                   </label>
                   <input
                     type="number"
                     placeholder="1000"
-                    className="w-full border border-gray-300 rounded-xl px-3 py-2"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2"
                     value={filters.maxBudget ?? ''}
                     onChange={(e) =>
                       handleFilterChange('maxBudget', e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-ink mb-1">
+                    Date from
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2"
+                    value={filters.dateFrom}
+                    onChange={(e) =>
+                      handleFilterChange('dateFrom', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-ink mb-1">
+                    Date to
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full border border-line-strong rounded-xl px-3 py-2"
+                    value={filters.dateTo}
+                    onChange={(e) =>
+                      handleFilterChange('dateTo', e.target.value)
                     }
                   />
                 </div>
@@ -396,7 +430,7 @@ function FindPageContent() {
 
             <div className="flex gap-3 pt-2">
               <button
-                className="flex-1 border border-gray-300 rounded-xl py-2 text-sm"
+                className="flex-1 border border-line-strong rounded-xl py-2 text-sm"
                 onClick={() => setFilters(DEFAULT_FILTERS)}
               >
                 Clear
@@ -438,6 +472,8 @@ type GigFilters = {
   genre: string;
   minBudget: number | null;
   maxBudget: number | null;
+  dateFrom: string;
+  dateTo: string;
 };
 
 const DEFAULT_FILTERS: GigFilters = {
@@ -445,4 +481,6 @@ const DEFAULT_FILTERS: GigFilters = {
   genre: '',
   minBudget: null,
   maxBudget: null,
+  dateFrom: '',
+  dateTo: '',
 };

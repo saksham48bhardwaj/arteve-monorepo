@@ -85,25 +85,25 @@ export default function OrganizerGigDetailPage() {
 
   if (loading)
     return (
-      <main className="p-10 text-slate-500">Loading gig…</main>
+      <main className="p-10 text-ink-subtle">Loading gig…</main>
     );
 
   if (!gig)
     return (
-      <main className="p-10 text-slate-500">Gig not found.</main>
+      <main className="p-10 text-ink-subtle">Gig not found.</main>
     );
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER */}
-      <div className="border-b border-slate-200 bg-white/70 backdrop-blur">
+      <div className="border-b border-line bg-white/70 backdrop-blur">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-slate-500">
+              <p className="text-[11px] uppercase tracking-wider text-ink-subtle">
                 Gig ID: {gig.id.slice(0, 10)}…
               </p>
-              <h1 className="text-xl sm:text-2xl font-semibold text-slate-900">
+              <h1 className="text-xl sm:text-2xl font-semibold text-ink-strong">
                 {gig.title ?? 'Untitled gig'}
               </h1>
               <div className="mt-2">
@@ -113,7 +113,7 @@ export default function OrganizerGigDetailPage() {
 
             <a
               href={`/gigs/${gig.id}/edit`}
-              className="hidden sm:inline-flex rounded-full bg-slate-900 px-4 py-2 text-white text-sm font-semibold hover:bg-black"
+              className="hidden sm:inline-flex rounded-full bg-ink-strong px-4 py-2 text-white text-sm font-semibold hover:bg-black"
             >
               Edit gig
             </a>
@@ -125,14 +125,14 @@ export default function OrganizerGigDetailPage() {
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 space-y-10 pt-10">
 
         {/* EVENT INFO CARD */}
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-3xl border border-line bg-surface shadow-sm">
           <div className="h-2 w-full bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900" />
 
           <div className="p-6 sm:p-8 space-y-6">
             {/* DATE / LOCATION / BUDGET */}
-            <div className="text-sm space-y-1 text-slate-700">
+            <div className="text-sm space-y-1 text-ink">
               {gig.location && (
-                <p className="text-base text-slate-900 font-medium">
+                <p className="text-base text-ink-strong font-medium">
                   📍 {gig.location}
                 </p>
               )}
@@ -160,7 +160,7 @@ export default function OrganizerGigDetailPage() {
               )}
 
               {gig.genres && gig.genres.length > 0 && (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-ink-muted">
                   🎵 Genres: {gig.genres.join(', ')}
                 </p>
               )}
@@ -169,10 +169,10 @@ export default function OrganizerGigDetailPage() {
             {/* DESCRIPTION */}
             {gig.description && (
               <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-lg font-semibold text-ink-strong">
                   Description
                 </h2>
-                <p className="text-slate-700 leading-relaxed whitespace-pre-line">
+                <p className="text-ink leading-relaxed whitespace-pre-line">
                   {gig.description}
                 </p>
               </div>
@@ -181,14 +181,14 @@ export default function OrganizerGigDetailPage() {
         </section>
 
         {/* MANAGEMENT CARD */}
-        <section className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6 sm:p-8 space-y-6">
-          <h2 className="text-lg font-semibold text-slate-900">
+        <section className="rounded-3xl border border-line bg-surface shadow-sm p-6 sm:p-8 space-y-6">
+          <h2 className="text-lg font-semibold text-ink-strong">
             Management
           </h2>
 
           {/* APPLICATIONS */}
           <div className="space-y-1 text-sm">
-            <p className="text-slate-700">
+            <p className="text-ink">
               Applications received:{' '}
               <span className="font-semibold">{appsCount}</span>
             </p>
@@ -210,14 +210,14 @@ export default function OrganizerGigDetailPage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <a
               href={`/gigs/${gig.id}/applications`}
-              className="px-4 py-2 rounded-full border border-slate-300 text-sm hover:bg-slate-100"
+              className="px-4 py-2 rounded-full border border-line-strong text-sm hover:bg-surface-sunken"
             >
               View applications
             </a>
 
             <a
               href={`/gigs/${gig.id}/edit`}
-              className="px-4 py-2 rounded-full border border-slate-300 text-sm hover:bg-slate-100"
+              className="px-4 py-2 rounded-full border border-line-strong text-sm hover:bg-surface-sunken"
             >
               Edit gig
             </a>
@@ -225,14 +225,14 @@ export default function OrganizerGigDetailPage() {
             {gig.status === 'open' ? (
               <button
                 onClick={closeGig}
-                className="px-4 py-2 rounded-full bg-red-50 text-red-700 border border-red-200 text-sm"
+                className="px-4 py-2 rounded-full bg-danger/5 text-danger border border-danger/30 text-sm"
               >
                 Close gig
               </button>
             ) : (
               <button
                 onClick={reopenGig}
-                className="px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm"
+                className="px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm border-line"
               >
                 Reopen gig
               </button>
@@ -240,7 +240,7 @@ export default function OrganizerGigDetailPage() {
           </div>
 
           {feedback && (
-            <p className="text-sm text-slate-600 pt-2">{feedback}</p>
+            <p className="text-sm text-ink-muted pt-2">{feedback}</p>
           )}
         </section>
       </div>
@@ -252,7 +252,7 @@ export default function OrganizerGigDetailPage() {
 function GigStatusBadge({ status }: { status: string }) {
   let label = status;
   let classes =
-    'bg-slate-200 text-slate-700 border border-slate-300';
+    'bg-line-strong text-ink border border-line-strong';
 
   if (status === 'open') {
     label = 'Open for applications';
@@ -260,10 +260,10 @@ function GigStatusBadge({ status }: { status: string }) {
       'bg-emerald-100 text-emerald-800 border border-emerald-200';
   } else if (status === 'booked') {
     label = 'Booked';
-    classes = 'bg-amber-100 text-amber-800 border border-amber-200';
+    classes = 'bg-amber-100 text-warning border border-warning/30';
   } else if (status === 'closed') {
     label = 'Closed';
-    classes = 'bg-slate-300 text-slate-700 border border-slate-400';
+    classes = 'bg-line-strong text-ink border border-line-strong';
   }
 
   return (

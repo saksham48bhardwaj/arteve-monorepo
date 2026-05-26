@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
+import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
 
 const PAGE_SIZE = 10;
 
 type Post = {
   id: number;
   media_url: string;
-  media_type: 'image' | 'video';
+  media_type: 'image' | 'video' | 'audio';
   caption: string | null;
   created_at: string;
   kind: 'post' | 'bit' | null;
@@ -33,9 +34,14 @@ type Post = {
   post_comments_count: { count: number | null }[] | null;
 };
 
+type FeedTab = 'for-you' | 'following';
+
 export default function MusicianHomePage() {
   const [bits, setBits] = useState<Post[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [feedTab, setFeedTab] = useState<FeedTab>('for-you');
+  const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [myUserId, setMyUserId] = useState<string | null>(null);
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
@@ -97,7 +103,7 @@ export default function MusicianHomePage() {
       const from = pageToLoad * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('posts')
         .select(
           `
@@ -133,6 +139,19 @@ export default function MusicianHomePage() {
         .order('created_at', { ascending: false })
         .range(from, to);
 
+      // If "Following" tab, restrict to posts authored by accounts the user follows.
+      if (feedTab === 'following') {
+        if (followingIds.length === 0) {
+          // Not following anyone yet → empty feed (let UI render the empty state).
+          setPosts(append ? posts : []);
+          setHasMore(false);
+          return 0;
+        }
+        query = query.in('profile_id', followingIds);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
 
       const pagePosts = (data ?? []) as unknown as Post[];
@@ -154,6 +173,23 @@ export default function MusicianHomePage() {
   // ----------------------------------------------------
   // Initial load
   // ----------------------------------------------------
+  // Load my own id + who I follow, once.
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const uid = data?.user?.id ?? null;
+      setMyUserId(uid);
+      if (uid) {
+        const { data: follows } = await supabase
+          .from('followers')
+          .select('following_id')
+          .eq('follower_id', uid);
+        setFollowingIds((follows ?? []).map((r) => r.following_id as string));
+      }
+    })();
+  }, []);
+
+  // Reload feed whenever the tab or follow-list changes.
   useEffect(() => {
     let cancelled = false;
 
@@ -172,7 +208,8 @@ export default function MusicianHomePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedTab, followingIds.length]);
 
   // ----------------------------------------------------
   // Infinite scroll
@@ -273,22 +310,43 @@ export default function MusicianHomePage() {
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
             Home
           </h1>
-          <p className="mt-2 text-sm text-slate-500 md:text-base">
+          <p className="mt-2 text-sm text-ink-subtle md:text-base">
             Discover what other artists are sharing across Arteve.
           </p>
         </div>
       </header>
 
+      {/* Feed tabs */}
+      <div className="flex gap-2 border-b border-line">
+        {(['for-you', 'following'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setFeedTab(t)}
+            className={`relative px-3 pb-3 text-sm font-medium transition ${
+              feedTab === t
+                ? 'text-ink-strong'
+                : 'text-ink-subtle hover:text-ink'
+            }`}
+          >
+            {t === 'for-you' ? 'For You' : 'Following'}
+            {feedTab === t && (
+              <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-ink-strong" />
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Featured Bits */}
       {bits.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-ink">
               Featured Bits
             </h2>
             <button
               type="button"
-              className="text-xs font-medium text-slate-500 hover:text-slate-800"
+              className="text-xs font-medium text-ink-subtle hover:text-ink-strong"
             >
               See all
             </button>
@@ -298,7 +356,7 @@ export default function MusicianHomePage() {
             {bits.slice(0, 10).map(post => (
               <article
                 key={post.id}
-                className="relative h-56 w-40 shrink-0 overflow-hidden rounded-3xl bg-slate-900 sm:h-64 sm:w-48"
+                className="relative h-56 w-40 shrink-0 overflow-hidden rounded-3xl bg-ink-strong sm:h-64 sm:w-48"
               >
                 {post.media_type === 'video' ? (
                   <video
@@ -331,7 +389,7 @@ export default function MusicianHomePage() {
 
       {/* Feed */}
       <section className="space-y-5">
-        <h2 className="text-base font-semibold text-slate-900">
+        <h2 className="text-base font-semibold text-ink-strong">
           Latest from the community
         </h2>
 
@@ -341,18 +399,39 @@ export default function MusicianHomePage() {
             {[0, 1, 2].map(i => (
               <div
                 key={i}
-                className="animate-pulse overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                className="animate-pulse overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-sm"
               >
-                <div className="mb-4 h-4 w-32 rounded-full bg-slate-100" />
-                <div className="h-56 w-full rounded-2xl bg-slate-100" />
+                <div className="mb-4 h-4 w-32 rounded-full bg-surface-sunken" />
+                <div className="h-56 w-full rounded-2xl bg-surface-sunken" />
               </div>
             ))}
           </div>
         )}
 
         {errorMsg && !isInitialLoading && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs text-red-700">
+          <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-xs text-danger">
             {errorMsg}
+          </div>
+        )}
+
+        {!isInitialLoading && !errorMsg && posts.length === 0 && feedTab === 'following' && (
+          <div className="rounded-3xl border border-dashed border-line-strong bg-surface-sunken px-6 py-10 text-center">
+            <p className="text-sm font-medium text-ink-strong">Your following feed is empty.</p>
+            <p className="mt-1 text-sm text-ink-subtle">
+              Follow other artists and venues to see their posts here.
+            </p>
+            <Link
+              href="/find"
+              className="mt-4 inline-flex items-center rounded-xl bg-ink-strong px-4 py-2 text-sm font-medium text-white"
+            >
+              Find people to follow
+            </Link>
+          </div>
+        )}
+
+        {!isInitialLoading && !errorMsg && posts.length === 0 && feedTab === 'for-you' && (
+          <div className="rounded-3xl border border-dashed border-line-strong bg-surface-sunken px-6 py-10 text-center text-sm text-ink-subtle">
+            Nothing posted yet — be the first.
           </div>
         )}
 
@@ -365,7 +444,7 @@ export default function MusicianHomePage() {
             return (
               <article
                 key={post.id}
-                className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
+                className="overflow-hidden rounded-3xl border border-line bg-surface shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
               >
                 {/* Header */}
                 <div className="px-6 pt-6 pb-4">
@@ -379,25 +458,26 @@ export default function MusicianHomePage() {
                       alt="avatar"
                     />
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">
+                      <p className="text-sm font-semibold text-ink-strong">
                         {post.profiles?.display_name || 'Arteve musician'}
                       </p>
                     </div>
                   </Link>
 
                   {post.caption && (
-                    <p className="text-sm text-slate-800">{post.caption}</p>
+                    <p className="text-sm text-ink-strong">{post.caption}</p>
                   )}
                 </div>
 
                 {/* Media */}
-                {post.media_type === 'video' ? (
+                {post.media_type === 'video' && (
                   <video
                     className="w-full max-h-[650px] bg-black object-contain"
                     src={post.media_url}
                     controls
                   />
-                ) : (
+                )}
+                {post.media_type === 'image' && (
                   <div className="flex items-center justify-center bg-black/5">
                     <img
                       className="w-full max-h-[650px] object-contain bg-black"
@@ -406,19 +486,24 @@ export default function MusicianHomePage() {
                     />
                   </div>
                 )}
+                {post.media_type === 'audio' && (
+                  <div className="px-6 pb-2">
+                    <AudioPlayer src={post.media_url} />
+                  </div>
+                )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-6 px-6 py-4 text-xs text-slate-500">
+                <div className="flex items-center gap-6 px-6 py-4 text-xs text-ink-subtle">
                   <button
                     onClick={() => toggleLike(post.id)}
-                    className="font-medium hover:text-slate-900"
+                    className="font-medium hover:text-ink-strong"
                   >
                     👍 {likesCount}
                   </button>
 
                   <button
                     onClick={() => setCommentModalPost(post)}
-                    className="font-medium hover:text-slate-900"
+                    className="font-medium hover:text-ink-strong"
                   >
                     💬 {commentsCount}
                   </button>
@@ -448,11 +533,11 @@ export default function MusicianHomePage() {
                         <div>
                           <Link
                             href={`/profile/${c.profiles?.handle ?? ''}`}
-                            className="font-medium text-slate-900"
+                            className="font-medium text-ink-strong"
                           >
                             {c.profiles?.display_name ?? 'User'}
                           </Link>
-                          <p className="text-slate-700">{c.comment}</p>
+                          <p className="text-ink">{c.comment}</p>
                         </div>
                       </div>
                     ))}
@@ -475,7 +560,7 @@ export default function MusicianHomePage() {
         {!isInitialLoading && hasMore && (
           <div
             ref={loaderRef}
-            className="flex items-center justify-center py-6 text-xs text-slate-400"
+            className="flex items-center justify-center py-6 text-xs text-ink-subtle"
           >
             {isFetchingMore ? 'Loading more posts…' : ''}
           </div>
@@ -485,7 +570,7 @@ export default function MusicianHomePage() {
       {/* VIEW ALL COMMENTS MODAL */}
       {viewCommentsPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="max-h-[80vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[80vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-surface p-6 shadow-xl">
             <h2 className="text-lg font-semibold">
               All comments on {viewCommentsPost.profiles?.display_name}
             </h2>
@@ -509,11 +594,11 @@ export default function MusicianHomePage() {
                 <div>
                   <Link
                     href={`/profile/${c.profiles?.handle ?? ''}`}
-                    className="font-medium text-slate-900"
+                    className="font-medium text-ink-strong"
                   >
                     {c.profiles?.display_name ?? 'User'}
                   </Link>
-                  <p className="text-slate-700">{c.comment}</p>
+                  <p className="text-ink">{c.comment}</p>
                 </div>
               </div>
             ))}
@@ -521,7 +606,7 @@ export default function MusicianHomePage() {
             <div className="flex justify-end">
               <button
                 onClick={() => setViewCommentsPost(null)}
-                className="rounded-lg bg-slate-200 px-4 py-2 text-sm"
+                className="rounded-lg bg-line-strong px-4 py-2 text-sm"
               >
                 Close
               </button>
@@ -533,7 +618,7 @@ export default function MusicianHomePage() {
       {/* COMMENT MODAL */}
       {commentModalPost && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md space-y-4 rounded-2xl bg-surface p-6 shadow-xl">
             <h2 className="text-lg font-semibold">
               Comment on {commentModalPost.profiles?.display_name}
             </h2>
@@ -542,20 +627,20 @@ export default function MusicianHomePage() {
               value={newComment}
               onChange={e => setNewComment(e.target.value)}
               placeholder="Write your comment..."
-              className="h-28 w-full rounded-lg border border-slate-200 p-3 text-sm"
+              className="h-28 w-full rounded-lg border border-line p-3 text-sm"
             />
 
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setCommentModalPost(null)}
-                className="rounded-lg bg-slate-200 px-4 py-2 text-sm"
+                className="rounded-lg bg-line-strong px-4 py-2 text-sm"
               >
                 Cancel
               </button>
 
               <button
                 onClick={addComment}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white"
+                className="rounded-lg bg-brand px-4 py-2 text-sm text-white"
               >
                 Post
               </button>

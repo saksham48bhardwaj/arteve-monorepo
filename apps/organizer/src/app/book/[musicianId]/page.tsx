@@ -52,33 +52,33 @@ export default function BookMusician({ params }: { params: { musicianId: string 
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <h1 className="text-xl font-semibold">Book Musician</h1>
 
-      <input className="w-full border rounded-xl px-3 py-2"
+      <input className="w-full border rounded-xl px-3 py-2 border-line"
         placeholder="Event Title"
         value={event_title}
         onChange={(e)=>setTitle(e.target.value)}
       />
 
-      <input className="w-full border rounded-xl px-3 py-2"
+      <input className="w-full border rounded-xl px-3 py-2 border-line"
         type="date" value={event_date} onChange={(e)=>setDate(e.target.value)}
       />
 
-      <input className="w-full border rounded-xl px-3 py-2"
+      <input className="w-full border rounded-xl px-3 py-2 border-line"
         type="time" value={event_time} onChange={(e)=>setTime(e.target.value)}
       />
 
-      <input className="w-full border rounded-xl px-3 py-2"
+      <input className="w-full border rounded-xl px-3 py-2 border-line"
         placeholder="Location"
         value={location}
         onChange={(e)=>setLocation(e.target.value)}
       />
 
-      <input className="w-full border rounded-xl px-3 py-2"
+      <input className="w-full border rounded-xl px-3 py-2 border-line"
         placeholder="Budget (e.g., 300)"
         value={budget}
         onChange={(e)=>setBudget(e.target.value)}
       />
 
-      <textarea className="w-full border rounded-xl px-3 py-2"
+      <textarea className="w-full border rounded-xl px-3 py-2 border-line"
         placeholder="Message to musician…"
         value={message}
         onChange={(e)=>setMessage(e.target.value)}
@@ -87,7 +87,7 @@ export default function BookMusician({ params }: { params: { musicianId: string 
       <button
         onClick={submit}
         disabled={loading}
-        className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl"
+        className="w-full px-4 py-3 bg-brand text-white rounded-xl"
       >
         {loading ? 'Sending...' : 'Send Booking Request'}
       </button>

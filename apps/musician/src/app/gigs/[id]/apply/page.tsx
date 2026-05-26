@@ -165,7 +165,11 @@ export default function ApplyToGigPage() {
   }
 
   if (!gig || !profile)
-    return <main className="p-6">Loading application page…</main>;
+    return (
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading application…</p></div>
+    </main>
+  );
 
   const username =
     profile.display_name?.toLowerCase().replace(/\s+/g, '') ??
@@ -183,21 +187,21 @@ export default function ApplyToGigPage() {
       {/* ================================
           SNAPSHOT CARD
       ================================= */}
-      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-8 space-y-6">
+      <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-8 space-y-6">
 
         {/* Top — Avatar + Name */}
         <div className="flex gap-4">
           <img
             src={profile.avatar_url ?? '/placeholder-avatar.png'}
-            className="w-20 h-20 rounded-2xl object-cover border"
+            className="w-20 h-20 rounded-2xl object-cover border border-line"
           />
           <div className="flex-1 space-y-1">
             <h2 className="text-xl font-semibold">
               {profile.display_name ?? 'Unnamed artist'}
             </h2>
-            <p className="text-xs text-gray-500">@{username}</p>
+            <p className="text-xs text-ink-subtle">@{username}</p>
             {profile.location && (
-              <p className="text-sm text-gray-600">{profile.location}</p>
+              <p className="text-sm text-ink-muted">{profile.location}</p>
             )}
           </div>
         </div>
@@ -208,7 +212,7 @@ export default function ApplyToGigPage() {
             {profile.genres.map((g) => (
               <span
                 key={g}
-                className="px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-700"
+                className="px-3 py-1 rounded-full bg-surface-sunken text-xs text-ink"
               >
                 {g}
               </span>
@@ -218,7 +222,7 @@ export default function ApplyToGigPage() {
 
         {/* Quote */}
         {profile.quote && (
-          <blockquote className="italic text-gray-700 text-sm border-l-4 pl-3">
+          <blockquote className="italic text-ink text-sm border-l-4 pl-3">
             “{profile.quote}”
           </blockquote>
         )}
@@ -226,8 +230,8 @@ export default function ApplyToGigPage() {
         {/* Bio */}
         {profile.bio && (
           <section>
-            <h3 className="text-sm font-semibold text-gray-700">Bio</h3>
-            <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+            <h3 className="text-sm font-semibold text-ink">Bio</h3>
+            <p className="text-sm text-ink-strong whitespace-pre-line leading-relaxed">
               {profile.bio}
             </p>
           </section>
@@ -236,21 +240,21 @@ export default function ApplyToGigPage() {
         {/* Achievements */}
         {achievements.length > 0 && (
           <section>
-            <h3 className="text-sm font-semibold text-gray-700">
+            <h3 className="text-sm font-semibold text-ink">
               Achievements
             </h3>
             <ul className="space-y-2 mt-1">
               {achievements.map((a) => (
                 <li
                   key={a.id}
-                  className="border border-gray-100 bg-gray-50 p-3 rounded-2xl"
+                  className="border border-line bg-surface-sunken p-3 rounded-2xl"
                 >
                   <p className="text-sm font-medium">{a.title}</p>
                   {a.description && (
-                    <p className="text-xs text-gray-700">{a.description}</p>
+                    <p className="text-xs text-ink">{a.description}</p>
                   )}
                   {a.year && (
-                    <p className="text-xs text-gray-500">{a.year}</p>
+                    <p className="text-xs text-ink-subtle">{a.year}</p>
                   )}
                 </li>
               ))}
@@ -261,19 +265,19 @@ export default function ApplyToGigPage() {
         {/* Shows */}
         {shows.length > 0 && (
           <section>
-            <h3 className="text-sm font-semibold text-gray-700">Recent Shows</h3>
+            <h3 className="text-sm font-semibold text-ink">Recent Shows</h3>
             <ul className="space-y-2 mt-1">
               {shows.map((s) => (
                 <li
                   key={s.id}
-                  className="border border-gray-100 bg-gray-50 p-3 rounded-2xl"
+                  className="border border-line bg-surface-sunken p-3 rounded-2xl"
                 >
                   <p className="text-sm font-medium">{s.title}</p>
-                  <p className="text-xs text-gray-700">
+                  <p className="text-xs text-ink">
                     {[s.venue, s.location].filter(Boolean).join(', ')}
                   </p>
                   {s.event_date && (
-                    <p className="text-[11px] text-gray-500">
+                    <p className="text-[11px] text-ink-subtle">
                       {new Date(s.event_date).toLocaleDateString()}
                     </p>
                   )}
@@ -286,16 +290,16 @@ export default function ApplyToGigPage() {
         {/* Skills */}
         {skills.length > 0 && (
           <section>
-            <h3 className="text-sm font-semibold text-gray-700">Skills</h3>
+            <h3 className="text-sm font-semibold text-ink">Skills</h3>
             <ul className="space-y-2 mt-1">
               {skills.map((sk) => (
                 <li
                   key={sk.id}
-                  className="border border-gray-100 bg-gray-50 p-3 rounded-2xl flex justify-between"
+                  className="border border-line bg-surface-sunken p-3 rounded-2xl flex justify-between"
                 >
                   <span className="text-sm font-medium">{sk.skill}</span>
                   {sk.level && (
-                    <span className="text-xs italic text-gray-600">
+                    <span className="text-xs italic text-ink-muted">
                       {sk.level}
                     </span>
                   )}
@@ -308,18 +312,18 @@ export default function ApplyToGigPage() {
         {/* Recommendations */}
         {recommendations.length > 0 && (
           <section>
-            <h3 className="text-sm font-semibold text-gray-700">
+            <h3 className="text-sm font-semibold text-ink">
               Recommendations
             </h3>
             <div className="space-y-2 mt-1">
               {recommendations.map((r) => (
                 <blockquote
                   key={r.id}
-                  className="border-l-4 border-gray-300 pl-4 py-2 bg-gray-50 rounded-2xl text-sm italic text-gray-700"
+                  className="border-l-4 border-line-strong pl-4 py-2 bg-surface-sunken rounded-2xl text-sm italic text-ink"
                 >
                   “{r.content}”
                   {r.author && (
-                    <p className="not-italic text-xs mt-1 text-gray-500">
+                    <p className="not-italic text-xs mt-1 text-ink-subtle">
                       — {r.author}
                     </p>
                   )}
@@ -332,7 +336,7 @@ export default function ApplyToGigPage() {
         {/* Links */}
         {profile.links && Object.keys(profile.links).length > 0 && (
           <section>
-            <h3 className="text-sm font-semibold text-gray-700">Links</h3>
+            <h3 className="text-sm font-semibold text-ink">Links</h3>
             <div className="flex flex-wrap gap-3 text-xs mt-1">
               {Object.entries(profile.links)
                 .filter(([, v]) => !!v)
@@ -354,15 +358,15 @@ export default function ApplyToGigPage() {
       {/* ================================
           APPLICATION FORM
       ================================= */}
-      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-8 space-y-4">
+      <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-8 space-y-4">
         <h2 className="text-lg font-semibold">Write your application</h2>
 
         {feedback && (
-          <p className="text-sm text-gray-600">{feedback}</p>
+          <p className="text-sm text-ink-muted">{feedback}</p>
         )}
 
         <textarea
-          className="w-full border rounded-2xl p-4 text-sm min-h-[140px] bg-gray-50"
+          className="w-full border rounded-2xl p-4 text-sm min-h-[140px] bg-surface-sunken border-line"
           placeholder="Write a short message to the organizer…"
           value={message}
           onChange={(e) => setMessage(e.target.value)}

@@ -95,26 +95,30 @@ export default function EditGigPage() {
     router.push(`/gigs/${id}`);
   }
 
-  if (loading) return <main className="p-6">Loading gig…</main>;
+  if (loading) return (
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading gig…</p></div>
+    </main>
+  );
   if (!gig) return <main className="p-6">Gig not found.</main>;
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* PAGE HEADER */}
       <header className="space-y-2">
-        <p className="text-xs font-semibold tracking-[0.16em] uppercase text-[#4E7FA2]">
+        <p className="text-xs font-semibold tracking-[0.16em] uppercase text-brand">
           Organizer · Gigs
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-3xl font-bold tracking-tight text-ink-strong">
           Edit Gig
         </h1>
-        <p className="text-slate-500 max-w-xl">
+        <p className="text-ink-subtle max-w-xl">
           Update gig details, budget, and availability. Changes will be visible to musicians immediately.
         </p>
       </header>
 
       {feedback && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
           {feedback}
         </div>
       )}
@@ -122,13 +126,13 @@ export default function EditGigPage() {
       {/* MAIN CARD */}
       <form
         onSubmit={handleSave}
-        className="relative rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6"
+        className="relative rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6"
       >
         {/* TITLE */}
         <div className="space-y-1.5">
-          <label className="font-medium text-slate-800">Gig title</label>
+          <label className="font-medium text-ink-strong">Gig title</label>
           <input
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Wedding reception, club night, studio session…"
@@ -137,9 +141,9 @@ export default function EditGigPage() {
 
         {/* DESCRIPTION */}
         <div className="space-y-1.5">
-          <label className="font-medium text-slate-800">Description</label>
+          <label className="font-medium text-ink-strong">Description</label>
           <textarea
-            className="w-full min-h-[120px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+            className="w-full min-h-[120px] rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the gig, expectations, duration, setup, etc."
@@ -149,20 +153,20 @@ export default function EditGigPage() {
         {/* DATE + TIME */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="font-medium text-slate-800">Event date</label>
+            <label className="font-medium text-ink-strong">Event date</label>
             <input
               type="date"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-medium text-slate-800">Event time</label>
+            <label className="font-medium text-ink-strong">Event time</label>
             <input
               type="time"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
               value={eventTime}
               onChange={(e) => setEventTime(e.target.value)}
             />
@@ -171,9 +175,9 @@ export default function EditGigPage() {
 
         {/* LOCATION */}
         <div className="space-y-1.5">
-          <label className="font-medium text-slate-800">Location</label>
+          <label className="font-medium text-ink-strong">Location</label>
           <input
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Venue name or address"
@@ -183,20 +187,20 @@ export default function EditGigPage() {
         {/* BUDGET */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="font-medium text-slate-800">Min budget</label>
+            <label className="font-medium text-ink-strong">Min budget</label>
             <input
               type="number"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
               value={budgetMin}
               onChange={(e) => setBudgetMin(e.target.value)}
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-medium text-slate-800">Max budget</label>
+            <label className="font-medium text-ink-strong">Max budget</label>
             <input
               type="number"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
               value={budgetMax}
               onChange={(e) => setBudgetMax(e.target.value)}
             />
@@ -205,9 +209,9 @@ export default function EditGigPage() {
 
         {/* GENRES */}
         <div className="space-y-1.5">
-          <label className="font-medium text-slate-800">Genres</label>
+          <label className="font-medium text-ink-strong">Genres</label>
           <input
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
             value={genres}
             onChange={(e) => setGenres(e.target.value)}
             placeholder="rock, pop, jazz"
@@ -216,13 +220,13 @@ export default function EditGigPage() {
 
         {/* STATUS */}
         <div className="space-y-1.5">
-          <label className="font-medium text-slate-800">Status</label>
+          <label className="font-medium text-ink-strong">Status</label>
           <select
             value={status}
             onChange={(e) =>
               setStatus(e.target.value as 'open' | 'closed' | 'booked')
             }
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
           >
             <option value="open">Open — accepting artists</option>
             <option value="booked">Booked — artist confirmed</option>
@@ -235,7 +239,7 @@ export default function EditGigPage() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#4E7FA2] text-white font-medium shadow-sm hover:bg-[#406985] disabled:opacity-60"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-brand text-white font-medium shadow-sm hover:bg-[#406985] disabled:opacity-60"
           >
             {saving ? 'Saving…' : 'Save changes'}
           </button>
@@ -243,7 +247,7 @@ export default function EditGigPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-slate-200 font-medium text-slate-800 hover:bg-slate-50"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-line font-medium text-ink-strong hover:bg-surface-sunken"
           >
             Cancel
           </button>

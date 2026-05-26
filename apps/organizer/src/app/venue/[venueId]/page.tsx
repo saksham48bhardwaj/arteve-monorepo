@@ -41,7 +41,11 @@ export default function PublicVenueProfilePage() {
     })();
   }, [venueId]);
 
-  if (loading) return <main className="p-6">Loading venue…</main>;
+  if (loading) return (
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading venue…</p></div>
+    </main>
+  );
   if (!venue) return <main className="p-6">Venue not found.</main>;
 
   const {
@@ -61,7 +65,7 @@ export default function PublicVenueProfilePage() {
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       {/* HEADER */}
       <header className="flex items-start gap-4">
-        <div className="w-20 h-20 rounded-xl overflow-hidden border bg-gray-100">
+        <div className="w-20 h-20 rounded-xl overflow-hidden border bg-surface-sunken border-line">
           <img
             src={avatar}
             className="w-full h-full object-cover"
@@ -75,7 +79,7 @@ export default function PublicVenueProfilePage() {
           </h1>
 
           {location && (
-            <p className="text-gray-600 text-sm">{location}</p>
+            <p className="text-ink-muted text-sm">{location}</p>
           )}
 
           {/* SOCIAL LINKS */}
@@ -113,27 +117,27 @@ export default function PublicVenueProfilePage() {
 
       {/* ABOUT */}
       {bio && (
-        <section className="bg-white border rounded-2xl p-5 shadow-sm space-y-2">
-          <h2 className="text-sm font-semibold text-gray-800">
+        <section className="bg-surface border rounded-2xl p-5 shadow-sm space-y-2 border-line">
+          <h2 className="text-sm font-semibold text-ink-strong">
             About this venue
           </h2>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+          <p className="text-ink leading-relaxed whitespace-pre-line">
             {bio}
           </p>
         </section>
       )}
 
       {/* VENUE PHOTOS */}
-      <section className="bg-white border rounded-2xl p-5 shadow-sm space-y-4">
-        <h2 className="text-sm font-semibold text-gray-800">Venue Photos</h2>
+      <section className="bg-surface border rounded-2xl p-5 shadow-sm space-y-4 border-line">
+        <h2 className="text-sm font-semibold text-ink-strong">Venue Photos</h2>
         {venuePhotos.length === 0 ? (
-          <p className="text-sm text-gray-500">No photos uploaded yet.</p>
+          <p className="text-sm text-ink-subtle">No photos uploaded yet.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {venuePhotos.map((url) => (
               <div
                 key={url}
-                className="rounded-xl overflow-hidden border bg-gray-100 aspect-video"
+                className="rounded-xl overflow-hidden border bg-surface-sunken aspect-video border-line"
               >
                 <img
                   src={url}
@@ -150,14 +154,14 @@ export default function PublicVenueProfilePage() {
       <section className="flex gap-3 pt-4">
         <button
           onClick={() => router.push(`/gigs?organizer=${venueId}`)}
-          className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm"
+          className="px-4 py-2 rounded-xl bg-brand text-white text-sm"
         >
           View posted gigs
         </button>
 
         <button
           onClick={() => router.push(`/chat/new?user=${venue.handle}`)}
-          className="px-4 py-2 rounded-xl border text-sm"
+          className="px-4 py-2 rounded-xl border text-sm border-line"
         >
           Message organizer
         </button>

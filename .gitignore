@@ -34,3 +34,11 @@ pnpm-debug.log*
 .vscode/
 .idea/
 
+# Sandbox sed sweep artifacts (safe to delete locally with:
+# find apps packages -type f \( -name '*.bak' -o -name '*.tmp.*' -o -name '*.tmpL*' -o -name '*.tmp2.*' -o -name '*.tmp3.*' \) -delete )
+*.bak
+*.tmp.[0-9]*
+*.tmp2.[0-9]*
+*.tmp3.[0-9]*
+*.tmpL.[0-9]*
+

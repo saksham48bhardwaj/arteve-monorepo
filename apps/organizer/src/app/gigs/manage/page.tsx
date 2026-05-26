@@ -33,27 +33,31 @@ export default function ManageGigsPage() {
     })();
   }, [router]);
 
-  if (loading) return <main className="p-6">Loading…</main>;
+  if (loading) return (
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading…</p></div>
+    </main>
+  );
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">My Gigs</h1>
-        <Link className="px-3 py-2 border rounded" href="/gigs/create">Create gig</Link>
+        <Link className="px-3 py-2 border rounded border-line" href="/gigs/create">Create gig</Link>
       </div>
 
       <div className="space-y-3">
-        {rows.length === 0 && <p className="text-gray-600">No gigs yet.</p>}
+        {rows.length === 0 && <p className="text-ink-muted">No gigs yet.</p>}
         {rows.map((g)=>(
-          <Link key={g.id} href={`/gigs/${g.id}/applications`} className="block rounded-2xl border p-4 hover:bg-gray-50">
+          <Link key={g.id} href={`/gigs/${g.id}/applications`} className="block rounded-2xl border p-4 hover:bg-surface-sunken border-line">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">{g.title}</div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-ink-muted">
                   {g.location || '—'} · {g.event_date || 'TBD'} · {g.status}
                 </div>
               </div>
-              <span className="text-sm text-gray-500">{new Date(g.created_at).toLocaleDateString()}</span>
+              <span className="text-sm text-ink-subtle">{new Date(g.created_at).toLocaleDateString()}</span>
             </div>
           </Link>
         ))}

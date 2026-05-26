@@ -44,12 +44,12 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  accepted: 'bg-green-100 text-green-800',
-  declined: 'bg-red-100 text-red-800',
-  cancelled: 'bg-gray-100 text-gray-700',
-  canceled_by_organizer: 'bg-gray-100 text-gray-700',
-  canceled_by_musician: 'bg-gray-200 text-gray-800',
+  pending: 'bg-yellow-100 text-warning',
+  accepted: 'bg-success/10 text-success',
+  declined: 'bg-danger/10 text-danger',
+  cancelled: 'bg-surface-sunken text-ink',
+  canceled_by_organizer: 'bg-surface-sunken text-ink',
+  canceled_by_musician: 'bg-line-strong text-ink-strong',
   completed: 'bg-blue-100 text-blue-800',
 };
 
@@ -58,7 +58,7 @@ function getStatusLabel(status: string) {
 }
 
 function getStatusClass(status: string) {
-  return STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-800';
+  return STATUS_STYLES[status] ?? 'bg-surface-sunken text-ink-strong';
 }
 
 export default function BookingsList() {
@@ -121,11 +121,11 @@ export default function BookingsList() {
       : bookings.filter((b) => b.status === filter);
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading bookings…</p>;
+    return <p className="text-sm text-ink-subtle">Loading bookings…</p>;
   }
 
   if (!loading && filtered.length === 0) {
-    return <p className="text-sm text-slate-500">No bookings yet.</p>;
+    return <p className="text-sm text-ink-subtle">No bookings yet.</p>;
   }
 
   return (
@@ -140,7 +140,7 @@ export default function BookingsList() {
               className={`px-4 py-1 rounded-full border whitespace-nowrap ${
                 filter === key
                   ? 'bg-black text-white'
-                  : 'bg-white text-gray-700'
+                  : 'bg-white text-ink'
               }`}
             >
               {key === 'all' ? 'All' : getStatusLabel(key)}
@@ -155,16 +155,16 @@ export default function BookingsList() {
           <Link
             key={b.id}
             href={`/bookings/${b.id}`}
-            className="block border rounded-xl p-4 hover:bg-gray-50 transition"
+            className="block border rounded-xl p-4 hover:bg-surface-sunken transition border-line"
           >
             <div className="flex justify-between items-center gap-4">
               <div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-ink-subtle">
                   {b.organizer_name ?? 'Organizer'}
                   {b.organizer_email ? ` · ${b.organizer_email}` : ''}
                 </p>
                 <p className="font-semibold">{b.event_title}</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-subtle mt-1">
                   {b.event_date &&
                     new Date(b.event_date).toLocaleDateString(undefined, {
                       year: 'numeric',

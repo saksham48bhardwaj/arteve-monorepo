@@ -94,7 +94,7 @@ function ResetPasswordContent() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row bg-[#F5F7FA] text-[#333]">
+    <main className="min-h-screen flex flex-col md:flex-row bg-surface-muted text-ink">
       {/* Desktop left hero */}
       <section className="relative hidden md:flex md:w-1/2 lg:w-3/5">
         <Image
@@ -133,19 +133,19 @@ function ResetPasswordContent() {
                 height={40}
                 className="mx-auto mt-2 mb-8"
               />
-              <p className="mt-1.5 text-[#666] text-center">
+              <p className="mt-1.5 text-ink-muted text-center">
                 Choose a strong password to keep your organizer account secure.
               </p>
             </div>
 
             {!ready ? (
               <div className="space-y-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-600 text-center">
+                <div className="rounded-2xl border border-line bg-surface-sunken px-3.5 py-3 text-sm text-ink-muted text-center">
                   Verifying reset link…
                 </div>
 
                 {msg && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs text-red-700">
+                  <div className="rounded-2xl border border-danger/30 bg-danger/5 px-3.5 py-2 text-xs text-danger">
                     {msg}
                   </div>
                 )}
@@ -153,7 +153,7 @@ function ResetPasswordContent() {
                 <button
                   type="button"
                   onClick={() => router.push('/login')}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.75 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  className="w-full rounded-2xl border border-line bg-surface px-4 py-2.75 text-sm font-medium text-ink hover:bg-surface-sunken transition"
                 >
                   Back to login
                 </button>
@@ -161,11 +161,11 @@ function ResetPasswordContent() {
             ) : (
               <form onSubmit={handleReset} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="block font-medium text-[#333]">
+                  <label className="block font-medium text-ink">
                     New password
                   </label>
                   <input
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none transition focus:border-[#4E7FA2] focus:bg-white focus:ring-2 focus:ring-[#4E7FA2]/15"
+                    className="w-full rounded-2xl border border-line bg-surface-sunken px-3.5 py-2.5 text-sm outline-none transition focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand-100"
                     type="password"
                     placeholder="••••••••"
                     value={password}
@@ -176,11 +176,11 @@ function ResetPasswordContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block font-medium text-[#333]">
+                  <label className="block font-medium text-ink">
                     Confirm new password
                   </label>
                   <input
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none transition focus:border-[#4E7FA2] focus:bg-white focus:ring-2 focus:ring-[#4E7FA2]/15"
+                    className="w-full rounded-2xl border border-line bg-surface-sunken px-3.5 py-2.5 text-sm outline-none transition focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand-100"
                     type="password"
                     placeholder="••••••••"
                     value={confirm}
@@ -191,13 +191,13 @@ function ResetPasswordContent() {
                 </div>
 
                 {msg && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs text-red-700">
+                  <div className="rounded-2xl border border-danger/30 bg-danger/5 px-3.5 py-2 text-xs text-danger">
                     {msg}
                   </div>
                 )}
 
                 {success && (
-                  <div className="rounded-2xl border border-green-200 bg-green-50 px-3.5 py-2 text-xs text-green-700">
+                  <div className="rounded-2xl border border-success/30 bg-success/5 px-3.5 py-2 text-xs text-success">
                     Password updated successfully. Redirecting to login…
                   </div>
                 )}
@@ -205,7 +205,7 @@ function ResetPasswordContent() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex w-full items-center justify-center rounded-2xl bg-[#4E7FA2] px-4 py-2.75 font-medium text-white shadow-sm transition hover:bg-[#406785] disabled:opacity-70"
+                  className="flex w-full items-center justify-center rounded-2xl bg-brand px-4 py-2.75 font-medium text-white shadow-sm transition hover:bg-brand-600 disabled:opacity-70"
                 >
                   {loading ? 'Updating…' : 'Update password'}
                 </button>
@@ -214,13 +214,13 @@ function ResetPasswordContent() {
                   <button
                     type="button"
                     onClick={() => router.push('/login')}
-                    className="text-xs text-[#4E7FA2] hover:underline"
+                    className="text-xs text-brand hover:underline"
                   >
                     Back to login
                   </button>
                 </div>
 
-                <p className="text-[11px] leading-relaxed text-slate-500 text-center">
+                <p className="text-[11px] leading-relaxed text-ink-subtle text-center">
                   By continuing, you agree to Arteve&apos;s&nbsp;
                   <span className="underline underline-offset-2">
                     terms of use
@@ -242,7 +242,7 @@ function ResetPasswordContent() {
 
 function Loading() {
   return (
-    <p className="p-4 text-sm text-neutral-500">
+    <p className="p-4 text-sm text-ink-subtle">
       Verifying reset link…
     </p>
   );

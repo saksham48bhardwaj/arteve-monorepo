@@ -116,16 +116,22 @@ function NewChatContent() {
   }, [handle, router]);
 
   return (
-    <main className="p-6 text-center text-neutral-600">
-      Starting chat…
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3">
+        <span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" />
+        <p className="text-sm text-ink-muted">Starting chat…</p>
+      </div>
     </main>
   );
 }
 
 function Loading() {
   return (
-    <main className="p-6 text-center text-neutral-500">
-      Preparing chat…
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3">
+        <span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" />
+        <p className="text-sm text-ink-muted">Preparing chat…</p>
+      </div>
     </main>
   );
 }

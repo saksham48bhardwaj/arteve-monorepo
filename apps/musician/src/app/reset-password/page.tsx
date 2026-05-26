@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@arteve/supabase/client';
+import { Button, Input } from '@arteve/ui/components';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,6 @@ export default function ResetPasswordPage() {
 function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const code = searchParams.get('code');
   const email = searchParams.get('email');
 
@@ -29,204 +29,117 @@ function ResetPasswordContent() {
   const [msg, setMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-
     async function verify() {
       setMsg(null);
-
       if (!code || !email) {
         setMsg('Invalid or expired reset link.');
         return;
       }
-
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: code,
-        type: 'recovery',
-      });
-
+      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' });
       if (cancelled) return;
-
-      if (error) {
-        setMsg(error.message);
-      } else {
-        setReady(true);
-      }
+      if (error) setMsg(error.message);
+      else setReady(true);
     }
-
     verify();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [code, email]);
 
   async function handleReset(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMsg(null);
     setSuccess(false);
-
-    if (password.length < 8) {
-      setMsg('Password must be at least 8 characters.');
-      return;
-    }
-
-    if (password !== confirm) {
-      setMsg('Passwords do not match.');
-      return;
-    }
-
+    if (password.length < 8) { setMsg('Password must be at least 8 characters.'); return; }
+    if (password !== confirm) { setMsg('Passwords do not match.'); return; }
     setLoading(true);
-
     const { error } = await supabase.auth.updateUser({ password });
-
-    if (error) {
-      setMsg(error.message);
-      setLoading(false);
-      return;
-    }
-
+    if (error) { setMsg(error.message); setLoading(false); return; }
     setSuccess(true);
     setLoading(false);
-
-    // end recovery session
     await supabase.auth.signOut();
     setTimeout(() => router.push('/login'), 1200);
   }
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row bg-[#F5F7FA] text-[#333]">
-      {/* Desktop left hero */}
+    <main className="min-h-screen flex flex-col md:flex-row bg-surface-muted">
       <section className="relative hidden md:flex md:w-1/2 lg:w-3/5">
-        <Image
-          src="/images/hero.png"
-          alt="Musician performing on stage"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="relative z-10 flex flex-col justify-between w-full px-10 lg:px-14 py-8 bg-gradient-to-t from-black/75 via-black/50 to-black/30 justify-center">
-          <div>
-            <h1 className="mt-6 text-3xl lg:text-4xl font-semibold text-white">
-              Reset your password
-            </h1>
-            <p className="mt-4 lg:text-base text-white/80 max-w-xl">
-              Set a new password to access your Arteve musician account and get
-              back to booking gigs.
-            </p>
-          </div>
-          <p className="mt-8 text-xs text-white/65">
-            Arteve · Connecting artists &amp; venues
+        <Image src="/images/hero.png" alt="Musician performing" fill className="object-cover" priority />
+        <div className="relative z-10 flex flex-col justify-end w-full px-10 lg:px-16 py-12 bg-gradient-to-t from-ink-strong/85 via-ink-strong/55 to-transparent">
+          <h1 className="text-3xl lg:text-4xl font-semibold text-white max-w-xl leading-tight">
+            Reset your password
+          </h1>
+          <p className="mt-4 text-base text-white/85 max-w-xl">
+            Set a new password to access your Arteve account and get back to booking gigs.
           </p>
         </div>
       </section>
 
-      {/* Right side */}
-      <section className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-10 bg-[linear-gradient(120deg,_#4E7FA2,_white,_#FFE3CC)]">
+      <section className="flex-1 flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10 bg-[linear-gradient(135deg,var(--brand-50)_0%,var(--surface)_50%,var(--accent-50)_100%)]">
         <div className="w-full max-w-md">
-          <div className="rounded-3xl bg-white/95 border border-white/80 shadow-md shadow-black/5 backdrop-blur-sm px-6 py-7 sm:px-8 sm:py-8">
-            <div className="mb-4">
-              <Image
-                src="/images/arteve_logo.png"
-                alt="Arteve Musician"
-                width={200}
-                height={40}
-                className="mx-auto mt-2 mb-8"
-              />
-              <p className="mt-1.5 text-[#666] text-center">
-                Choose a strong password so your account stays secure.
-              </p>
+          <div className="card-elevated p-7 sm:p-9 rounded-2xl bg-surface/95 backdrop-blur">
+            <div className="mb-6 flex flex-col items-center text-center">
+              <Image src="/images/arteve_logo.png" alt="Arteve" width={140} height={36} className="mb-4" />
+              <p className="text-sm text-ink-muted">Choose a strong password so your account stays secure.</p>
             </div>
 
             {!ready ? (
               <div className="space-y-3">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-600 text-center">
+                <div className="rounded-xl border border-line bg-surface-sunken px-3.5 py-3 text-sm text-ink-muted text-center">
                   Verifying reset link…
                 </div>
-
                 {msg && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs text-red-700">
+                  <div className="rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2 text-xs text-danger">
                     {msg}
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => router.push('/login')}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.75 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                >
+                <Button variant="outline" fullWidth onClick={() => router.push('/login')}>
                   Back to login
-                </button>
+                </Button>
               </div>
             ) : (
-              <form onSubmit={handleReset} className="space-y-5">
-                {/* New password */}
-                <div className="space-y-2">
-                  <label className="block font-medium text-[#333]">
-                    New password
-                  </label>
-                  <div className="relative">
-                    <input
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-11 text-sm"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    >
-                      👁
+              <form onSubmit={handleReset} className="space-y-4">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  label="New password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  trailingIcon={
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} className="text-ink-subtle hover:text-ink-muted">
+                      {showPassword ? 'Hide' : 'Show'}
                     </button>
-                  </div>
-                </div>
-
-                {/* Confirm password (FIXED) */}
-                <div className="space-y-2">
-                  <label className="block font-medium text-[#333]">
-                    Confirm new password
-                  </label>
-                  <div className="relative">
-                    <input
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-11 text-sm"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirm}
-                      onChange={(e) => setConfirm(e.target.value)}
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    >
-                      👁
+                  }
+                />
+                <Input
+                  type={showConfirm ? 'text' : 'password'}
+                  label="Confirm new password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  required
+                  trailingIcon={
+                    <button type="button" onClick={() => setShowConfirm((v) => !v)} className="text-ink-subtle hover:text-ink-muted">
+                      {showConfirm ? 'Hide' : 'Show'}
                     </button>
-                  </div>
-                </div>
+                  }
+                />
 
                 {msg && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs text-red-700">
+                  <div className="rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2 text-xs text-danger">
                     {msg}
                   </div>
                 )}
-
                 {success && (
-                  <div className="rounded-2xl border border-green-200 bg-green-50 px-3.5 py-2 text-xs text-green-700">
-                    Password updated successfully. Redirecting to login…
+                  <div className="rounded-xl border border-success/30 bg-success/5 px-3.5 py-2 text-xs text-success">
+                    Password updated. Redirecting to login…
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-2xl bg-[#4E7FA2] px-4 py-2.75 text-white"
-                >
-                  {loading ? 'Updating…' : 'Update password'}
-                </button>
+                <Button type="submit" loading={loading} fullWidth size="lg">
+                  Update password
+                </Button>
               </form>
             )}
           </div>
@@ -237,9 +150,5 @@ function ResetPasswordContent() {
 }
 
 function Loading() {
-  return (
-    <p className="p-4 text-sm text-neutral-500">
-      Verifying reset link…
-    </p>
-  );
+  return <p className="p-6 text-sm text-ink-subtle">Verifying reset link…</p>;
 }

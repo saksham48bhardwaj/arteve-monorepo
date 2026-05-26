@@ -96,24 +96,24 @@ export default function NewBitPage() {
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
       <h1 className="text-xl font-semibold">New Bit</h1>
-      <p className="text-sm text-gray-500">Upload a short vertical clip.</p>
+      <p className="text-sm text-ink-subtle">Upload a short vertical clip.</p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Preview */}
-        <div className="rounded-2xl border px-6 py-6 flex flex-col items-center gap-4">
+        <div className="rounded-2xl border px-6 py-6 flex flex-col items-center gap-4 border-line">
           {previewUrl ? (
             <video
               src={previewUrl}
-              className="max-h-80 rounded-xl border"
+              className="max-h-80 rounded-xl border border-line"
               controls
             />
           ) : (
-            <div className="h-40 w-full max-w-md rounded-xl border border-dashed flex items-center justify-center text-sm text-gray-500">
+            <div className="h-40 w-full max-w-md rounded-xl border border-dashed flex items-center justify-center text-sm text-ink-subtle border-line">
               Choose a vertical video to get started.
             </div>
           )}
 
-          <label className="inline-flex cursor-pointer items-center rounded-full border px-4 py-2 text-sm hover:bg-gray-50">
+          <label className="inline-flex cursor-pointer items-center rounded-full border px-4 py-2 text-sm hover:bg-surface-sunken border-line">
             Choose video
             <input
               type="file"
@@ -136,7 +136,7 @@ export default function NewBitPage() {
           />
         </div>
 
-        {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+        {errorMsg && <p className="text-sm text-danger">{errorMsg}</p>}
 
         <button
           type="submit"

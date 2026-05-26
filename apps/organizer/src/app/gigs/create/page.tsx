@@ -71,7 +71,7 @@ export default function CreateGigPage() {
       <h1 className="text-xl font-semibold mb-4">Create a Gig</h1>
 
       {feedback && (
-        <div className="mb-4 text-sm text-gray-700 whitespace-pre-line">
+        <div className="mb-4 text-sm text-ink whitespace-pre-line">
           {feedback}
         </div>
       )}
@@ -80,7 +80,7 @@ export default function CreateGigPage() {
         <div>
           <label className="block text-sm font-medium mb-1">Gig title</label>
           <input
-            className="w-full border rounded-xl px-3 py-2"
+            className="w-full border rounded-xl px-3 py-2 border-line"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Wedding reception, club night, studio session…"
@@ -93,7 +93,7 @@ export default function CreateGigPage() {
             Description
           </label>
           <textarea
-            className="w-full border rounded-xl px-3 py-2 min-h-[120px] text-sm"
+            className="w-full border rounded-xl px-3 py-2 min-h-[120px] text-sm border-line"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Share gig details, expectations, duration, etc."
@@ -107,7 +107,7 @@ export default function CreateGigPage() {
             </label>
             <input
               type="date"
-              className="w-full border rounded-xl px-3 py-2"
+              className="w-full border rounded-xl px-3 py-2 border-line"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
             />
@@ -119,7 +119,7 @@ export default function CreateGigPage() {
             </label>
             <input
               type="time"
-              className="w-full border rounded-xl px-3 py-2"
+              className="w-full border rounded-xl px-3 py-2 border-line"
               value={eventTime}
               onChange={(e) => setEventTime(e.target.value)}
             />
@@ -129,7 +129,7 @@ export default function CreateGigPage() {
         <div>
           <label className="block text-sm font-medium mb-1">Location</label>
           <input
-            className="w-full border rounded-xl px-3 py-2"
+            className="w-full border rounded-xl px-3 py-2 border-line"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="City / venue"
@@ -143,7 +143,7 @@ export default function CreateGigPage() {
             </label>
             <input
               type="number"
-              className="w-full border rounded-xl px-3 py-2"
+              className="w-full border rounded-xl px-3 py-2 border-line"
               value={budgetMin}
               onChange={(e) => setBudgetMin(e.target.value)}
             />
@@ -154,7 +154,7 @@ export default function CreateGigPage() {
             </label>
             <input
               type="number"
-              className="w-full border rounded-xl px-3 py-2"
+              className="w-full border rounded-xl px-3 py-2 border-line"
               value={budgetMax}
               onChange={(e) => setBudgetMax(e.target.value)}
             />
@@ -166,7 +166,7 @@ export default function CreateGigPage() {
             Genres (optional)
           </label>
           <input
-            className="w-full border rounded-xl px-3 py-2 text-sm"
+            className="w-full border rounded-xl px-3 py-2 text-sm border-line"
             value={genres}
             onChange={(e) => setGenres(e.target.value)}
             placeholder="rock, pop, jazz"
@@ -176,7 +176,7 @@ export default function CreateGigPage() {
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm disabled:opacity-60"
+          className="px-4 py-2 rounded-xl bg-brand text-white text-sm disabled:opacity-60"
         >
           {loading ? 'Creating…' : 'Create gig'}
         </button>

@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
+import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
+import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
+import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
 
 type Achievement = {
   id: string;
@@ -48,7 +51,7 @@ type Profile = {
 type PostMedia = {
   id: string;
   media_url: string;
-  media_type: 'image' | 'video';
+  media_type: 'image' | 'video' | 'audio';
   caption: string | null;
   kind: 'post' | 'bit';
   created_at: string;
@@ -215,7 +218,7 @@ export default function ProfilePage() {
   }
   if (err) {
     return (
-      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20 text-red-600">
+      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20 text-danger">
         {err}
       </main>
     );
@@ -250,7 +253,10 @@ export default function ProfilePage() {
 
       const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
 
-      const mediaType = file.type.startsWith('video') ? 'video' : 'image';
+      const mediaType =
+        file.type.startsWith('video') ? 'video' :
+        file.type.startsWith('audio') ? 'audio' :
+        'image';
 
       await supabase.from('posts').insert({
         profile_id: profile.id,
@@ -442,33 +448,49 @@ export default function ProfilePage() {
   --------------------------------------------------------- */
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
+      {/* PROFILE COMPLETENESS METER */}
+      <ProfileCompleteness
+        profile={profile}
+        role="musician"
+        related={{
+          mediaCount: media.length,
+          skillsCount: skills.length,
+          showsCount: shows.length,
+          achievementsCount: achievements.length,
+        }}
+      />
+
       {/* HEADER CARD (clean white hero) */}
-      <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
+      <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
         {/* Top row: Avatar + Details */}
         <div className="flex items-start gap-6">
           <img
             src={profile.avatar_url ?? '/placeholder-avatar.png'}
-            className="w-24 h-24 rounded-full object-cover border border-neutral-300"
+            className="w-24 h-24 rounded-full object-cover border border-line-strong"
             alt="Profile avatar"
           />
 
           <div className="flex-1 space-y-1">
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-neutral-900">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-ink-strong">
               {profile.display_name ?? 'Unnamed artist'}
             </h1>
 
-            <p className="text-sm text-neutral-500">@{username}</p>
+            <p className="text-sm text-ink-subtle">@{username}</p>
 
             {profile.location && (
-              <p className="text-sm text-neutral-600">{profile.location}</p>
+              <p className="text-sm text-ink-muted">{profile.location}</p>
             )}
+
+            <div className="pt-1">
+              <RatingDisplay profileId={profile.id} variant="inline" />
+            </div>
 
             {genres.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {genres.map(g => (
                   <span
                     key={g}
-                    className="px-3 py-1 rounded-full bg-neutral-100 text-sm text-neutral-700"
+                    className="px-3 py-1 rounded-full bg-surface-sunken text-sm text-ink"
                   >
                     {g}
                   </span>
@@ -477,7 +499,7 @@ export default function ProfilePage() {
             )}
 
             {profile.bio && (
-              <p className="text-neutral-700 leading-snug pt-1">
+              <p className="text-ink leading-snug pt-1">
                 {profile.bio}
               </p>
             )}
@@ -487,28 +509,28 @@ export default function ProfilePage() {
         {/* Stats row */}
         <div className="flex justify-evenly text-center mt-2">
           <div>
-            <p className="text-lg font-semibold text-neutral-900">{counts.posts}</p>
-            <p className="text-[11px] text-neutral-600">Posts</p>
+            <p className="text-lg font-semibold text-ink-strong">{counts.posts}</p>
+            <p className="text-[11px] text-ink-muted">Posts</p>
           </div>
 
           <button
             onClick={loadFollowers}
-            className="flex flex-col items-center hover:text-neutral-900"
+            className="flex flex-col items-center hover:text-ink-strong"
           >
-            <p className="text-lg font-semibold text-neutral-900">
+            <p className="text-lg font-semibold text-ink-strong">
               {counts.followers}
             </p>
-            <p className="text-[11px] text-neutral-600">Followers</p>
+            <p className="text-[11px] text-ink-muted">Followers</p>
           </button>
 
           <button
             onClick={loadFollowing}
-            className="flex flex-col items-center hover:text-neutral-900"
+            className="flex flex-col items-center hover:text-ink-strong"
           >
-            <p className="text-lg font-semibold text-neutral-900">
+            <p className="text-lg font-semibold text-ink-strong">
               {counts.following}
             </p>
-            <p className="text-[11px] text-neutral-600">Following</p>
+            <p className="text-[11px] text-ink-muted">Following</p>
           </button>
         </div>
 
@@ -516,21 +538,28 @@ export default function ProfilePage() {
         <div className="flex flex-wrap gap-2 justify-center mt-2">
           <Link
             href="/profile/edit"
-            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
           >
             Edit Profile
           </Link>
 
           <Link
             href="/gigs"
-            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
           >
             My Gigs
           </Link>
 
+          <Link
+            href="/press-kit"
+            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
+          >
+            Press kit
+          </Link>
+
           <button
             onClick={handleShare}
-            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
           >
             Share
           </button>
@@ -538,11 +567,11 @@ export default function ProfilePage() {
 
         {/* Quote */}
         {profile.quote && (
-          <div className="px-4 py-3 rounded-xl bg-neutral-50 mt-3">
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">
+          <div className="px-4 py-3 rounded-xl bg-surface-sunken mt-3">
+            <p className="text-[11px] uppercase tracking-wide text-ink-subtle">
               Artist Quote
             </p>
-            <p className="mt-1 italic text-neutral-800">
+            <p className="mt-1 italic text-ink-strong">
               “{profile.quote}”
             </p>
           </div>
@@ -550,7 +579,7 @@ export default function ProfilePage() {
       </section>
 
       {/* TABS (Instagram-style, text-only) */}
-      <div className="border-b border-neutral-200">
+      <div className="border-b border-line">
         <div className="flex justify-center gap-10">
           {(['media', 'about'] as const).map(tab => (
             <button
@@ -559,13 +588,13 @@ export default function ProfilePage() {
               onClick={() => setActiveTab(tab)}
               className={`relative pb-3 font-medium ${
                 activeTab === tab
-                  ? 'text-neutral-900'
-                  : 'text-neutral-500 hover:text-neutral-700'
+                  ? 'text-ink-strong'
+                  : 'text-ink-subtle hover:text-ink'
               }`}
             >
               {tab === 'media' ? 'Media' : 'About'}
               {activeTab === tab && (
-                <span className="absolute left-0 right-0 -bottom-0.5 mx-auto h-[2px] w-8 rounded-full bg-neutral-900" />
+                <span className="absolute left-0 right-0 -bottom-0.5 mx-auto h-[2px] w-8 rounded-full bg-ink-strong" />
               )}
             </button>
           ))}
@@ -574,22 +603,22 @@ export default function ProfilePage() {
 
       {/* MEDIA TAB */}
       {activeTab === 'media' && (
-        <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5 sm:p-6 space-y-4">
+        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-neutral-900">
+              <h2 className="text-lg font-semibold tracking-tight text-ink-strong">
                 Media
               </h2>
-              <p className="text-sm text-neutral-500 mt-1">
+              <p className="text-sm text-ink-subtle mt-1">
                 Add photos and videos from your performances.
               </p>
             </div>
 
-            <label className="cursor-pointer inline-flex items-center px-3 py-1.5 rounded-full border border-neutral-300 text-sm font-medium hover:bg-neutral-50">
+            <label className="cursor-pointer inline-flex items-center px-3 py-1.5 rounded-full border border-line-strong text-sm font-medium hover:bg-surface-sunken">
               {uploading ? 'Uploading…' : 'Upload'}
               <input
                 type="file"
-                accept="image/*,video/*"
+                accept="image/*,video/*,audio/*"
                 className="hidden"
                 onChange={handleUpload}
               />
@@ -597,8 +626,8 @@ export default function ProfilePage() {
           </div>
 
           {media.length === 0 ? (
-            <div className="border border-dashed border-neutral-300 rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-neutral-50">
-              <p className="text-neutral-600">No media uploaded yet.</p>
+            <div className="border border-dashed border-line-strong rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-surface-sunken">
+              <p className="text-ink-muted">No media uploaded yet.</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -607,20 +636,27 @@ export default function ProfilePage() {
                   type="button"
                   key={item.id}
                   onClick={() => openModal(index)}
-                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-neutral-200"
+                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-line-strong"
                 >
-                  {item.media_type === 'image' ? (
+                  {item.media_type === 'image' && (
                     <img
                       src={item.media_url}
                       className="absolute inset-0 w-full h-full object-cover"
                       alt=""
                     />
-                  ) : (
+                  )}
+                  {item.media_type === 'video' && (
                     <video
                       src={item.media_url}
                       muted
                       className="absolute inset-0 w-full h-full object-cover"
                     />
+                  )}
+                  {item.media_type === 'audio' && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-fuchsia-100 text-indigo-900">
+                      <span className="text-4xl">🎵</span>
+                      <span className="mt-2 text-[11px] font-medium uppercase tracking-wide">Audio</span>
+                    </div>
                   )}
                 </button>
               ))}
@@ -633,12 +669,12 @@ export default function ProfilePage() {
       {activeTab === 'about' && (
         <section className="space-y-6">
           {/* About + links card */}
-          <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] overflow-hidden">
+          <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] overflow-hidden">
             <div className="px-5 py-6 space-y-6">
               {profile.bio && (
                 <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-neutral-900">About</h2>
-                  <p className="text-neutral-700 leading-relaxed">
+                  <h2 className="text-lg font-semibold text-ink-strong">About</h2>
+                  <p className="text-ink leading-relaxed">
                     {profile.bio}
                   </p>
                 </div>
@@ -646,7 +682,7 @@ export default function ProfilePage() {
 
               {profile.links && Object.keys(profile.links).length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-neutral-800">Links</h3>
+                  <h3 className="font-semibold text-ink-strong">Links</h3>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(profile.links)
                       .filter(([, v]) => !!v)
@@ -656,7 +692,7 @@ export default function ProfilePage() {
                           href={value as string}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3 py-1 rounded-full border border-neutral-300 text-sm text-neutral-700 hover:bg-neutral-50"
+                          className="px-3 py-1 rounded-full border border-line-strong text-sm text-ink hover:bg-surface-sunken"
                         >
                           {key}
                         </a>
@@ -672,29 +708,29 @@ export default function ProfilePage() {
             {/* Left column */}
             <div className="space-y-4">
               {/* Achievements */}
-              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
                   Achievements
                 </h2>
                 {achievements.length === 0 ? (
-                  <p className="text-neutral-500">No achievements yet.</p>
+                  <p className="text-ink-subtle">No achievements yet.</p>
                 ) : (
                   <ul className="space-y-2">
                     {achievements.map(a => (
                       <li
                         key={a.id}
-                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 space-y-1"
+                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 space-y-1"
                       >
-                        <div className="font-medium text-neutral-900">
+                        <div className="font-medium text-ink-strong">
                           {a.title}
                         </div>
                         {a.description && (
-                          <div className="text-sm text-neutral-700">
+                          <div className="text-sm text-ink">
                             {a.description}
                           </div>
                         )}
                         {a.year && (
-                          <div className="text-sm text-neutral-500">{a.year}</div>
+                          <div className="text-sm text-ink-subtle">{a.year}</div>
                         )}
                       </li>
                     ))}
@@ -703,27 +739,27 @@ export default function ProfilePage() {
               </section>
 
               {/* Shows */}
-              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
                   Recent shows
                 </h2>
                 {shows.length === 0 ? (
-                  <p className="text-neutral-500">No shows yet.</p>
+                  <p className="text-ink-subtle">No shows yet.</p>
                 ) : (
                   <ul className="space-y-2">
                     {shows.map(s => (
                       <li
                         key={s.id}
-                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 space-y-1"
+                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 space-y-1"
                       >
-                        <div className="font-medium text-neutral-900">
+                        <div className="font-medium text-ink-strong">
                           {s.title}
                         </div>
-                        <div className="text-sm text-neutral-700">
+                        <div className="text-sm text-ink">
                           {[s.venue, s.location].filter(Boolean).join(', ')}
                         </div>
                         {s.event_date && (
-                          <div className="text-sm text-neutral-500">
+                          <div className="text-sm text-ink-subtle">
                             {new Date(s.event_date).toLocaleDateString()}
                           </div>
                         )}
@@ -737,21 +773,21 @@ export default function ProfilePage() {
             {/* Right column */}
             <div className="space-y-4">
               {/* Skills */}
-              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-neutral-900">Skills</h2>
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-ink-strong">Skills</h2>
                 {skills.length === 0 ? (
-                  <p className="text-neutral-500">No skills yet.</p>
+                  <p className="text-ink-subtle">No skills yet.</p>
                 ) : (
                   <ul className="space-y-2">
                     {skills.map(sk => (
                       <li
                         key={sk.id}
-                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 flex justify-between items-center"
+                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 flex justify-between items-center"
                       >
-                        <span className="font-medium text-neutral-900">
+                        <span className="font-medium text-ink-strong">
                           {sk.skill}
                         </span>
-                        <span className="text-sm italic text-neutral-600">
+                        <span className="text-sm italic text-ink-muted">
                           {sk.level}
                         </span>
                       </li>
@@ -760,25 +796,36 @@ export default function ProfilePage() {
                 )}
               </section>
 
+              {/* Booking reviews */}
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold text-ink-strong">
+                    Reviews
+                  </h2>
+                  <RatingDisplay profileId={profile.id} variant="inline" />
+                </div>
+                <ReviewList profileId={profile.id} limit={5} />
+              </section>
+
               {/* Recommendations */}
-              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
                   Recommendations
                 </h2>
                 {recommendations.length === 0 ? (
-                  <p className=" text-neutral-400">No recommendations yet.</p>
+                  <p className=" text-ink-subtle">No recommendations yet.</p>
                 ) : (
                   <div className="space-y-3">
                     {recommendations.map(r => (
                       <blockquote
                         key={r.id}
-                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3"
+                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3"
                       >
-                        <p className="italic text-neutral-900">
+                        <p className="italic text-ink-strong">
                           “{r.content}”
                         </p>
                         {r.author && (
-                          <p className="text-xs mt-1 text-neutral-500">— {r.author}</p>
+                          <p className="text-xs mt-1 text-ink-subtle">— {r.author}</p>
                         )}
                       </blockquote>
                     ))}
@@ -802,7 +849,7 @@ export default function ProfilePage() {
             <button
               type="button"
               onClick={() => deleteMedia(selectedMedia)}
-              className="absolute top-3 left-6 text-xs px-3 py-1 rounded-full bg-red-600 text-white shadow hover:bg-red-700"
+              className="absolute top-3 left-6 text-xs px-3 py-1 rounded-full bg-danger text-white shadow hover:bg-danger-700"
             >
               Delete
             </button>
@@ -815,18 +862,24 @@ export default function ProfilePage() {
               ×
             </button>
 
-            {selectedMedia.media_type === 'image' ? (
+            {selectedMedia.media_type === 'image' && (
               <img
                 src={selectedMedia.media_url}
                 className="w-full max-h-[90vh] object-contain rounded-2xl"
                 alt=""
               />
-            ) : (
+            )}
+            {selectedMedia.media_type === 'video' && (
               <video
                 src={selectedMedia.media_url}
                 controls
                 className="w-full max-h-[90vh] rounded-2xl"
               />
+            )}
+            {selectedMedia.media_type === 'audio' && (
+              <div className="rounded-2xl bg-surface p-6">
+                <AudioPlayer src={selectedMedia.media_url} title={selectedMedia.caption ?? 'Audio'} />
+              </div>
             )}
 
             {media.length > 1 && (
@@ -854,25 +907,25 @@ export default function ProfilePage() {
       {/* FOLLOWERS MODAL */}
       {showFollowersModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
             <button
-              className="absolute top-3 right-4 text-3xl font-bold text-neutral-800"
+              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
               onClick={() => setShowFollowersModal(false)}
             >
               ×
             </button>
 
-            <h2 className="text-xl font-semibold mb-4 text-neutral-900">Followers</h2>
+            <h2 className="text-xl font-semibold mb-4 text-ink-strong">Followers</h2>
 
             {followersList.length === 0 ? (
-              <p className="text-sm text-neutral-500">No followers yet.</p>
+              <p className="text-sm text-ink-subtle">No followers yet.</p>
             ) : (
               <ul className="space-y-4">
                 {followersList.map(user => (
                   <li key={user.id}>
                     <Link
                       href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
                     >
                       <img
                         src={user.avatar_url ?? '/default-avatar.png'}
@@ -881,10 +934,10 @@ export default function ProfilePage() {
                       />
 
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-neutral-900">
+                        <p className="text-sm font-medium text-ink-strong">
                           {user.display_name}
                         </p>
-                        <p className="text-xs text-neutral-500">
+                        <p className="text-xs text-ink-subtle">
                           @{(user as unknown as Record<string, string>).handle ??
                             user.display_name?.toLowerCase().replace(/\s+/g, '')}
                         </p>
@@ -897,7 +950,7 @@ export default function ProfilePage() {
                         }}
                         className={`px-3 py-1 text-xs rounded-lg border ${
                           myFollowingIds.includes(user.id)
-                            ? 'bg-neutral-200 text-neutral-800'
+                            ? 'bg-line-strong text-ink-strong'
                             : 'bg-black text-white'
                         }`}
                       >
@@ -915,25 +968,25 @@ export default function ProfilePage() {
       {/* FOLLOWING MODAL */}
       {showFollowingModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
             <button
-              className="absolute top-3 right-4 text-3xl font-bold text-neutral-800"
+              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
               onClick={() => setShowFollowingModal(false)}
             >
               ×
             </button>
 
-            <h2 className="text-xl font-semibold mb-4 text-neutral-900">Following</h2>
+            <h2 className="text-xl font-semibold mb-4 text-ink-strong">Following</h2>
 
             {followingList.length === 0 ? (
-              <p className="text-sm text-neutral-500">Not following anyone yet.</p>
+              <p className="text-sm text-ink-subtle">Not following anyone yet.</p>
             ) : (
               <ul className="space-y-4">
                 {followingList.map(user => (
                   <li key={user.id}>
                     <Link
                       href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
                     >
                       <img
                         src={user.avatar_url ?? '/default-avatar.png'}
@@ -942,10 +995,10 @@ export default function ProfilePage() {
                       />
 
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-neutral-900">
+                        <p className="text-sm font-medium text-ink-strong">
                           {user.display_name}
                         </p>
-                        <p className="text-xs text-neutral-500">
+                        <p className="text-xs text-ink-subtle">
                           @{(user as unknown as Record<string, string>).handle ??
                             user.display_name?.toLowerCase().replace(/\s+/g, '')}
                         </p>
@@ -958,7 +1011,7 @@ export default function ProfilePage() {
                         }}
                         className={`px-3 py-1 text-xs rounded-lg border ${
                           myFollowingIds.includes(user.id)
-                            ? 'bg-neutral-200 text-neutral-800'
+                            ? 'bg-line-strong text-ink-strong'
                             : 'bg-black text-white'
                         }`}
                       >

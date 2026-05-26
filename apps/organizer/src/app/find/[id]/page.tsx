@@ -34,7 +34,11 @@ export default function MusicianProfilePage({ params }: { params: { id: string }
     load();
   }, [artistId]);
 
-  if (loading) return <div className="p-6">Loading profile…</div>;
+  if (loading) return (
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading profile…</p></div>
+    </main>
+  );
   if (!artist) return <div className="p-6">Artist not found.</div>;
 
   return (
@@ -46,12 +50,12 @@ export default function MusicianProfilePage({ params }: { params: { id: string }
         />
         <div>
           <h2 className="text-xl font-semibold">{artist.display_name}</h2>
-          <p className="text-gray-500">{artist.location}</p>
+          <p className="text-ink-subtle">{artist.location}</p>
         </div>
       </div>
 
       {artist.bio && (
-        <p className="text-gray-700">{artist.bio}</p>
+        <p className="text-ink">{artist.bio}</p>
       )}
 
       <div>
@@ -59,19 +63,19 @@ export default function MusicianProfilePage({ params }: { params: { id: string }
         {artist.genres?.length ? (
           <div className="flex flex-wrap gap-2">
             {artist.genres.map((g, i) => (
-              <span key={i} className="px-3 py-1 text-sm bg-gray-100 rounded-full">
+              <span key={i} className="px-3 py-1 text-sm bg-surface-sunken rounded-full">
                 {g}
               </span>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-500">No genres listed</p>
+          <p className="text-sm text-ink-subtle">No genres listed</p>
         )}
       </div>
 
       <Link
         href={`/book/${artist.id}`}
-        className="block text-center px-4 py-2 bg-blue-600 text-white rounded-xl"
+        className="block text-center px-4 py-2 bg-brand text-white rounded-xl"
       >
         Book Musician
       </Link>

@@ -3,6 +3,7 @@
 import { useEffect, useState, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
+import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
 
 type Profile = {
   id: string;
@@ -368,29 +369,44 @@ export default function OrganizerProfilePage() {
   if (loading) {
     return (
       <main className="mx-auto max-w-3xl px-4 pt-10 pb-20">
-        <div className="animate-pulse text-sm text-slate-500">Loading profile…</div>
+        <div className="animate-pulse text-sm text-ink-subtle">Loading profile…</div>
       </main>
     );
   }
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
+      {/* PROFILE COMPLETENESS METER */}
+      <ProfileCompleteness
+        profile={{
+          display_name: venueName,
+          handle,
+          avatar_url: avatarUrl,
+          bio,
+          location,
+          links: { instagram, youtube, website },
+        }}
+        role="organizer"
+        related={{ mediaCount: venuePhotos.length }}
+        editHref="/profile"
+      />
+
       {/* PAGE HEADER */}
       <header className="space-y-2">
-        <p className="text-xs font-semibold tracking-[0.16em] uppercase text-[#4E7FA2]">
+        <p className="text-xs font-semibold tracking-[0.16em] uppercase text-brand">
           Organizer · Venue
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-3xl font-bold tracking-tight text-ink-strong">
           Your Venue Profile
         </h1>
-        <p className="text-slate-500 max-w-xl">
+        <p className="text-ink-subtle max-w-xl">
           This is what musicians see when they check your venue on Arteve. Keep it
           up to date so artists instantly understand your vibe.
         </p>
       </header>
 
       {/* PROFILE INFO CARD */}
-      <section className="relative rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
+      <section className="relative rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
         {/* Subtle gradient accent strip */}
         <div className="pointer-events-none absolute inset-x-0 -top-px h-1 rounded-t-3xl" />
 
@@ -399,10 +415,10 @@ export default function OrganizerProfilePage() {
           <div className="relative w-20 h-20">
             <img
               src={avatarUrl || '/icons/default-avatar.png'}
-              className="w-20 h-20 rounded-full object-cover border border-slate-200"
+              className="w-20 h-20 rounded-full object-cover border border-line"
               alt="Venue avatar"
             />
-            <label className="absolute bottom-0 right-0 bg-white border border-slate-200 rounded-full px-2 py-1 text-[11px] cursor-pointer shadow-sm">
+            <label className="absolute bottom-0 right-0 bg-surface border border-line rounded-full px-2 py-1 text-[11px] cursor-pointer shadow-sm">
               <input
                 type="file"
                 accept="image/*"
@@ -414,10 +430,10 @@ export default function OrganizerProfilePage() {
           </div>
 
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-slate-900 truncate">
+            <h2 className="text-lg font-semibold text-ink-strong truncate">
               {venueName || 'Venue name'}
             </h2>
-            <p className="text-sm text-slate-400 truncate">
+            <p className="text-sm text-ink-subtle truncate">
               {handle ? `@${handle}` : 'A shareable handle will be generated when you save.'}
             </p>
           </div>
@@ -425,25 +441,25 @@ export default function OrganizerProfilePage() {
 
         <div className="flex gap-8 mt-2">
           <button onClick={loadFollowers}>
-            <div className="text-lg font-semibold text-slate-900">
+            <div className="text-lg font-semibold text-ink-strong">
               {followersCount}
             </div>
-            <div className="text-xs text-slate-500">Followers</div>
+            <div className="text-xs text-ink-subtle">Followers</div>
           </button>
 
           <button onClick={loadFollowing}>
-            <div className="text-lg font-semibold text-slate-900">
+            <div className="text-lg font-semibold text-ink-strong">
               {followingCount}
             </div>
-            <div className="text-xs text-slate-500">Following</div>
+            <div className="text-xs text-ink-subtle">Following</div>
           </button>
         </div>
 
         {/* Venue Name */}
         <div className="space-y-1.5">
-          <label className="font-medium text-slate-800">Venue name</label>
+          <label className="font-medium text-ink-strong">Venue name</label>
           <input
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
             value={venueName}
             onChange={e => setVenueName(e.target.value)}
             placeholder="Atomic Rooster"
@@ -452,9 +468,9 @@ export default function OrganizerProfilePage() {
 
         {/* About */}
         <div className="space-y-1.5">
-          <label className="font-medium text-slate-800">About this venue</label>
+          <label className="font-medium text-ink-strong">About this venue</label>
           <textarea
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 min-h-[120px] outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong min-h-[120px] outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
             value={bio}
             onChange={e => setBio(e.target.value)}
             placeholder="Tell musicians about your stage, setup, crowd, ambience, capacity, genres you prefer, etc."
@@ -463,9 +479,9 @@ export default function OrganizerProfilePage() {
 
         {/* Location */}
         <div className="space-y-1.5">
-          <label className="font-medium text-slate-800">Location</label>
+          <label className="font-medium text-ink-strong">Location</label>
           <input
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
             value={location}
             onChange={e => setLocation(e.target.value)}
             placeholder="303 Bank Street, Ottawa, ON"
@@ -474,11 +490,11 @@ export default function OrganizerProfilePage() {
       </section>
 
       {/* SOCIAL LINKS */}
-      <section className="rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-6 sm:p-7 space-y-5">
+      <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-6 sm:p-7 space-y-5">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Online presence</h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <h2 className="text-lg font-semibold text-ink-strong">Online presence</h2>
+            <p className="text-sm text-ink-subtle mt-1">
               Add links so artists can quickly explore your venue online.
             </p>
           </div>
@@ -486,9 +502,9 @@ export default function OrganizerProfilePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="te  xt-sm font-medium text-slate-800">Instagram</label>
+            <label className="te  xt-sm font-medium text-ink-strong">Instagram</label>
             <input
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
               value={instagram}
               onChange={e => setInstagram(e.target.value)}
               placeholder="@yourvenue"
@@ -496,9 +512,9 @@ export default function OrganizerProfilePage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-medium text-slate-800">YouTube</label>
+            <label className="font-medium text-ink-strong">YouTube</label>
             <input
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
               value={youtube}
               onChange={e => setYoutube(e.target.value)}
               placeholder="Channel link"
@@ -506,9 +522,9 @@ export default function OrganizerProfilePage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="font-medium text-slate-800">Website</label>
+            <label className="font-medium text-ink-strong">Website</label>
             <input
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-[#4E7FA2] focus:bg-white focus:ring-1 focus:ring-[#4E7FA2]/40"
+              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
               value={website}
               onChange={e => setWebsite(e.target.value)}
               placeholder="https://example.com"
@@ -518,18 +534,18 @@ export default function OrganizerProfilePage() {
       </section>
 
       {/* VENUE PHOTOS */}
-      <section className="rounded-3xl border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-6 sm:p-7 space-y-5">
+      <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-6 sm:p-7 space-y-5">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Venue photos</h2>
-            <p className="text-slate-500 mt-1">
+            <h2 className="text-lg font-semibold text-ink-strong">Venue photos</h2>
+            <p className="text-ink-subtle mt-1">
               Upload photos of your stage, interior, and the crowd vibe.
             </p>
           </div>
         </div>
 
         <label className="inline-flex items-center gap-2 cursor-pointer">
-          <span className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100">
+          <span className="px-4 py-2 rounded-xl border border-line bg-surface-sunken text-ink-strong hover:bg-surface-sunken">
             {uploadingPhotos ? 'Uploading…' : 'Upload photos'}
           </span>
           <input
@@ -546,14 +562,14 @@ export default function OrganizerProfilePage() {
             {venuePhotos.map(url => (
               <div
                 key={url}
-                className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 aspect-video"
+                className="relative overflow-hidden rounded-2xl border border-line bg-surface-sunken aspect-video"
               >
                 <img src={url} className="w-full h-full object-cover" alt="Venue photo" />
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-slate-500">No photos added yet.</p>
+          <p className="text-xs text-ink-subtle">No photos added yet.</p>
         )}
       </section>
 
@@ -562,20 +578,20 @@ export default function OrganizerProfilePage() {
         <button
           onClick={saveProfile}
           disabled={saving}
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#4E7FA2] text-white font-medium shadow-sm hover:bg-[#406985] disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-brand text-white font-medium shadow-sm hover:bg-[#406985] disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {saving ? 'Saving…' : 'Save profile'}
         </button>
 
         <button
           onClick={signOut}
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-slate-200 font-medium text-slate-800 hover:bg-slate-50"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-line font-medium text-ink-strong hover:bg-surface-sunken"
         >
           Sign out
         </button>
       </div>
 
-      {err && <p className="text-red-600">{err}</p>}
+      {err && <p className="text-danger">{err}</p>}
 
       {showFollowModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
@@ -587,7 +603,7 @@ export default function OrganizerProfilePage() {
             }}
           />
 
-          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 max-h-[70vh] overflow-y-auto">
+          <div className="relative bg-surface rounded-3xl w-full max-w-md p-6 max-h-[70vh] overflow-y-auto">
             <h2 className="text-lg font-semibold mb-4">
               {showFollowModal === 'followers' ? 'Followers' : 'Following'}
             </h2>
@@ -600,12 +616,12 @@ export default function OrganizerProfilePage() {
                 <li key={p.id} className="flex items-center gap-3">
                   <img
                     src={p.avatar_url ?? '/default-avatar.png'}
-                    className="w-10 h-10 rounded-full object-cover border"
+                    className="w-10 h-10 rounded-full object-cover border border-line"
                   />
 
                   <div className="flex-1">
                     <p className="text-sm font-medium">{p.display_name}</p>
-                    <p className="text-xs text-slate-500">@{p.handle}</p>
+                    <p className="text-xs text-ink-subtle">@{p.handle}</p>
                   </div>
 
                   {userId !== p.id && (
@@ -613,8 +629,8 @@ export default function OrganizerProfilePage() {
                       onClick={() => toggleFollowFromModal(p.id)}
                       className={`px-3 py-1 text-xs rounded-lg border ${
                         myFollowingIds.includes(p.id)
-                          ? 'bg-slate-200'
-                          : 'bg-slate-900 text-white'
+                          ? 'bg-line-strong'
+                          : 'bg-ink-strong text-white'
                       }`}
                     >
                       {myFollowingIds.includes(p.id) ? 'Unfollow' : 'Follow'}

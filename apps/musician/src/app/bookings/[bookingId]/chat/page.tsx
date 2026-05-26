@@ -13,6 +13,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import { PresenceContext } from '@arteve/shared/presence/provider';
 import { useMarkNotificationAsRead } from '@arteve/shared/notifications/auto-read';
+import { Button } from '@arteve/ui/components';
 
 type BookingMessage = {
   id: string;
@@ -40,6 +41,7 @@ export default function MusicianBookingChatPage() {
   const [msgs, setMsgs] = useState<BookingMessage[]>([]);
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   const [otherUserId, setOtherUserId] = useState<string | null>(null);
   const [otherLabel, setOtherLabel] = useState<string>('Conversation');
@@ -51,12 +53,9 @@ export default function MusicianBookingChatPage() {
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // notification auto-read
   const search = useSearchParams();
-  const notifId = search.get('notification_id');
-  useMarkNotificationAsRead(notifId);
+  useMarkNotificationAsRead(search.get('notification_id'));
 
-  // ONE shared realtime channel
   const channel = useMemo(
     () =>
       supabase.channel(`booking-chat-${bookingId}`, {
@@ -65,62 +64,39 @@ export default function MusicianBookingChatPage() {
     [bookingId]
   );
 
-  // Initial load: user, messages, booking info
   useEffect(() => {
     (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
         return;
       }
-
       setUserId(user.id);
 
-      // Messages
       const { data: m } = await supabase
         .from('booking_messages')
         .select('*')
         .eq('booking_id', bookingId)
         .order('created_at', { ascending: true });
-
       setMsgs(m ?? []);
 
-      // Booking (for participants + header info)
       const { data: bookingRow } = await supabase
         .from('bookings')
-        .select(
-          `
-          musician_id,
-          organizer_id,
-          organizer_name,
-          organizer_email,
-          event_title
-        `
-        )
+        .select(`musician_id, organizer_id, organizer_name, organizer_email, event_title`)
         .eq('id', bookingId)
         .maybeSingle<BookingHeaderRow>();
 
       if (bookingRow) {
         const isMusician = bookingRow.musician_id === user.id;
-        const otherId = isMusician
-          ? bookingRow.organizer_id
-          : bookingRow.musician_id;
-
+        const otherId = isMusician ? bookingRow.organizer_id : bookingRow.musician_id;
         setOtherUserId(otherId ?? null);
-
         const label = isMusician
-          ? bookingRow.organizer_name ||
-            bookingRow.organizer_email ||
-            'Organizer'
+          ? bookingRow.organizer_name || bookingRow.organizer_email || 'Organizer'
           : 'Musician';
-
         setOtherLabel(label);
         setEventTitle(bookingRow.event_title ?? null);
       }
 
-      // Mark unread messages as read for this user
       await supabase
         .from('booking_messages')
         .update({ read_at: new Date().toISOString() })
@@ -128,28 +104,34 @@ export default function MusicianBookingChatPage() {
         .eq('recipient_id', user.id)
         .is('read_at', null);
 
+      const { data: conv } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('booking_id', bookingId)
+        .maybeSingle<{ id: string }>();
+      if (conv?.id) setConversationId(conv.id);
+
       setLoading(false);
     })();
   }, [bookingId]);
 
-  // Realtime: new messages + typing
   useEffect(() => {
-    if (!userId) return;
-
-    // New messages
+    if (!userId || !conversationId) return;
     channel.on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
-        table: 'booking_messages',
-        filter: `booking_id=eq.${bookingId}`,
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
       },
       async (payload) => {
-        const msg = payload.new as BookingMessage;
-        setMsgs((prev) => [...prev, msg]);
-
-        // Auto-mark as read if this user is recipient
+        const row = payload.new as {
+          id: string; sender_id: string; recipient_id: string;
+          content: string; created_at: string; read_at: string | null;
+        };
+        const msg: BookingMessage = { ...row, booking_id: bookingId };
+        setMsgs((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
         if (msg.recipient_id === userId && !msg.read_at) {
           await supabase
             .from('booking_messages')
@@ -159,221 +141,145 @@ export default function MusicianBookingChatPage() {
       }
     );
 
-    // Typing indicator
-    channel.on('broadcast', { event: 'typing' }, (payload) => {
-      if (payload.sender_id !== userId) {
-        setOtherTyping(true);
-
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-        }
-
-        typingTimeoutRef.current = setTimeout(() => {
-          setOtherTyping(false);
-        }, 2000);
-      }
+    channel.on('broadcast', { event: 'typing' }, (msg: { payload: { sender_id: string } }) => {
+      const senderId = msg?.payload?.sender_id;
+      if (!senderId || senderId === userId) return;
+      setOtherTyping(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => setOtherTyping(false), 2000);
     });
 
     channel.subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [channel, bookingId, userId, conversationId]);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [channel, bookingId, userId]);
-
-  // Auto scroll on new messages
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [msgs]);
+  }, [msgs, otherTyping]);
 
-  // Send message
   async function sendMessage() {
     if (!userId || !content.trim()) return;
-
     const text = content.trim();
     setContent('');
-
     const { data: booking } = await supabase
       .from('bookings')
       .select('musician_id, organizer_id')
       .eq('id', bookingId)
       .maybeSingle<{ musician_id: string; organizer_id: string }>();
-
-    if (!booking) {
-      setContent(text);
-      return;
-    }
-
-    const recipientId =
-      booking.musician_id === userId ? booking.organizer_id : booking.musician_id;
-
+    if (!booking) { setContent(text); return; }
+    const recipientId = booking.musician_id === userId ? booking.organizer_id : booking.musician_id;
     const { data: inserted, error } = await supabase
       .from('booking_messages')
-      .insert({
-        booking_id: bookingId,
-        sender_id: userId,
-        recipient_id: recipientId,
-        content: text,
-      })
-      .select('*')
-      .single();
+      .insert({ booking_id: bookingId, sender_id: userId, recipient_id: recipientId, content: text })
+      .select('*').single();
+    if (error) { setContent(text); console.error(error); return; }
+    setMsgs((prev) => (prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted]));
+  }
 
-    if (error) {
-      setContent(text);
-      console.error(error);
-      return;
-    }
+  function handleTyping(e: ChangeEvent<HTMLInputElement>) {
+    setContent(e.target.value);
+    channel.send({ type: 'broadcast', event: 'typing', payload: { sender_id: userId } });
+  }
 
-    setMsgs(prev =>
-      prev.some(m => m.id === inserted.id) ? prev : [...prev, inserted]
+  if (loading) {
+    return (
+      <main className="chat-shell">
+        <header className="chat-header">
+          <div className="h-9 w-9 skeleton rounded-full" />
+          <div className="flex-1 space-y-1.5">
+            <div className="skeleton h-3 w-32" />
+            <div className="skeleton h-2.5 w-20" />
+          </div>
+        </header>
+        <div className="chat-stream" />
+      </main>
     );
   }
 
-  // Typing broadcast
-  function handleTyping(e: ChangeEvent<HTMLInputElement>) {
-    setContent(e.target.value);
-
-    channel.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { sender_id: userId },
-    });
-  }
-
-  if (loading) return <main className="p-6">Loading chat…</main>;
-
-  // --- UI helpers ---
-  const isOtherOnline =
-    otherUserId != null ? !!onlineUsers[otherUserId] : false;
+  const isOtherOnline = otherUserId != null ? !!onlineUsers[otherUserId] : false;
   const lastSeenText =
     otherUserId && lastSeen[otherUserId]
-      ? new Date(lastSeen[otherUserId]).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
+      ? new Date(lastSeen[otherUserId]).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : 'recently';
 
-  // Build Instagram-style date separators
   let lastDateLabel = '';
 
   return (
-    <main className="w-full max-w-5xl mx-auto h-screen flex flex-col bg-white overflow-hidden">
-      {/* Header (Instagram DM style) */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b sticky top-0 bg-white z-10">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-sm text-gray-600"
-        >
-          ←
+    <main className="chat-shell">
+      <header className="chat-header">
+        <button type="button" onClick={() => router.back()} className="chat-back-btn" aria-label="Back">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
         </button>
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium text-gray-600">
-            {otherLabel.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-900">
-              {otherLabel}
-            </p>
-            <p className="text-xs text-gray-500">
-              {isOtherOnline
-                ? 'Active now'
-                : `Last seen ${lastSeenText}`}
-            </p>
-          </div>
+
+        <div className="avatar avatar-md inline-flex items-center justify-center bg-brand-100 text-brand-700 text-sm font-semibold">
+          {otherLabel.charAt(0).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-ink-strong truncate">{otherLabel}</p>
+          <p className="text-xs flex items-center gap-1.5 text-ink-subtle">
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${isOtherOnline ? 'bg-success' : 'bg-ink-disabled'}`} />
+            {isOtherOnline ? 'Active now' : `Last seen ${lastSeenText}`}
+          </p>
         </div>
       </header>
 
-      {/* Optional event subtitle */}
       {eventTitle && (
-        <div className="px-4 pt-2 text-[11px] text-gray-500">
-          Booking: {eventTitle}
+        <div className="px-4 py-2 text-[11px] text-ink-subtle border-b border-line bg-surface">
+          Booking: <span className="font-medium text-ink">{eventTitle}</span>
         </div>
       )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+      <div className="chat-stream">
+        {msgs.length === 0 && (
+          <div className="text-center text-sm text-ink-subtle py-12">
+            Start the conversation about this booking.
+          </div>
+        )}
         {msgs.map((m) => {
           const isMine = m.sender_id === userId;
           const date = new Date(m.created_at);
-          const dateLabel = date.toLocaleDateString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          });
-
+          const dateLabel = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
           const showDate = dateLabel !== lastDateLabel;
-          if (showDate) {
-            lastDateLabel = dateLabel;
-          }
-
+          if (showDate) lastDateLabel = dateLabel;
           return (
             <Fragment key={m.id}>
               {showDate && (
-                <div className="text-center my-2">
-                  <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-[11px] text-gray-500">
-                    {dateLabel}
-                  </span>
-                </div>
+                <div className="chat-day-divider"><span>{dateLabel}</span></div>
               )}
-
-              <div
-                className={`flex ${
-                  isMine ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                <div
-                  className={`max-w-[72%] px-3 py-2 rounded-2xl text-sm leading-snug ${
-                    isMine
-                      ? 'bg-black text-white rounded-br-sm'
-                      : 'bg-gray-100 text-gray-900 rounded-bl-sm'
-                  }`}
-                >
+              <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                <div className={`chat-bubble ${isMine ? 'chat-bubble-mine' : 'chat-bubble-theirs'}`}>
                   {m.content}
-                  <div className="text-[10px] opacity-60 text-right mt-1">
-                    {date.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                  <div className={isMine ? 'chat-meta-mine' : 'chat-meta-theirs'}>
+                    {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
               </div>
             </Fragment>
           );
         })}
-
-        {/* Typing indicator */}
         {otherTyping && (
-          <div className="flex items-center gap-2 px-2 text-xs text-gray-500">
-            <span className="w-2 h-2 rounded-full bg-gray-400 animate-pulse" />
-            Typing…
+          <div className="chat-typing">
+            <span className="chat-typing-dot animate-bounce [animation-delay:-0.3s]" />
+            <span className="chat-typing-dot animate-bounce [animation-delay:-0.15s]" />
+            <span className="chat-typing-dot animate-bounce" />
           </div>
         )}
-
         <div ref={endRef} />
       </div>
 
-      {/* Input bar */}
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          sendMessage();
-        }}
-        className="shrink-0 px-3 pt-2 pb-8 border-t flex items-center gap-2 bg-white"
+        onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
+        className="chat-input-bar"
       >
         <input
-          className="flex-1 rounded-full bg-gray-100 px-4 py-2 text-sm outline-none"
+          className="chat-input"
           placeholder="Message…"
           value={content}
           onChange={handleTyping}
         />
-        <button
-          type="submit"
-          className="px-4 py-2 rounded-full bg-black text-white text-sm disabled:opacity-60"
-          disabled={!content.trim()}
-        >
-          Send
-        </button>
+        <Button type="submit" disabled={!content.trim()}>Send</Button>
       </form>
     </main>
   );

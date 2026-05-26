@@ -82,8 +82,11 @@ function NewChatContent() {
 
 function Loading() {
   return (
-    <p className="p-4 text-sm text-neutral-500">
-      Starting chat…
-    </p>
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3">
+        <span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" />
+        <p className="text-sm text-ink-muted">Starting chat…</p>
+      </div>
+    </main>
   );
 }

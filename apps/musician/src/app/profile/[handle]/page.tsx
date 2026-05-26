@@ -372,7 +372,7 @@ export default function PublicProfilePage() {
 
   if (err || !profile) {
     return (
-      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 text-red-600">
+      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 text-danger">
         Error: {err}
       </main>
     );
@@ -389,27 +389,27 @@ export default function PublicProfilePage() {
       {/* FOLLOWERS MODAL */}
       {showFollowersModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
             <button
-              className="absolute top-3 right-4 text-3xl font-bold text-neutral-900"
+              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
               onClick={() => setShowFollowersModal(false)}
             >
               ×
             </button>
 
-            <h2 className="text-xl font-semibold mb-4 text-neutral-900">
+            <h2 className="text-xl font-semibold mb-4 text-ink-strong">
               Followers
             </h2>
 
             {followersList.length === 0 ? (
-              <p className="text-[13px] text-neutral-500">No followers yet.</p>
+              <p className="text-[13px] text-ink-subtle">No followers yet.</p>
             ) : (
               <ul className="space-y-4">
                 {followersList.map(user => (
                   <li key={user.id}>
                     <Link
                       href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
                     >
                       <img
                         src={user.avatar_url ?? '/default-avatar.png'}
@@ -417,10 +417,10 @@ export default function PublicProfilePage() {
                         alt=""
                       />
                       <div className="flex-1">
-                        <p className="font-medium text-neutral-900">
+                        <p className="font-medium text-ink-strong">
                           {user.display_name}
                         </p>
-                        <p className="text-xs text-neutral-500">
+                        <p className="text-xs text-ink-subtle">
                           @{user.handle}
                         </p>
                       </div>
@@ -433,8 +433,8 @@ export default function PublicProfilePage() {
                           }}
                           className={`px-3 py-1 text-xs rounded-lg border ${
                             myFollowingIds.includes(user.id)
-                              ? 'bg-neutral-200 text-neutral-800'
-                              : 'bg-neutral-900 text-white'
+                              ? 'bg-line-strong text-ink-strong'
+                              : 'bg-ink-strong text-white'
                           }`}
                         >
                           {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
@@ -452,20 +452,20 @@ export default function PublicProfilePage() {
       {/* FOLLOWING MODAL */}
       {showFollowingModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
             <button
-              className="absolute top-3 right-4 text-3xl font-bold text-neutral-900"
+              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
               onClick={() => setShowFollowingModal(false)}
             >
               ×
             </button>
 
-            <h2 className="text-xl font-semibold mb-4 text-neutral-900">
+            <h2 className="text-xl font-semibold mb-4 text-ink-strong">
               Following
             </h2>
 
             {followingList.length === 0 ? (
-              <p className="text-[13px] text-neutral-500">
+              <p className="text-[13px] text-ink-subtle">
                 Not following anyone yet.
               </p>
             ) : (
@@ -474,7 +474,7 @@ export default function PublicProfilePage() {
                   <li key={user.id}>
                     <Link
                       href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
                     >
                       <img
                         src={user.avatar_url ?? '/default-avatar.png'}
@@ -482,10 +482,10 @@ export default function PublicProfilePage() {
                         alt=""
                       />
                       <div className="flex-1">
-                        <p className="font-medium text-neutral-900">
+                        <p className="font-medium text-ink-strong">
                           {user.display_name}
                         </p>
-                        <p className="text-xs text-neutral-500">
+                        <p className="text-xs text-ink-subtle">
                           @{user.handle}
                         </p>
                       </div>
@@ -498,8 +498,8 @@ export default function PublicProfilePage() {
                           }}
                           className={`px-3 py-1 text-xs rounded-lg border ${
                             myFollowingIds.includes(user.id)
-                              ? 'bg-neutral-200 text-neutral-800'
-                              : 'bg-neutral-900 text-white'
+                              ? 'bg-line-strong text-ink-strong'
+                              : 'bg-ink-strong text-white'
                           }`}
                         >
                           {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
@@ -523,8 +523,8 @@ export default function PublicProfilePage() {
     return (
       <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 space-y-8">
         {/* HEADER / HERO CARD */}
-        <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] overflow-hidden">
-          <div className="h-48 md:h-64 w-full relative bg-neutral-800">
+        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] overflow-hidden">
+          <div className="h-48 md:h-64 w-full relative bg-ink-strong">
             {primaryVenuePhoto && (
               <img
                 src={primaryVenuePhoto}
@@ -538,7 +538,7 @@ export default function PublicProfilePage() {
                 {profile.display_name}
               </h1>
               {profile.location && (
-                <p className="text-[13px] text-neutral-200">
+                <p className="text-[13px] text-ink-disabled">
                   {profile.location}
                 </p>
               )}
@@ -547,7 +547,7 @@ export default function PublicProfilePage() {
                 {viewerId && viewerId !== profile.id && (
                   <button
                     onClick={toggleFollow}
-                    className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+                    className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
                   >
                     {isFollowing ? 'Unfollow' : 'Follow'}
                   </button>
@@ -555,7 +555,7 @@ export default function PublicProfilePage() {
 
                 <button
                   onClick={shareProfile}
-                  className="px-4 py-1.5 rounded-xl border border-neutral-300 bg-white font-medium hover:bg-neutral-50"
+                  className="px-4 py-1.5 rounded-xl border border-line-strong bg-surface font-medium hover:bg-surface-sunken"
                 >
                   Share
                 </button>
@@ -589,14 +589,14 @@ export default function PublicProfilePage() {
 
           <div className="px-6 py-6 md:px-8 md:py-7 space-y-4">
             {profile.bio && (
-              <p className="text-[15px] leading-relaxed text-neutral-800 whitespace-pre-line">
+              <p className="text-[15px] leading-relaxed text-ink-strong whitespace-pre-line">
                 {profile.bio}
               </p>
             )}
 
             {profile.links && Object.keys(profile.links).length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-[15px] font-semibold text-neutral-900">
+                <h3 className="text-[15px] font-semibold text-ink-strong">
                   Online presence
                 </h3>
                 <div className="flex flex-wrap gap-2">
@@ -608,7 +608,7 @@ export default function PublicProfilePage() {
                         href={value as string}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-1 rounded-full border border-neutral-300 text-[13px] text-neutral-800 hover:bg-neutral-50"
+                        className="px-3 py-1 rounded-full border border-line-strong text-[13px] text-ink-strong hover:bg-surface-sunken"
                       >
                         {key}
                       </a>
@@ -620,12 +620,12 @@ export default function PublicProfilePage() {
         </section>
 
         {/* VENUE PHOTOS */}
-        <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-6 py-6 space-y-4">
-          <h2 className="text-lg font-semibold text-neutral-900">
+        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-6 py-6 space-y-4">
+          <h2 className="text-lg font-semibold text-ink-strong">
             Venue photos
           </h2>
           {venuePhotos.length === 0 ? (
-            <p className="text-[13px] text-neutral-500">
+            <p className="text-[13px] text-ink-subtle">
               No venue photos available.
             </p>
           ) : (
@@ -634,7 +634,7 @@ export default function PublicProfilePage() {
                 <button
                   key={url}
                   onClick={() => setVenueModalUrl(url)}
-                  className="relative w-full pb-[75%] rounded-2xl overflow-hidden bg-neutral-200"
+                  className="relative w-full pb-[75%] rounded-2xl overflow-hidden bg-line-strong"
                 >
                   <img
                     src={url}
@@ -648,12 +648,12 @@ export default function PublicProfilePage() {
         </section>
 
         {/* ORGANIZER GIGS */}
-        <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-6 py-6 space-y-4">
-          <h2 className="text-lg font-semibold text-neutral-900">
+        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-6 py-6 space-y-4">
+          <h2 className="text-lg font-semibold text-ink-strong">
             Gigs by this organizer
           </h2>
           {organizerGigs.length === 0 ? (
-            <p className="text-[13px] text-neutral-500">
+            <p className="text-[13px] text-ink-subtle">
               No gigs posted yet.
             </p>
           ) : (
@@ -662,12 +662,12 @@ export default function PublicProfilePage() {
                 <Link
                   key={gig.id}
                   href={`/gigs/${gig.id}`}
-                  className="block rounded-2xl border border-neutral-200 px-4 py-3 hover:bg-neutral-50"
+                  className="block rounded-2xl border border-line px-4 py-3 hover:bg-surface-sunken"
                 >
-                  <p className="font-medium text-neutral-900">
+                  <p className="font-medium text-ink-strong">
                     {gig.title || 'Untitled gig'}
                   </p>
-                  <p className="text-[13px] text-neutral-600">
+                  <p className="text-[13px] text-ink-muted">
                     {gig.event_date
                       ? new Date(gig.event_date).toLocaleDateString()
                       : 'Date TBD'}
@@ -855,24 +855,24 @@ export default function PublicProfilePage() {
   return (
     <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 space-y-8">
       {/* HEADER CARD */}
-      <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
+      <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
         {/* Top Row */}
         <div className="flex items-start gap-6">
           <img
             src={profile.avatar_url ?? '/placeholder-avatar.png'}
-            className="w-24 h-24 rounded-full object-cover border border-neutral-300"
+            className="w-24 h-24 rounded-full object-cover border border-line-strong"
             alt="Profile avatar"
           />
 
           <div className="flex-1 space-y-1">
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-neutral-900">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-ink-strong">
               {profile.display_name}
             </h1>
 
-            <p className="text-[13px] text-neutral-500">@{username}</p>
+            <p className="text-[13px] text-ink-subtle">@{username}</p>
 
             {profile.location && (
-              <p className="text-[13px] text-neutral-600">
+              <p className="text-[13px] text-ink-muted">
                 {profile.location}
               </p>
             )}
@@ -882,7 +882,7 @@ export default function PublicProfilePage() {
                 {genres.map(g => (
                   <span
                     key={g}
-                    className="px-3 py-1 rounded-full bg-neutral-100 text-[13px] text-neutral-700"
+                    className="px-3 py-1 rounded-full bg-surface-sunken text-[13px] text-ink"
                   >
                     {g}
                   </span>
@@ -891,7 +891,7 @@ export default function PublicProfilePage() {
             )}
 
             {profile.bio && (
-              <p className="text-neutral-700 leading-snug pt-1 whitespace-pre-line">
+              <p className="text-ink leading-snug pt-1 whitespace-pre-line">
                 {profile.bio}
               </p>
             )}
@@ -903,21 +903,21 @@ export default function PublicProfilePage() {
           <StatPill label="Posts" value={counts.posts} />
           <button
             onClick={loadFollowers}
-            className="flex flex-col items-center hover:text-neutral-900"
+            className="flex flex-col items-center hover:text-ink-strong"
           >
-            <div className="text-lg font-semibold text-neutral-900">
+            <div className="text-lg font-semibold text-ink-strong">
               {counts.followers}
             </div>
-            <div className="text-[11px] text-neutral-600">Followers</div>
+            <div className="text-[11px] text-ink-muted">Followers</div>
           </button>
           <button
             onClick={loadFollowing}
-            className="flex flex-col items-center hover:text-neutral-900"
+            className="flex flex-col items-center hover:text-ink-strong"
           >
-            <div className="text-lg font-semibold text-neutral-900">
+            <div className="text-lg font-semibold text-ink-strong">
               {counts.following}
             </div>
-            <div className="text-[11px] text-neutral-600">Following</div>
+            <div className="text-[11px] text-ink-muted">Following</div>
           </button>
         </div>
 
@@ -926,7 +926,7 @@ export default function PublicProfilePage() {
           {viewerId && viewerId !== profile.id && (
             <button
               onClick={toggleFollow}
-              className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+              className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
             >
               {isFollowing ? 'Unfollow' : 'Follow'}
             </button>
@@ -935,7 +935,7 @@ export default function PublicProfilePage() {
           {canMessage && (
             <button
               onClick={() => router.push(`/chat/new?user=${profile.handle}`)}
-              className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+              className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
             >
               Message
             </button>
@@ -944,7 +944,7 @@ export default function PublicProfilePage() {
           {viewerRole === 'organizer' && viewerId !== profile.id && (
             <Link
               href={`/book/${profile.handle}`}
-              className="px-4 py-1.5 rounded-xl bg-neutral-900 text-white font-medium hover:bg-black"
+              className="px-4 py-1.5 rounded-xl bg-ink-strong text-white font-medium hover:bg-black"
             >
               Book
             </Link>
@@ -952,7 +952,7 @@ export default function PublicProfilePage() {
 
           <button
             onClick={shareProfile}
-            className="px-4 py-1.5 rounded-xl border border-neutral-300 font-medium hover:bg-neutral-50"
+            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
           >
             Share
           </button>
@@ -960,11 +960,11 @@ export default function PublicProfilePage() {
 
         {/* Quote */}
         {profile.quote && (
-          <div className="px-4 py-3 rounded-xl bg-neutral-50 mt-3">
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500">
+          <div className="px-4 py-3 rounded-xl bg-surface-sunken mt-3">
+            <p className="text-[11px] uppercase tracking-wide text-ink-subtle">
               Artist Quote
             </p>
-            <p className="mt-1 italic text-neutral-800">
+            <p className="mt-1 italic text-ink-strong">
               “{profile.quote}”
             </p>
           </div>
@@ -972,7 +972,7 @@ export default function PublicProfilePage() {
       </section>
 
       {/* TABS */}
-      <div className="border-b border-neutral-200">
+      <div className="border-b border-line">
         <div className="flex justify-center gap-10">
           {(['media', 'about'] as const).map(tab => (
             <button
@@ -981,13 +981,13 @@ export default function PublicProfilePage() {
               onClick={() => setActiveTab(tab)}
               className={`relative pb-3 font-medium ${
                 activeTab === tab
-                  ? 'text-neutral-900'
-                  : 'text-neutral-500 hover:text-neutral-700'
+                  ? 'text-ink-strong'
+                  : 'text-ink-subtle hover:text-ink'
               }`}
             >
               {tab === 'media' ? 'Media' : 'About'}
               {activeTab === tab && (
-                <span className="absolute left-0 right-0 -bottom-0.5 mx-auto h-[2px] w-8 rounded-full bg-neutral-900" />
+                <span className="absolute left-0 right-0 -bottom-0.5 mx-auto h-[2px] w-8 rounded-full bg-ink-strong" />
               )}
             </button>
           ))}
@@ -996,9 +996,9 @@ export default function PublicProfilePage() {
 
       {/* MEDIA TAB */}
       {activeTab === 'media' && (
-        <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5 sm:p-6 space-y-4">
+        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5 sm:p-6 space-y-4">
           {posts.length === 0 ? (
-            <div className="border border-dashed border-neutral-300 rounded-2xl py-10 flex flex-col items-center justify-center bg-neutral-50 text-neutral-600">
+            <div className="border border-dashed border-line-strong rounded-2xl py-10 flex flex-col items-center justify-center bg-surface-sunken text-ink-muted">
               No media uploaded yet.
             </div>
           ) : (
@@ -1007,7 +1007,7 @@ export default function PublicProfilePage() {
                 <button
                   key={item.id}
                   onClick={() => openModal(i)}
-                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-neutral-200"
+                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-line-strong"
                 >
                   {item.media_type === 'image' ? (
                     <img
@@ -1033,14 +1033,14 @@ export default function PublicProfilePage() {
       {activeTab === 'about' && (
         <section className="space-y-6">
           {/* About + Links */}
-          <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] overflow-hidden">
+          <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] overflow-hidden">
             <div className="px-5 py-6 space-y-6">
               {profile.bio && (
                 <div className="space-y-2">
-                  <h2 className="text-lg font-semibold text-neutral-900">
+                  <h2 className="text-lg font-semibold text-ink-strong">
                     About
                   </h2>
-                  <p className="text-neutral-700 leading-relaxed whitespace-pre-line">
+                  <p className="text-ink leading-relaxed whitespace-pre-line">
                     {profile.bio}
                   </p>
                 </div>
@@ -1048,7 +1048,7 @@ export default function PublicProfilePage() {
 
               {profile.links && Object.keys(profile.links).length > 0 && (
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-neutral-900">Links</h3>
+                  <h3 className="font-semibold text-ink-strong">Links</h3>
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(profile.links)
                       .filter(([, v]) => !!v)
@@ -1058,7 +1058,7 @@ export default function PublicProfilePage() {
                           href={v as string}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3 py-1 rounded-full border border-neutral-300 text-[13px] text-neutral-800 hover:bg-neutral-50"
+                          className="px-3 py-1 rounded-full border border-line-strong text-[13px] text-ink-strong hover:bg-surface-sunken"
                         >
                           {k}
                         </a>
@@ -1074,12 +1074,12 @@ export default function PublicProfilePage() {
             {/* Left column */}
             <div className="space-y-4">
               {/* Achievements */}
-              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
                   Achievements
                 </h2>
                 {achievements.length === 0 ? (
-                  <p className="text-[13px] text-neutral-500">
+                  <p className="text-[13px] text-ink-subtle">
                     No achievements yet.
                   </p>
                 ) : (
@@ -1087,18 +1087,18 @@ export default function PublicProfilePage() {
                     {achievements.map(a => (
                       <li
                         key={a.id}
-                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 space-y-1"
+                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 space-y-1"
                       >
-                        <div className="font-medium text-neutral-900">
+                        <div className="font-medium text-ink-strong">
                           {a.title}
                         </div>
                         {a.description && (
-                          <div className="text-[13px] text-neutral-700">
+                          <div className="text-[13px] text-ink">
                             {a.description}
                           </div>
                         )}
                         {a.year && (
-                          <div className="text-[13px] text-neutral-500">
+                          <div className="text-[13px] text-ink-subtle">
                             {a.year}
                           </div>
                         )}
@@ -1109,27 +1109,27 @@ export default function PublicProfilePage() {
               </section>
 
               {/* Shows */}
-              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
                   Recent shows
                 </h2>
                 {shows.length === 0 ? (
-                  <p className="text-[13px] text-neutral-500">No shows yet.</p>
+                  <p className="text-[13px] text-ink-subtle">No shows yet.</p>
                 ) : (
                   <ul className="space-y-2">
                     {shows.map(s => (
                       <li
                         key={s.id}
-                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 space-y-1"
+                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 space-y-1"
                       >
-                        <div className="font-medium text-neutral-900">
+                        <div className="font-medium text-ink-strong">
                           {s.title}
                         </div>
-                        <div className="text-[13px] text-neutral-700">
+                        <div className="text-[13px] text-ink">
                           {[s.venue, s.location].filter(Boolean).join(', ')}
                         </div>
                         {s.event_date && (
-                          <div className="text-[13px] text-neutral-500">
+                          <div className="text-[13px] text-ink-subtle">
                             {new Date(s.event_date).toLocaleDateString()}
                           </div>
                         )}
@@ -1143,23 +1143,23 @@ export default function PublicProfilePage() {
             {/* Right column */}
             <div className="space-y-4">
               {/* Skills */}
-              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
                   Skills
                 </h2>
                 {skills.length === 0 ? (
-                  <p className="text-[13px] text-neutral-500">No skills yet.</p>
+                  <p className="text-[13px] text-ink-subtle">No skills yet.</p>
                 ) : (
                   <ul className="space-y-2">
                     {skills.map(sk => (
                       <li
                         key={sk.id}
-                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3 flex justify-between items-center"
+                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 flex justify-between items-center"
                       >
-                        <span className="font-medium text-neutral-900">
+                        <span className="font-medium text-ink-strong">
                           {sk.skill}
                         </span>
-                        <span className="text-[13px] italic text-neutral-600">
+                        <span className="text-[13px] italic text-ink-muted">
                           {sk.level}
                         </span>
                       </li>
@@ -1169,12 +1169,12 @@ export default function PublicProfilePage() {
               </section>
 
               {/* Recommendations */}
-              <section className="rounded-3xl border border-neutral-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-neutral-900">
+              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
+                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
                   Recommendations
                 </h2>
                 {recommendations.length === 0 ? (
-                  <p className="text-[13px] text-neutral-500">
+                  <p className="text-[13px] text-ink-subtle">
                     No recommendations yet.
                   </p>
                 ) : (
@@ -1182,13 +1182,13 @@ export default function PublicProfilePage() {
                     {recommendations.map(r => (
                       <blockquote
                         key={r.id}
-                        className="rounded-2xl border border-neutral-200 bg-neutral-50 px-3 py-3"
+                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3"
                       >
-                        <p className="italic text-neutral-900">
+                        <p className="italic text-ink-strong">
                           “{r.content}”
                         </p>
                         {r.author && (
-                          <p className="text-xs mt-1 text-neutral-500">
+                          <p className="text-xs mt-1 text-ink-subtle">
                             — {r.author}
                           </p>
                         )}
@@ -1258,27 +1258,27 @@ export default function PublicProfilePage() {
       {/* FOLLOWERS MODAL */}
       {showFollowersModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-height-[80vh] max-h-[80vh] overflow-y-auto p-6 relative">
+          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-height-[80vh] max-h-[80vh] overflow-y-auto p-6 relative">
             <button
-              className="absolute top-3 right-4 text-3xl font-bold text-neutral-900"
+              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
               onClick={() => setShowFollowersModal(false)}
             >
               ×
             </button>
 
-            <h2 className="text-xl font-semibold mb-4 text-neutral-900">
+            <h2 className="text-xl font-semibold mb-4 text-ink-strong">
               Followers
             </h2>
 
             {followersList.length === 0 ? (
-              <p className="text-[13px] text-neutral-500">No followers yet.</p>
+              <p className="text-[13px] text-ink-subtle">No followers yet.</p>
             ) : (
               <ul className="space-y-4">
                 {followersList.map(user => (
                   <li key={user.id}>
                     <Link
                       href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
                     >
                       <img
                         src={user.avatar_url ?? '/default-avatar.png'}
@@ -1287,10 +1287,10 @@ export default function PublicProfilePage() {
                       />
 
                       <div className="flex-1">
-                        <p className="font-medium text-neutral-900">
+                        <p className="font-medium text-ink-strong">
                           {user.display_name}
                         </p>
-                        <p className="text-xs text-neutral-500">
+                        <p className="text-xs text-ink-subtle">
                           @{user.handle}
                         </p>
                       </div>
@@ -1303,8 +1303,8 @@ export default function PublicProfilePage() {
                           }}
                           className={`px-3 py-1 text-xs rounded-lg border ${
                             myFollowingIds.includes(user.id)
-                              ? 'bg-neutral-200 text-neutral-800'
-                              : 'bg-neutral-900 text-white'
+                              ? 'bg-line-strong text-ink-strong'
+                              : 'bg-ink-strong text-white'
                           }`}
                         >
                           {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
@@ -1322,20 +1322,20 @@ export default function PublicProfilePage() {
       {/* FOLLOWING MODAL */}
       {showFollowingModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-white rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
+          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
             <button
-              className="absolute top-3 right-4 text-3xl font-bold text-neutral-900"
+              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
               onClick={() => setShowFollowingModal(false)}
             >
               ×
             </button>
 
-            <h2 className="text-xl font-semibold mb-4 text-neutral-900">
+            <h2 className="text-xl font-semibold mb-4 text-ink-strong">
               Following
             </h2>
 
             {followingList.length === 0 ? (
-              <p className="text-[13px] text-neutral-500">
+              <p className="text-[13px] text-ink-subtle">
                 Not following anyone yet.
               </p>
             ) : (
@@ -1344,7 +1344,7 @@ export default function PublicProfilePage() {
                   <li key={user.id}>
                     <Link
                       href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 hover:bg-neutral-50"
+                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
                     >
                       <img
                         src={user.avatar_url ?? '/default-avatar.png'}
@@ -1353,10 +1353,10 @@ export default function PublicProfilePage() {
                       />
 
                       <div className="flex-1">
-                        <p className="font-medium text-neutral-900">
+                        <p className="font-medium text-ink-strong">
                           {user.display_name}
                         </p>
-                        <p className="text-xs text-neutral-500">
+                        <p className="text-xs text-ink-subtle">
                           @{user.handle}
                         </p>
                       </div>
@@ -1369,8 +1369,8 @@ export default function PublicProfilePage() {
                           }}
                           className={`px-3 py-1 text-xs rounded-lg border ${
                             myFollowingIds.includes(user.id)
-                              ? 'bg-neutral-200 text-neutral-800'
-                              : 'bg-neutral-900 text-white'
+                              ? 'bg-line-strong text-ink-strong'
+                              : 'bg-ink-strong text-white'
                           }`}
                         >
                           {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
@@ -1404,14 +1404,14 @@ function StatPill({
     <div className="flex flex-col items-center justify-center">
       <div
         className={`text-lg font-semibold ${
-          inverse ? 'text-white' : 'text-neutral-900'
+          inverse ? 'text-white' : 'text-ink-strong'
         }`}
       >
         {value}
       </div>
       <div
         className={`text-[11px] ${
-          inverse ? 'text-neutral-200' : 'text-neutral-600'
+          inverse ? 'text-ink-disabled' : 'text-ink-muted'
         }`}
       >
         {label}

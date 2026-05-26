@@ -6,44 +6,27 @@ import BottomNav from './BottomNav';
 import SideNav from './SideNav';
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isAuthPage =
-  pathname === '/login' ||
-  pathname === '/reset-password';
-  const isChatPage = pathname?.endsWith('/chat') || (pathname?.includes('/chat/') && pathname !== '/chat');
+  const pathname = usePathname() ?? '';
+  const isAuthPage = pathname === '/login' || pathname === '/reset-password';
+  const isChatPage =
+    pathname.endsWith('/chat') || (pathname.includes('/chat/') && pathname !== '/chat');
 
   return (
-    <div className="min-h-screen w-full flex">
-      
-      {/* SIDENAV (Desktop) */}
-      {!isAuthPage && (
-        <aside className="hidden md:flex fixed top-0 left-0 h-screen w-64 border-neutral-200 bg-white z-40">
-          <SideNav />
-        </aside>
-      )}
+    <div className="min-h-screen w-full flex bg-surface-muted">
+      {/* SideNav — desktop */}
+      {!isAuthPage && <SideNav />}
 
-      {/* MAIN CONTENT AREA */}
-      <div className={`flex-1 w-full ${!isAuthPage ? 'md:ml-64' : ''}`}>
-        
-        {/* Top Nav (Mobile only) */}
-        {!isAuthPage && (
-          <div className="md:hidden fixed top-0 left-0 w-full z-50 bg-white">
-            <TopNav />
-          </div>
-        )}
+      <div className={`flex-1 min-w-0 w-full ${!isAuthPage ? 'md:ml-64' : ''}`}>
+        {/* TopNav — mobile only */}
+        {!isAuthPage && <TopNav />}
 
-        {/* Page content (children) */}
-        <div className={`${!isAuthPage && !isChatPage ? 'pt-14 md:pt-0 pb-20 md:pb-0' : ''}`}>
+        <div className={!isAuthPage && !isChatPage ? 'pt-14 md:pt-0 pb-24 md:pb-8' : ''}>
           {children}
         </div>
       </div>
 
-      {/* Bottom Nav (Mobile only) */}
-      {!isAuthPage && (
-        <div className="md:hidden fixed bottom-0 left-0 w-full z-50 bg-white">
-          <BottomNav />
-        </div>
-      )}
+      {/* BottomNav — mobile only */}
+      {!isAuthPage && <BottomNav />}
     </div>
   );
 }

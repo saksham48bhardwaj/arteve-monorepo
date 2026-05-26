@@ -63,7 +63,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row bg-[#F5F7FA] text-[#333]">
+    <main className="min-h-screen flex flex-col md:flex-row bg-surface-muted text-ink">
       {/* Desktop left hero */}
       <section className="relative hidden md:flex md:w-1/2 lg:w-3/5">
         <Image
@@ -103,20 +103,20 @@ export default function LoginPage() {
                 height={40}
                 className="mx-auto mt-2 mb-8"
               />
-              <p className="mt-1.5 text-[#666] text-center">
+              <p className="mt-1.5 text-ink-muted text-center">
                 Find verified artists, manage bookings, and keep every event on
                 track.
               </p>
             </div>
             <div className="mb-6 flex justify-center">
-              <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 text-sm font-medium p-1">
+              <div className="inline-flex items-center rounded-full border border-line bg-surface-sunken text-sm font-medium p-1">
                 <button
                   type="button"
                   onClick={() => setMode('signin')}
                   className={`px-4 py-1.5 rounded-full transition-all ${
                     mode === 'signin'
-                      ? 'bg-[#4E7FA2] text-white shadow-sm'
-                      : 'text-slate-600'
+                      ? 'bg-brand text-white shadow-sm'
+                      : 'text-ink-muted'
                   }`}
                 >
                   Sign in
@@ -126,8 +126,8 @@ export default function LoginPage() {
                   onClick={() => setMode('signup')}
                   className={`px-4 py-1.5 rounded-full transition-all ${
                     mode === 'signup'
-                      ? 'bg-[#4E7FA2] text-white shadow-sm'
-                      : 'text-slate-600'
+                      ? 'bg-brand text-white shadow-sm'
+                      : 'text-ink-muted'
                   }`}
                 >
                   Create account
@@ -137,11 +137,11 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="block font-medium text-[#333]">
+                <label className="block font-medium text-ink">
                   Work email
                 </label>
                 <input
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-[#333] placeholder:text-slate-400 outline-none transition focus:border-[#4E7FA2] focus:bg-white focus:ring-2 focus:ring-[#4E7FA2]/15"
+                  className="w-full rounded-2xl border border-line bg-surface-sunken px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-subtle outline-none transition focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand-100"
                   type="email"
                   placeholder="you@company.com"
                   value={email}
@@ -152,12 +152,12 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="block font-medium text-[#333]">
+                <label className="block font-medium text-ink">
                   Password
                 </label>
                 <div className="relative">
                   <input
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-11 text-sm text-[#333] placeholder:text-slate-400 outline-none transition focus:border-[#4E7FA2] focus:bg-white focus:ring-2 focus:ring-[#4E7FA2]/15"
+                    className="w-full rounded-2xl border border-line bg-surface-sunken px-3.5 py-2.5 pr-11 text-sm text-ink placeholder:text-ink-subtle outline-none transition focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand-100"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={password}
@@ -171,7 +171,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-ink-muted transition"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
@@ -211,7 +211,7 @@ export default function LoginPage() {
               </div>
 
               {msg && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs text-red-700">
+                <div className="rounded-2xl border border-danger/30 bg-danger/5 px-3.5 py-2 text-xs text-danger">
                   {msg}
                 </div>
               )}
@@ -219,7 +219,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center rounded-2xl bg-[#4E7FA2] px-4 py-2.75 font-medium text-white shadow-sm transition hover:bg-[#406785] disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex w-full items-center justify-center rounded-2xl bg-brand px-4 py-2.75 font-medium text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading
                   ? 'Please wait…'
@@ -233,7 +233,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={handleForgotPassword}
-                    className="text-xs text-[#4E7FA2] hover:underline"
+                    className="text-xs text-brand hover:underline"
                   >
                     Forgot password?
                   </button>
@@ -241,12 +241,12 @@ export default function LoginPage() {
               )}
 
               {resetSent && (
-                <div className="rounded-2xl border border-green-200 bg-green-50 px-3.5 py-2 text-xs text-green-700">
+                <div className="rounded-2xl border border-success/30 bg-success/5 px-3.5 py-2 text-xs text-success">
                   Password reset link sent. Check your email.
                 </div>
               )}
 
-              <p className="text-[11px] leading-relaxed text-slate-500 text-center">
+              <p className="text-[11px] leading-relaxed text-ink-subtle text-center">
                 By continuing, you agree to Arteve&apos;s&nbsp;
                 <span className="underline underline-offset-2">
                   terms of use

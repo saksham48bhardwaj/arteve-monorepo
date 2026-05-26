@@ -19,11 +19,11 @@ function MyGigsContent() {
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 py-6 space-y-8">
       <header>
-        <p className="text-xs uppercase tracking-wide text-[#4E7FA2]">
+        <p className="text-xs uppercase tracking-wide text-brand">
           Musician · My Gigs
         </p>
         <h1 className="text-3xl font-bold">My Gigs</h1>
-        <p className="text-slate-500">
+        <p className="text-ink-subtle">
           Track applications and confirmed bookings.
         </p>
       </header>
@@ -48,7 +48,7 @@ function MyGigsContent() {
 function Loading() {
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 py-6">
-      <p className="text-slate-500">Loading gigs…</p>
+      <p className="text-ink-subtle">Loading gigs…</p>
     </main>
   );
 }
@@ -65,8 +65,8 @@ function Tab({ href, active, children }: TabProps) {
       href={href}
       className={`pb-2 text-sm font-medium border-b-2 ${
         active
-          ? 'border-[#4E7FA2] text-[#1f3f59]'
-          : 'border-transparent text-slate-500'
+          ? 'border-brand text-brand-700'
+          : 'border-transparent text-ink-subtle'
       }`}
     >
       {children}

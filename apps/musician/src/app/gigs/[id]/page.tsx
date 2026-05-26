@@ -69,7 +69,11 @@ export default function GigDetailPage() {
     load();
   }, [id]);
 
-  if (loading) return <main className="p-6">Loading gig…</main>;
+  if (loading) return (
+    <main className="page page-narrow">
+      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading gig…</p></div>
+    </main>
+  );
   if (!gig) return <main className="p-6">Gig not found.</main>;
 
   return (
@@ -77,8 +81,8 @@ export default function GigDetailPage() {
       {/* ================================
           GIG HEADER
       ================================= */}
-      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-8 space-y-4">
-        <p className="text-xs text-gray-400">
+      <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-8 space-y-4">
+        <p className="text-xs text-ink-subtle">
           Gig ID: {gig.id.slice(0, 8)}…
         </p>
 
@@ -87,11 +91,11 @@ export default function GigDetailPage() {
         </h1>
 
         {gig.location && (
-          <p className="text-sm text-gray-600">{gig.location}</p>
+          <p className="text-sm text-ink-muted">{gig.location}</p>
         )}
 
         {(gig.event_date || gig.event_time) && (
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-ink-muted">
             {gig.event_date &&
               new Date(gig.event_date).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -103,7 +107,7 @@ export default function GigDetailPage() {
         )}
 
         {(gig.budget_min !== null || gig.budget_max !== null) && (
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-ink-muted">
             Budget:{' '}
             {gig.budget_min !== null ? `$${gig.budget_min}` : 'TBD'}
             {gig.budget_max !== null ? ` – $${gig.budget_max}` : ''}
@@ -115,7 +119,7 @@ export default function GigDetailPage() {
             {gig.genres.map((g) => (
               <span
                 key={g}
-                className="px-3 py-1 rounded-full bg-gray-100 text-xs text-gray-700"
+                className="px-3 py-1 rounded-full bg-surface-sunken text-xs text-ink"
               >
                 {g}
               </span>
@@ -128,18 +132,18 @@ export default function GigDetailPage() {
           ORGANIZER INFO
       ================================= */}
       {organizer && (
-        <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-6 flex gap-4 items-center">
+        <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-6 flex gap-4 items-center">
           <img
             src={organizer.avatar_url ?? '/placeholder-avatar.png'}
             alt="Organizer"
-            className="w-16 h-16 rounded-2xl object-cover border border-gray-200"
+            className="w-16 h-16 rounded-2xl object-cover border border-line"
           />
           <div className="flex-1 space-y-1">
             <h2 className="text-lg font-semibold">
               {organizer.display_name ?? 'Organizer'}
             </h2>
             {organizer.location && (
-              <p className="text-sm text-gray-600">{organizer.location}</p>
+              <p className="text-sm text-ink-muted">{organizer.location}</p>
             )}
             <Link
               href={`/profile/${organizer.handle}`}
@@ -154,19 +158,19 @@ export default function GigDetailPage() {
       {/* ================================
           DESCRIPTION
       ================================= */}
-      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-6 space-y-3">
+      <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-6 space-y-3">
         <h2 className="text-xl font-semibold tracking-tight">Event Overview</h2>
-        <p className="text-sm text-gray-800 whitespace-pre-line leading-relaxed">
+        <p className="text-sm text-ink-strong whitespace-pre-line leading-relaxed">
           {gig.description ?? 'No description provided.'}
         </p>
       </section>
 
       {/* APPLY SECTION (inside page, not fixed) */}
-      <section className="rounded-3xl border border-gray-200 bg-white shadow-sm px-6 py-6 space-y-4">
+      <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-6 space-y-4">
         <h2 className="text-lg font-semibold tracking-tight">Ready to apply?</h2>
 
         {gig.status !== 'open' ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-ink-subtle">
             This gig is no longer accepting applications.
           </p>
         ) : (
