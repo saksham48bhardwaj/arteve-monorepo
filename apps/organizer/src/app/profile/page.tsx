@@ -167,17 +167,6 @@ export default function OrganizerProfilePage() {
 
   return (
     <main className="w-full mx-auto" style={{ maxWidth: 720 }}>
-      {/* Sticky username header */}
-      <header className="sticky top-14 md:top-0 z-20 flex items-center justify-between px-4 py-3 border-b border-line bg-surface/90 backdrop-blur">
-        <div className="w-8" />
-        <h1 className="text-base font-semibold text-ink-strong truncate">@{username}</h1>
-        <Link href="/profile/edit" aria-label="Edit profile" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-muted hover:bg-surface-sunken hover:text-ink transition">
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
-          </svg>
-        </Link>
-      </header>
-
       <div className="px-4 md:px-6 pt-5 pb-8">
         {/* AVATAR + STATS ROW */}
         <div className="flex items-center gap-5">
