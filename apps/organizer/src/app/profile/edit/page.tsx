@@ -15,6 +15,8 @@ import {
   Spinner,
   Badge,
   EmptyState,
+  AvatarCropper,
+  toast,
 } from '@arteve/ui/components';
 
 type Profile = {
@@ -38,6 +40,7 @@ export default function OrganizerProfileEditPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
@@ -85,23 +88,40 @@ export default function OrganizerProfileEditPage() {
     })();
   }, [router]);
 
-  async function handleAvatarUpload(e: ChangeEvent<HTMLInputElement>) {
-    if (!userId) return;
+  function handleAvatarPick(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!userId) {
+      toast.error('User not loaded yet');
+      return;
+    }
+    e.target.value = '';
+    setPendingAvatarFile(file);
+  }
+
+  async function uploadCroppedAvatar(blob: Blob) {
+    if (!userId) return;
     setUploadingAvatar(true);
     setErr(null);
     try {
-      const ext = file.name.split('.').pop() ?? 'jpg';
-      const path = `avatars/${userId}/${crypto.randomUUID()}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('media').upload(path, file, { upsert: true });
-      if (uploadError) { setErr(uploadError.message); setUploadingAvatar(false); return; }
+      const path = `avatars/${userId}/${crypto.randomUUID()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+      if (uploadError) {
+        setErr(uploadError.message);
+        toast.error(uploadError.message);
+        return;
+      }
       const { data: publicUrl } = supabase.storage.from('media').getPublicUrl(path);
       if (publicUrl?.publicUrl) setAvatarUrl(publicUrl.publicUrl);
+      setPendingAvatarFile(null);
     } catch {
       setErr('Avatar upload failed.');
+      toast.error('Avatar upload failed.');
+    } finally {
+      setUploadingAvatar(false);
     }
-    setUploadingAvatar(false);
   }
 
   async function handleVenuePhotoUpload(e: ChangeEvent<HTMLInputElement>) {
@@ -212,7 +232,7 @@ export default function OrganizerProfileEditPage() {
           <div className="relative">
             <Avatar src={avatarUrl} alt={venueName || 'Venue'} size="xl" />
             <label className="absolute -bottom-1 -right-1 inline-flex items-center justify-center h-8 w-8 rounded-full bg-brand text-white shadow cursor-pointer hover:bg-brand-600 transition">
-              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+              <input type="file" accept="image/*" className="hidden" onChange={handleAvatarPick} />
               {uploadingAvatar ? (
                 <Spinner size={14} />
               ) : (
@@ -342,6 +362,12 @@ export default function OrganizerProfileEditPage() {
         )}
         {err && <Badge tone="danger">{err}</Badge>}
       </div>
+
+      <AvatarCropper
+        file={pendingAvatarFile}
+        onCancel={() => setPendingAvatarFile(null)}
+        onCropped={uploadCroppedAvatar}
+      />
     </Page>
   );
 }

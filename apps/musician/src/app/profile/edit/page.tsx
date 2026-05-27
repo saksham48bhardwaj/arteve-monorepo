@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
-import { toast } from '@arteve/ui/components';
+import { AvatarCropper, toast } from '@arteve/ui/components';
 
 type Profile = {
   id: string;
@@ -49,6 +49,7 @@ export default function EditProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -170,26 +171,31 @@ export default function EditProfilePage() {
     })();
   }, [router]);
 
-  async function handleAvatarUpload(e: ChangeEvent<HTMLInputElement>) {
-    try {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      if (!userId) {
-        toast.error('User not loaded yet');
-        return;
-      }
+  function handleAvatarPick(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!userId) {
+      toast.error('User not loaded yet');
+      return;
+    }
+    // Reset the input so picking the same file twice still triggers onChange
+    e.target.value = '';
+    setPendingAvatarFile(file);
+  }
 
+  async function uploadCroppedAvatar(blob: Blob) {
+    if (!userId) return;
+    try {
       setAvatarUploading(true);
       setErr(null);
       setSuccess(null);
 
-      const ext = file.name.split('.').pop();
-      const fileName = `${userId}-${Date.now()}.${ext}`;
+      const fileName = `${userId}-${Date.now()}.jpg`;
       const filePath = `profiles/${userId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file);
+        .upload(filePath, blob, { contentType: 'image/jpeg', upsert: false });
 
       if (uploadError) throw uploadError;
 
@@ -205,10 +211,12 @@ export default function EditProfilePage() {
 
       setAvatarUrl(publicUrl);
       setSuccess('Avatar updated successfully.');
+      setPendingAvatarFile(null);
     } catch (error) {
       console.error('AVATAR UPLOAD ERROR:', error);
-      if (error instanceof Error) setErr(error.message);
-      else setErr('Failed to upload avatar');
+      const msg = error instanceof Error ? error.message : 'Failed to upload avatar';
+      setErr(msg);
+      toast.error(msg);
     } finally {
       setAvatarUploading(false);
     }
@@ -593,7 +601,7 @@ export default function EditProfilePage() {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={handleAvatarUpload}
+                onChange={handleAvatarPick}
               />
             </label>
           </div>
@@ -1110,6 +1118,12 @@ export default function EditProfilePage() {
           </form>
         </div>
       )}
+
+      <AvatarCropper
+        file={pendingAvatarFile}
+        onCancel={() => setPendingAvatarFile(null)}
+        onCropped={uploadCroppedAvatar}
+      />
     </main>
   );
 }
