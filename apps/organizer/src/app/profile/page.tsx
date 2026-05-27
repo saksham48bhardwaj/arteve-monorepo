@@ -13,6 +13,7 @@ import {
   Tabs,
   Modal,
   Spinner,
+  SocialLink,
 } from '@arteve/ui/components';
 
 type Profile = {
@@ -21,6 +22,7 @@ type Profile = {
   avatar_url: string | null;
   role: string | null;
   bio: string | null;
+  quote: string | null;
   location: string | null;
   links: Record<string, string> | null;
   venue_photos: string[] | null;
@@ -264,39 +266,93 @@ export default function OrganizerProfilePage() {
 
       {/* ABOUT */}
       {activeTab === 'about' && (
-        <section className="px-4 md:px-6 mt-4 space-y-4 pb-8">
-          <Card>
-            {profile.bio ? (
-              <>
-                <h2 className="section-title mb-2">About</h2>
-                <p className="text-sm text-ink leading-relaxed whitespace-pre-line">{profile.bio}</p>
-              </>
-            ) : (
-              <EmptyState title="No bio yet" description="Tell artists about your venue in the editor." />
-            )}
-
-            {validLinks.length > 0 && (
-              <div className="mt-5 pt-5 border-t border-line">
-                <h3 className="text-sm font-semibold text-ink-strong mb-2">Links</h3>
-                <div className="flex flex-wrap gap-2">
-                  {validLinks.map(([key, value]) => (
-                    <a
-                      key={key}
-                      href={value as string}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken transition"
-                    >
-                      {key}
-                      <svg viewBox="0 0 24 24" className="h-3 w-3 text-ink-subtle" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M7 17 17 7" /><path d="M7 7h10v10" />
-                      </svg>
-                    </a>
-                  ))}
-                </div>
+        <section className="mt-4 pb-8">
+          {/* QUOTE / TAGLINE BANNER */}
+          {profile.quote && (
+            <div className="relative w-full overflow-hidden h-44 md:h-52">
+              {(() => {
+                const bgPhoto = venuePhotos[0];
+                return bgPhoto ? (
+                  <img src={bgPhoto} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--brand-700),var(--brand-500),var(--accent-500))]" />
+                );
+              })()}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/60 to-black/35" />
+              <div className="relative h-full flex items-center justify-center px-6 md:px-10 text-center">
+                <p className="text-white text-base md:text-lg font-semibold italic leading-snug max-w-xl drop-shadow">
+                  &ldquo;{profile.quote}&rdquo;
+                </p>
               </div>
+            </div>
+          )}
+
+          {/* ABOUT */}
+          <div className="px-4 md:px-6 mt-6">
+            <h3 className="text-base font-bold text-ink-strong mb-3">About</h3>
+            {profile.bio ? (
+              <p className="text-sm text-ink leading-relaxed whitespace-pre-line">{profile.bio}</p>
+            ) : (
+              <p className="text-sm text-ink-subtle">No bio added yet.</p>
             )}
-          </Card>
+          </div>
+
+          {/* LOCATION */}
+          {profile.location && (
+            <div className="px-4 md:px-6 mt-6">
+              <h3 className="text-base font-bold text-ink-strong mb-3">Location</h3>
+              <div className="flex items-start gap-2 text-sm text-ink">
+                <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-brand mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-9 8-14a8 8 0 0 0-16 0c0 5 8 14 8 14z" /><circle cx="12" cy="8" r="3" />
+                </svg>
+                <span>{profile.location}</span>
+              </div>
+            </div>
+          )}
+
+          {/* VENUE HIGHLIGHTS — gallery row */}
+          {venuePhotos.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-base font-bold text-ink-strong mb-3 px-4 md:px-6">Venue gallery</h3>
+              <div className="flex gap-3 overflow-x-auto px-4 md:px-6 pb-2 scroll-smooth snap-x snap-mandatory">
+                {venuePhotos.map((url, i) => (
+                  <a
+                    key={`${url}-${i}`}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="relative shrink-0 w-56 md:w-64 h-40 rounded-2xl overflow-hidden border border-line snap-start bg-surface-sunken"
+                  >
+                    <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform hover:scale-105" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SOCIAL LINKS */}
+          {validLinks.length > 0 && (
+            <div className="px-4 md:px-6 mt-6">
+              <h3 className="text-base font-bold text-ink-strong mb-3">Social Links</h3>
+              <div className="flex flex-wrap items-center gap-3">
+                {validLinks.map(([key, value]) => (
+                  <SocialLink key={key} name={key} href={value as string} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!profile.bio && !profile.location && venuePhotos.length === 0 && validLinks.length === 0 && (
+            <div className="px-4 md:px-6 mt-4">
+              <EmptyState
+                title="Profile is still empty"
+                description="Add a bio, location, photos, and social links to bring your venue to life."
+                action={
+                  <Link href="/profile/edit"><Button>Edit profile</Button></Link>
+                }
+              />
+            </div>
+          )}
         </section>
       )}
 

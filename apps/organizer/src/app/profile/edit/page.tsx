@@ -23,6 +23,7 @@ type Profile = {
   avatar_url: string | null;
   role: string | null;
   bio: string | null;
+  quote: string | null;
   location: string | null;
   links: Record<string, string> | null;
   venue_photos: string[] | null;
@@ -42,6 +43,7 @@ export default function OrganizerProfileEditPage() {
 
   const [venueName, setVenueName] = useState('');
   const [bio, setBio] = useState('');
+  const [quote, setQuote] = useState('');
   const [location, setLocation] = useState('');
   const [instagram, setInstagram] = useState('');
   const [youtube, setYoutube] = useState('');
@@ -69,6 +71,7 @@ export default function OrganizerProfileEditPage() {
         const p = data as Profile;
         setVenueName(p.display_name ?? '');
         setBio(p.bio ?? '');
+        setQuote(p.quote ?? '');
         setLocation(p.location ?? '');
         setAvatarUrl(p.avatar_url ?? '');
         setHandle(p.handle ?? '');
@@ -160,6 +163,7 @@ export default function OrganizerProfileEditPage() {
           display_name: venueName || null,
           role: 'organizer',
           bio: bio || null,
+          quote: quote || null,
           location: location || null,
           avatar_url: avatarUrl || null,
           links,
@@ -236,6 +240,13 @@ export default function OrganizerProfileEditPage() {
             value={venueName}
             onChange={(e) => setVenueName(e.target.value)}
             placeholder="The Blue Stage"
+          />
+          <Input
+            label="Tagline"
+            value={quote}
+            onChange={(e) => setQuote(e.target.value)}
+            placeholder="A one-liner that captures your venue's vibe"
+            helper="Shown as a banner on your public profile."
           />
           <Textarea
             label="About this venue"
