@@ -27,6 +27,17 @@ function EyeIcon({ off }: { off: boolean }) {
   );
 }
 
+function GoogleGlyph() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 18 18" aria-hidden>
+      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.17-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.88 2.68-6.62z" />
+      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.93v2.32A9 9 0 0 0 9 18z" />
+      <path fill="#FBBC05" d="M3.97 10.72A5.41 5.41 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.96H.93A9 9 0 0 0 0 9c0 1.45.35 2.83.93 4.04l3.04-2.32z" />
+      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.34l2.58-2.58A9 9 0 0 0 9 0 9 9 0 0 0 .93 4.96L3.97 7.28C4.68 5.16 6.66 3.58 9 3.58z" />
+    </svg>
+  );
+}
+
 type Mode = 'signin' | 'signup' | 'forgot';
 
 export default function OrganizerLoginPage() {
@@ -47,6 +58,40 @@ export default function OrganizerLoginPage() {
   function clearMessages() {
     setErrMsg(null);
     setInfoMsg(null);
+  }
+
+  async function handleGoogle() {
+    clearMessages();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    // No need to setLoading(false) — we're redirecting away on success
+    if (error) {
+      setErrMsg(authErrorMessage(error));
+      setLoading(false);
+    }
+  }
+
+  async function handleMagicLink() {
+    clearMessages();
+    if (!email) { setErrMsg('Enter your email first.'); return; }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    setLoading(false);
+    if (error) {
+      setErrMsg(authErrorMessage(error));
+    } else {
+      setInfoMsg(`Magic link sent to ${email}. Click it to sign in — no password needed.`);
+    }
   }
 
   async function handleForgotPassword(e: FormEvent<HTMLFormElement>) {
@@ -208,6 +253,26 @@ export default function OrganizerLoginPage() {
               </div>
             )}
 
+            {/* OAuth + magic link section (hidden in forgot mode) */}
+            {!isForgot && (
+              <div className="space-y-2.5">
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={loading}
+                  className="w-full inline-flex items-center justify-center gap-2.5 rounded-full border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink-strong hover:bg-surface-sunken hover:border-line-strong transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <GoogleGlyph />
+                  Continue with Google
+                </button>
+                <div className="relative flex items-center text-[11px] uppercase tracking-[0.15em] text-ink-subtle py-1">
+                  <span className="flex-1 border-t border-line" />
+                  <span className="px-3">or with email</span>
+                  <span className="flex-1 border-t border-line" />
+                </div>
+              </div>
+            )}
+
             <form onSubmit={isForgot ? handleForgotPassword : handleSubmit} className="space-y-4">
               <Input
                 type="email"
@@ -281,6 +346,18 @@ export default function OrganizerLoginPage() {
                 {isForgot ? 'Send reset link' : mode === 'signup' ? 'Create account' : 'Sign in'}
               </Button>
 
+              {/* Magic link option (sign-in mode only) */}
+              {mode === 'signin' && (
+                <button
+                  type="button"
+                  onClick={handleMagicLink}
+                  disabled={loading}
+                  className="w-full text-center text-xs font-medium text-ink-muted hover:text-ink-strong disabled:opacity-50 -mt-1"
+                >
+                  Or email me a magic link instead →
+                </button>
+              )}
+
               {/* Footer row */}
               <div className="flex items-center justify-between text-xs font-medium pt-0.5">
                 {mode === 'signin' && (
@@ -292,7 +369,7 @@ export default function OrganizerLoginPage() {
                     >
                       Forgot password?
                     </button>
-                    <span className="text-ink-subtle">New here? Use Create account ↑</span>
+                    <span className="text-ink-subtle">New? Use Create account ↑</span>
                   </>
                 )}
                 {mode === 'signup' && (

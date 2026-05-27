@@ -103,11 +103,10 @@ export default function AccountPage() {
     if (!userId) return;
     setDeleting(true);
     try {
-      // Best-effort: clear the user's profile + storage we own. Full auth.users
-      // deletion needs an admin-key Edge Function — we mark the profile as
-      // deleted and sign the user out. A backend cron can hard-delete later.
+      // 1. Tombstone the profile first so it disappears from search/feed even
+      //    if the auth deletion partially fails.
       const now = new Date().toISOString();
-      const tombstone = {
+      await supabase.from('profiles').update({
         display_name: 'Deleted user',
         handle: `deleted_${userId.slice(0, 8)}`,
         bio: null,
@@ -117,10 +116,19 @@ export default function AccountPage() {
         links: null,
         quote: null,
         deleted_at: now,
-      };
-      await supabase.from('profiles').update(tombstone).eq('id', userId);
+      }).eq('id', userId);
+
+      // 2. Hard-delete the auth.users row via our Edge Function (service role).
+      //    If this fails we still log the user out; a follow-up cron can clean up.
+      const { error: fnError } = await supabase.functions.invoke('delete-account');
+      if (fnError) {
+        console.error('delete-account edge function failed', fnError);
+        toast.error('Account marked deleted but auth row could not be removed. Contact support if needed.');
+      } else {
+        toast.success('Your account has been deleted.');
+      }
+
       await supabase.auth.signOut({ scope: 'global' });
-      toast.success('Your account has been deleted.');
       router.push('/login');
     } catch (err) {
       toast.error(authErrorMessage(err));
