@@ -19,7 +19,7 @@ const mainNav: { href: string; label: string; icon: IconName }[] = [
 ];
 
 const secondaryNav: { href: string; label: string; icon: IconName; badge?: boolean }[] = [
-  { href: '/bookings', label: 'Bookings', icon: 'calendar' },
+  { href: '/gigs?tab=bookings', label: 'Gigs', icon: 'calendar' },
   { href: '/chat', label: 'Messages', icon: 'message' },
   { href: '/notifications', label: 'Notifications', icon: 'bell', badge: true },
 ];

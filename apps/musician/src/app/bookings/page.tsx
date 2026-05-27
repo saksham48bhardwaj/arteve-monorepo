@@ -1,18 +1,19 @@
 'use client';
 
-import BookingsList from '@/components/gigs/BookingsList';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Spinner } from '@arteve/ui/components';
 
-export default function MusicianBookingsPage() {
+// Legacy route — canonical URL is /gigs?tab=bookings.
+// /bookings/[bookingId] (detail) and /bookings/[bookingId]/chat are kept.
+export default function LegacyBookingsListPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/gigs?tab=bookings');
+  }, [router]);
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold">My Bookings</h1>
-        <p className="text-sm text-ink-muted">
-          Bookings you’ve confirmed with organizers.
-        </p>
-      </header>
-
-      <BookingsList />
+    <main className="page page-narrow flex items-center justify-center">
+      <Spinner />
     </main>
   );
 }

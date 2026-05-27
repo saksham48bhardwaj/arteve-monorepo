@@ -123,10 +123,10 @@ const TONE_BG: Record<string, string> = {
 function resolveLink(n: Notification): string {
   const d = (n.data ?? {}) as Record<string, string | number | undefined>;
   switch (n.type) {
-    case 'gig_application':   return `/applications/${d.application_id ?? ''}`;
-    case 'application_status': return d.gig_id ? `/gigs/${d.gig_id}` : '/applications/mine';
+    case 'gig_application':    return '/gigs?tab=applications';
+    case 'application_status': return d.gig_id ? `/gigs/${d.gig_id}` : '/gigs?tab=applications';
     case 'gig_closed':         return d.gig_id ? `/gigs/${d.gig_id}` : '/notifications';
-    case 'booking_created':    return d.booking_id ? `/bookings/${d.booking_id}` : '/bookings';
+    case 'booking_created':    return d.booking_id ? `/bookings/${d.booking_id}` : '/gigs?tab=bookings';
     case 'new_message':        return d.booking_id ? `/bookings/${d.booking_id}/chat` : '/chat';
     case 'follow':             return d.actor_handle ? `/profile/${d.actor_handle}` : '/profile';
     case 'like':
