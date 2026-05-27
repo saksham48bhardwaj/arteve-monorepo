@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Fraunces:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:wght@500;600;700&display=swap');
 
 /* =========================================================================
    ARTEVE — Unified Design Tokens (Light)
@@ -81,8 +81,11 @@
   --shadow-xl:  0 28px 64px rgba(28, 26, 23, 0.12);
 
   /* Type families */
-  --font-sans:    'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Fraunces', 'Poppins', Georgia, serif;
+  --font-sans:    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Fraunces', 'Inter', Georgia, serif;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* =========================================================================
@@ -163,15 +166,25 @@ body {
   background-color: var(--surface-muted);
   color: var(--ink);
   font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01', 'ss03'; /* Inter — modern figures + alt characters */
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  letter-spacing: -0.005em;
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-display);
-  letter-spacing: -0.01em;
   color: var(--ink-strong);
+  letter-spacing: -0.018em;
+  font-feature-settings: 'ss01', 'ss03';
 }
+
+h1 { font-weight: 700; }
+h2 { font-weight: 600; }
+h3, h4 { font-weight: 600; }
+
+/* Stats / numeric labels — tabular figures for crisp alignment */
+.tabular { font-variant-numeric: tabular-nums; }
 
 ::selection {
   background-color: var(--brand-200);
@@ -180,11 +193,16 @@ h1, h2, h3, h4 {
 
 a { color: inherit; }
 
-/* Focus ring — consistent, brand-coloured */
+/* Focus ring — consistent, brand-coloured, snug */
 *:focus-visible {
   outline: 2px solid var(--brand-500);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 8px;
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline-offset: 3px;
 }
 
 /* =========================================================================
@@ -195,20 +213,27 @@ a { color: inherit; }
 
   /* ---------- Buttons ---------- */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 select-none whitespace-nowrap
-           text-sm font-medium leading-none rounded-full
-           px-4 py-2.5 transition-all duration-150
+    @apply inline-flex items-center justify-center gap-1.5 select-none whitespace-nowrap
+           text-sm font-semibold leading-none rounded-lg
+           px-3.5 py-2.5
            disabled:opacity-50 disabled:pointer-events-none
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted;
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+    transition: background-color 140ms var(--ease-out),
+                color 140ms var(--ease-out),
+                border-color 140ms var(--ease-out),
+                box-shadow 140ms var(--ease-out),
+                transform 80ms var(--ease-out);
   }
-  .btn-sm  { @apply px-3 py-1.5 text-xs; }
-  .btn-lg  { @apply px-5 py-3 text-base; }
-  .btn-xl  { @apply px-6 py-3.5 text-base; }
+  .btn:active { transform: scale(0.97); }
+  .btn-sm  { @apply px-3 py-1.5 text-xs gap-1 rounded-md; }
+  .btn-lg  { @apply px-5 py-3 text-sm rounded-lg; }
+  .btn-xl  { @apply px-6 py-3.5 text-base rounded-xl; }
   .btn-icon { @apply h-9 w-9 p-0; }
 
   .btn-primary {
-    @apply text-white shadow-sm;
     background-color: var(--brand-500);
+    color: var(--ink-inverse);
+    box-shadow: 0 1px 2px rgba(28,26,23,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
   }
   .btn-primary:hover { background-color: var(--brand-600); }
   .btn-primary:active { background-color: var(--brand-700); }
@@ -220,11 +245,11 @@ a { color: inherit; }
   .btn-secondary:hover { background-color: var(--accent-400); }
 
   .btn-outline {
-    background-color: transparent;
-    color: var(--ink);
+    background-color: var(--surface);
+    color: var(--ink-strong);
     border: 1px solid var(--line-strong);
   }
-  .btn-outline:hover { background-color: var(--surface-sunken); }
+  .btn-outline:hover { background-color: var(--surface-sunken); border-color: var(--ink-disabled); }
 
   .btn-ghost {
     background-color: transparent;
@@ -235,6 +260,7 @@ a { color: inherit; }
   .btn-danger {
     background-color: var(--danger-500);
     color: var(--ink-inverse);
+    box-shadow: 0 1px 2px rgba(28,26,23,0.06), inset 0 1px 0 rgba(255,255,255,0.1);
   }
   .btn-danger:hover { background-color: var(--danger-700); }
 
@@ -242,13 +268,19 @@ a { color: inherit; }
   .card {
     background-color: var(--surface);
     border: 1px solid var(--line);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xs);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 2px rgba(28,26,23,0.03);
+    transition: box-shadow 160ms var(--ease-out), border-color 160ms var(--ease-out);
   }
   .card-elevated {
     background-color: var(--surface);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-md);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 14px -2px rgba(28,26,23,0.06), 0 2px 4px -1px rgba(28,26,23,0.04);
+  }
+  .card-hover:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 8px 24px -4px rgba(28,26,23,0.08), 0 2px 6px -1px rgba(28,26,23,0.05);
   }
   .card-padded { padding: 1.25rem; }
   @media (min-width: 768px) {
@@ -261,41 +293,46 @@ a { color: inherit; }
   .select {
     @apply w-full text-sm leading-relaxed;
     background-color: var(--surface);
-    color: var(--ink);
+    color: var(--ink-strong);
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-md);
-    padding: 0.625rem 0.875rem;
-    transition: border-color 120ms, box-shadow 120ms;
+    padding: 0.6875rem 0.875rem;
+    transition: border-color 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
   }
   .input::placeholder,
   .textarea::placeholder { color: var(--ink-subtle); }
+
+  .input:hover,
+  .textarea:hover,
+  .select:hover { border-color: var(--ink-disabled); }
 
   .input:focus,
   .textarea:focus,
   .select:focus {
     outline: none;
     border-color: var(--brand-500);
-    box-shadow: 0 0 0 3px var(--brand-100);
+    box-shadow: 0 0 0 4px var(--brand-100);
   }
 
   .textarea { min-height: 6rem; resize: vertical; }
 
   .label {
     @apply block text-sm font-medium mb-1.5;
-    color: var(--ink);
+    color: var(--ink-strong);
   }
-  .helper { @apply mt-1 text-xs; color: var(--ink-subtle); }
-  .error  { @apply mt-1 text-xs; color: var(--danger-500); }
+  .helper { @apply mt-1.5 text-xs; color: var(--ink-subtle); }
+  .error  { @apply mt-1.5 text-xs font-medium; color: var(--danger-500); }
 
   /* ---------- Badge / Chip ---------- */
   .badge {
-    @apply inline-flex items-center gap-1 text-xs font-medium rounded-full;
-    padding: 0.25rem 0.625rem;
+    @apply inline-flex items-center gap-1 text-[11px] font-semibold rounded-md;
+    padding: 0.1875rem 0.5rem;
     background-color: var(--surface-sunken);
     color: var(--ink-muted);
+    letter-spacing: -0.005em;
   }
-  .badge-brand   { background-color: var(--brand-100);   color: var(--brand-700); }
-  .badge-accent  { background-color: var(--accent-100);  color: var(--accent-700); }
+  .badge-brand   { background-color: var(--brand-50);    color: var(--brand-700); }
+  .badge-accent  { background-color: var(--accent-50);   color: var(--accent-700); }
   .badge-success { background-color: var(--success-50);  color: var(--success-700); }
   .badge-warning { background-color: var(--warning-50);  color: var(--warning-700); }
   .badge-danger  { background-color: var(--danger-50);   color: var(--danger-700); }
@@ -317,12 +354,13 @@ a { color: inherit; }
     @apply mb-6 md:mb-8;
   }
   .page-title {
-    @apply text-2xl md:text-3xl font-semibold tracking-tight;
-    font-family: var(--font-display);
+    @apply text-xl md:text-2xl;
+    font-weight: 700;
+    letter-spacing: -0.022em;
     color: var(--ink-strong);
   }
   .page-subtitle {
-    @apply mt-1.5 text-sm md:text-base;
+    @apply mt-1.5 text-sm;
     color: var(--ink-muted);
   }
 
@@ -330,9 +368,10 @@ a { color: inherit; }
   .section-title {
     @apply text-base font-semibold;
     color: var(--ink-strong);
+    letter-spacing: -0.01em;
   }
   .eyebrow {
-    @apply text-[11px] font-semibold uppercase tracking-[0.18em];
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em];
     color: var(--ink-muted);
   }
 
@@ -342,15 +381,16 @@ a { color: inherit; }
     border-color: var(--line);
   }
   .tab {
-    @apply relative px-3 pb-3 pt-1 text-sm font-medium transition;
+    @apply relative px-3 pb-3 pt-1 text-sm font-semibold;
     color: var(--ink-subtle);
+    transition: color 140ms var(--ease-out);
   }
   .tab:hover { color: var(--ink); }
   .tab[data-active="true"] { color: var(--ink-strong); }
   .tab[data-active="true"]::after {
     content: "";
-    position: absolute; left: 0.5rem; right: 0.5rem; bottom: -1px; height: 2px;
-    background-color: var(--brand-500); border-radius: 9999px;
+    position: absolute; left: 0.25rem; right: 0.25rem; bottom: -1px; height: 2px;
+    background-color: var(--ink-strong); border-radius: 9999px;
   }
 
   /* ---------- Empty / skeleton ---------- */

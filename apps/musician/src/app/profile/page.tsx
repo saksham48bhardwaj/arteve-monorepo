@@ -383,15 +383,15 @@ export default function ProfilePage() {
 
           <div className="flex-1 grid grid-cols-3 gap-2 text-center">
             <div>
-              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(counts.posts)}</p>
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(counts.posts)}</p>
               <p className="text-xs text-ink-muted mt-0.5">Posts</p>
             </div>
             <button onClick={loadFollowers} className="rounded-lg hover:bg-surface-sunken transition py-1">
-              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(counts.followers)}</p>
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(counts.followers)}</p>
               <p className="text-xs text-ink-muted mt-0.5">Followers</p>
             </button>
             <button onClick={loadFollowing} className="rounded-lg hover:bg-surface-sunken transition py-1">
-              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(counts.following)}</p>
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(counts.following)}</p>
               <p className="text-xs text-ink-muted mt-0.5">Following</p>
             </button>
           </div>
@@ -427,13 +427,6 @@ export default function ProfilePage() {
           </Link>
         </div>
 
-        {/* Quote */}
-        {profile.quote && (
-          <div className="mt-5 rounded-xl border border-accent-200 bg-accent-50 px-4 py-3">
-            <p className="eyebrow text-accent-700">Artist quote</p>
-            <p className="mt-1 italic text-ink-strong text-sm">&ldquo;{profile.quote}&rdquo;</p>
-          </div>
-        )}
       </div>
 
       {/* ============ TABS ============ */}

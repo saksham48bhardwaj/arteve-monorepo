@@ -20,6 +20,9 @@ interface HeaderConfig {
 function getHeaderConfig(pathname: string, handleFromUrl?: string): HeaderConfig {
   if (pathname.endsWith('/chat') && pathname !== '/chat') return { kind: 'hidden' };
   if (pathname.startsWith('/chat/') && pathname !== '/chat') return { kind: 'hidden' };
+  // Pages that render their own page chrome
+  if (pathname === '/find') return { kind: 'hidden' };
+  if (pathname === '/gigs/create') return { kind: 'hidden' };
 
   if (pathname === '/') {
     return { kind: 'logo', rightSlot: 'home' };

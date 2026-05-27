@@ -21,8 +21,10 @@ function getHeaderConfig(pathname: string, profileHandleFromUrl?: string): Heade
   // Chat pages handle their own header
   if (pathname.endsWith('/chat') && pathname !== '/chat') return { kind: 'hidden' };
   if (pathname.startsWith('/chat/') && pathname !== '/chat') return { kind: 'hidden' };
-  // Reels-style bits viewer is fullscreen
+  // Pages that render their own page chrome (fullscreen / large composer / search)
   if (pathname === '/bits') return { kind: 'hidden' };
+  if (pathname === '/post') return { kind: 'hidden' };
+  if (pathname === '/find') return { kind: 'hidden' };
 
   if (pathname === '/') {
     return { kind: 'logo', rightSlot: 'home' };

@@ -180,15 +180,15 @@ export default function OrganizerProfilePage() {
 
           <div className="flex-1 grid grid-cols-3 gap-2 text-center">
             <div>
-              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(venuePhotos.length)}</p>
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(venuePhotos.length)}</p>
               <p className="text-xs text-ink-muted mt-0.5">Photos</p>
             </div>
             <button onClick={loadFollowers} className="rounded-lg hover:bg-surface-sunken transition py-1">
-              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(followersCount)}</p>
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(followersCount)}</p>
               <p className="text-xs text-ink-muted mt-0.5">Followers</p>
             </button>
             <button onClick={loadFollowing} className="rounded-lg hover:bg-surface-sunken transition py-1">
-              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(followingCount)}</p>
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(followingCount)}</p>
               <p className="text-xs text-ink-muted mt-0.5">Following</p>
             </button>
           </div>

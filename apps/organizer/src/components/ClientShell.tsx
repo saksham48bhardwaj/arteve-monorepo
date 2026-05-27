@@ -5,10 +5,20 @@ import TopNav from './TopNav';
 import BottomNav from './BottomNav';
 import SideNav from './SideNav';
 
+function isHeaderlessRoute(pathname: string): boolean {
+  if (pathname.endsWith('/chat') && pathname !== '/chat') return true;
+  if (pathname.startsWith('/chat/') && pathname !== '/chat') return true;
+  return pathname === '/find' || pathname === '/gigs/create';
+}
+
 export default function ClientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
   const isAuthPage = pathname === '/login' || pathname === '/reset-password';
   const isChatPage = pathname.endsWith('/chat') && pathname !== '/chat';
+  const headerless = isHeaderlessRoute(pathname);
+
+  const topPad = !isAuthPage && !headerless ? 'pt-14 md:pt-0' : '';
+  const bottomPad = !isAuthPage && !isChatPage ? 'pb-24 md:pb-8' : '';
 
   return (
     <div className="min-h-screen w-full flex bg-surface-muted">
@@ -17,9 +27,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
       <div className={`flex-1 min-w-0 w-full ${!isAuthPage ? 'md:ml-64' : ''}`}>
         {!isAuthPage && <TopNav />}
 
-        <div className={!isAuthPage && !isChatPage ? 'pt-14 md:pt-0 pb-24 md:pb-8' : ''}>
-          {children}
-        </div>
+        <div className={`${topPad} ${bottomPad}`}>{children}</div>
       </div>
 
       {!isAuthPage && <BottomNav />}
