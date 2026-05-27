@@ -2,8 +2,22 @@
 
 import { useEffect, useState, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
+import {
+  Page,
+  PageHeader,
+  Card,
+  Input,
+  Textarea,
+  Button,
+  Avatar,
+  Modal,
+  Spinner,
+  Badge,
+  EmptyState,
+} from '@arteve/ui/components';
 
 type Profile = {
   id: string;
@@ -18,7 +32,7 @@ type Profile = {
 };
 
 export default function OrganizerProfilePage() {
-  const router = useRouter(); 
+  const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -26,6 +40,7 @@ export default function OrganizerProfilePage() {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
 
   // form fields
   const [venueName, setVenueName] = useState('');
@@ -40,289 +55,191 @@ export default function OrganizerProfilePage() {
 
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-
   const [followersList, setFollowersList] = useState<Profile[]>([]);
   const [followingList, setFollowingList] = useState<Profile[]>([]);
-
-  const [showFollowModal, setShowFollowModal] = useState<
-    'followers' | 'following' | null
-  >(null);
-
+  const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
   const [myFollowingIds, setMyFollowingIds] = useState<string[]>([]);
 
-  // -------------------------
-  // LOAD PROFILE
-  // -------------------------
+  // -------- LOAD --------
   useEffect(() => {
     (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login');
         return;
       }
-
       setUserId(user.id);
 
-      // Fetch follower / following counts
       const [followersRes, followingRes] = await Promise.all([
-        supabase
-          .from('followers')
-          .select('follower_id', { count: 'exact', head: true })
-          .eq('following_id', user.id),
-
-        supabase
-          .from('followers')
-          .select('follower_id', { count: 'exact', head: true })
-          .eq('follower_id', user.id),
+        supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('following_id', user.id),
+        supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('follower_id', user.id),
       ]);
-
       setFollowersCount(followersRes.count || 0);
       setFollowingCount(followingRes.count || 0);
 
-      // Fetch who I am following (for button state)
-      const { data: myFollows } = await supabase
-        .from('followers')
-        .select('following_id')
-        .eq('follower_id', user.id);
+      const { data: myFollows } = await supabase.from('followers').select('following_id').eq('follower_id', user.id);
+      setMyFollowingIds(myFollows?.map((f) => f.following_id) ?? []);
 
-      setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
       if (error) {
         setErr(error.message);
         setLoading(false);
         return;
       }
-
       if (data) {
         const p = data as Profile;
-
         setVenueName(p.display_name ?? '');
         setBio(p.bio ?? '');
         setLocation(p.location ?? '');
         setAvatarUrl(p.avatar_url ?? '');
         setHandle(p.handle ?? '');
-
         const links = p.links ?? {};
         setInstagram(links.instagram ?? '');
         setYoutube(links.youtube ?? '');
         setWebsite(links.website ?? '');
-
         setVenuePhotos(p.venue_photos ?? []);
       }
-
       setLoading(false);
     })();
   }, [router]);
 
-  async function toggleFollowFromModal(targetId: string) {
+  async function refreshFollowStats() {
     if (!userId) return;
-    if (userId === targetId) return; // 🚫 self-follow protection
+    const [followersRes, followingRes] = await Promise.all([
+      supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('following_id', userId),
+      supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('follower_id', userId),
+    ]);
+    setFollowersCount(followersRes.count || 0);
+    setFollowingCount(followingRes.count || 0);
+    const { data: myFollows } = await supabase.from('followers').select('following_id').eq('follower_id', userId);
+    setMyFollowingIds(myFollows?.map((f) => f.following_id) ?? []);
+  }
 
+  async function toggleFollowFromModal(targetId: string) {
+    if (!userId || userId === targetId) return;
     const alreadyFollowing = myFollowingIds.includes(targetId);
-
     if (alreadyFollowing) {
-      await supabase
-        .from('followers')
-        .delete()
-        .eq('follower_id', userId)
-        .eq('following_id', targetId);
+      await supabase.from('followers').delete().eq('follower_id', userId).eq('following_id', targetId);
     } else {
-      await supabase.from('followers').insert({
-        follower_id: userId,
-        following_id: targetId,
-      });
+      await supabase.from('followers').insert({ follower_id: userId, following_id: targetId });
     }
-
-    // 🔥 THIS is what you were missing
     await refreshFollowStats();
-
-    // Update modal list instantly
-    setMyFollowingIds(prev =>
-      alreadyFollowing
-        ? prev.filter(id => id !== targetId)
-        : [...prev, targetId],
+    setMyFollowingIds((prev) =>
+      alreadyFollowing ? prev.filter((id) => id !== targetId) : [...prev, targetId],
     );
   }
 
-  async function refreshFollowStats() {
+  async function loadFollowers() {
     if (!userId) return;
-
-    const [followersRes, followingRes] = await Promise.all([
-      supabase
-        .from('followers')
-        .select('follower_id', { count: 'exact', head: true })
-        .eq('following_id', userId),
-
-      supabase
-        .from('followers')
-        .select('follower_id', { count: 'exact', head: true })
-        .eq('follower_id', userId),
-    ]);
-
-    setFollowersCount(followersRes.count || 0);
-    setFollowingCount(followingRes.count || 0);
-
-    const { data: myFollows } = await supabase
+    const { data } = await supabase
       .from('followers')
-      .select('following_id')
-      .eq('follower_id', userId);
-
-    setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
+      .select('profiles!followers_follower_id_fkey(*)')
+      .eq('following_id', userId);
+    setFollowersList((data ?? []).flatMap((r) => r.profiles).filter((p): p is Profile => p !== null));
+    setShowFollowModal('followers');
   }
 
-  // -------------------------
-  // UPLOAD AVATAR
-  // -------------------------
+  async function loadFollowing() {
+    if (!userId) return;
+    const { data } = await supabase
+      .from('followers')
+      .select('profiles!followers_following_id_fkey(*)')
+      .eq('follower_id', userId);
+    setFollowingList((data ?? []).flatMap((r) => r.profiles).filter((p): p is Profile => p !== null));
+    setShowFollowModal('following');
+  }
+
+  // -------- AVATAR UPLOAD --------
   async function handleAvatarUpload(e: ChangeEvent<HTMLInputElement>) {
     if (!userId) return;
-
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadingAvatar(true);
     setErr(null);
-
     try {
       const ext = file.name.split('.').pop() ?? 'jpg';
       const path = `avatars/${userId}/${crypto.randomUUID()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(path, file, { upsert: true });
-
-      if (uploadError) {
-        setErr(uploadError.message);
-        setUploadingAvatar(false);
-        return;
-      }
-
+      const { error: uploadError } = await supabase.storage.from('media').upload(path, file, { upsert: true });
+      if (uploadError) { setErr(uploadError.message); setUploadingAvatar(false); return; }
       const { data: publicUrl } = supabase.storage.from('media').getPublicUrl(path);
-
-      if (publicUrl?.publicUrl) {
-        setAvatarUrl(publicUrl.publicUrl);
-      }
+      if (publicUrl?.publicUrl) setAvatarUrl(publicUrl.publicUrl);
     } catch {
       setErr('Avatar upload failed.');
     }
-
     setUploadingAvatar(false);
   }
 
-  // -------------------------
-  // UPLOAD VENUE PHOTOS
-  // -------------------------
+  // -------- VENUE PHOTOS UPLOAD --------
   async function handleVenuePhotoUpload(e: ChangeEvent<HTMLInputElement>) {
     if (!userId) return;
     const files = e.target.files;
     if (!files) return;
-
     setUploadingPhotos(true);
     setErr(null);
-
     const uploaded: string[] = [];
-
     try {
       for (const file of Array.from(files)) {
         const ext = file.name.split('.').pop() ?? 'jpg';
         const path = `venue-photos/${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('media')
-          .upload(path, file);
-
-        if (uploadError) {
-          setErr(uploadError.message);
-          continue;
-        }
-
+        const { error: uploadError } = await supabase.storage.from('media').upload(path, file);
+        if (uploadError) { setErr(uploadError.message); continue; }
         const { data: publicUrl } = supabase.storage.from('media').getPublicUrl(path);
-
         if (publicUrl?.publicUrl) uploaded.push(publicUrl.publicUrl);
       }
-
-      if (uploaded.length) {
-        setVenuePhotos(prev => [...prev, ...uploaded]);
-      }
+      if (uploaded.length) setVenuePhotos((prev) => [...prev, ...uploaded]);
     } catch {
       setErr('Photo upload failed.');
     }
-
     setUploadingPhotos(false);
     e.target.value = '';
   }
 
-  // -------------------------
-  // SAVE PROFILE (with handle generation)
-  // -------------------------
+  function removeVenuePhoto(url: string) {
+    setVenuePhotos((prev) => prev.filter((p) => p !== url));
+  }
+
+  // -------- SAVE --------
   async function saveProfile() {
     if (!userId) return;
-
     setSaving(true);
     setErr(null);
-
     try {
       let finalHandle = handle?.trim() || '';
-
       if (!finalHandle) {
         const base =
-          (venueName || 'venue')
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '')
-            .substring(0, 30) || 'venue';
-
+          (venueName || 'venue').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 30) || 'venue';
         let candidate = base;
         let counter = 1;
-
         while (true) {
-          const { data: conflict } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('handle', candidate)
-            .maybeSingle();
-
+          const { data: conflict } = await supabase.from('profiles').select('id').eq('handle', candidate).maybeSingle();
           if (!conflict) break;
-
           candidate = `${base}-${counter}`;
           counter += 1;
         }
-
         finalHandle = candidate;
         setHandle(finalHandle);
       }
-
       const links = {
         instagram: instagram || undefined,
         youtube: youtube || undefined,
         website: website || undefined,
       };
-
-      const { error } = await supabase
-        .from('profiles')
-        .upsert(
-          {
-            id: userId,
-            display_name: venueName || null,
-            role: 'organizer',
-            bio: bio || null,
-            location: location || null,
-            avatar_url: avatarUrl || null,
-            links,
-            venue_photos: venuePhotos.length ? venuePhotos : null,
-            handle: finalHandle,
-          },
-          { onConflict: 'id' },
-        );
-
+      const { error } = await supabase.from('profiles').upsert(
+        {
+          id: userId,
+          display_name: venueName || null,
+          role: 'organizer',
+          bio: bio || null,
+          location: location || null,
+          avatar_url: avatarUrl || null,
+          links,
+          venue_photos: venuePhotos.length ? venuePhotos : null,
+          handle: finalHandle,
+        },
+        { onConflict: 'id' },
+      );
       if (error) throw error;
+      setSavedAt(new Date());
     } catch (e) {
       console.error(e);
       setErr('Failed to save changes.');
@@ -331,52 +248,22 @@ export default function OrganizerProfilePage() {
     }
   }
 
-  async function loadFollowers() {
-    if (!userId) return;
-
-    const { data } = await supabase
-      .from('followers')
-      .select('profiles!followers_follower_id_fkey(*)')
-      .eq('following_id', userId);
-
-    setFollowersList(
-      (data ?? []).flatMap(r => r.profiles).filter((p): p is Profile => p !== null)
-    );
-
-    setShowFollowModal('followers');
-  }
-
-  async function loadFollowing() {
-    if (!userId) return;
-
-    const { data } = await supabase
-      .from('followers')
-      .select('profiles!followers_following_id_fkey(*)')
-      .eq('follower_id', userId);
-
-    setFollowingList(
-      (data ?? []).flatMap(r => r.profiles).filter((p): p is Profile => p !== null)
-    );
-
-    setShowFollowModal('following');
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut();
-    router.push('/login');
-  }
-
   if (loading) {
     return (
-      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20">
-        <div className="animate-pulse text-sm text-ink-subtle">Loading profile…</div>
-      </main>
+      <Page width="default">
+        <Card className="flex items-center gap-3">
+          <Spinner size={16} />
+          <span className="text-sm text-ink-muted">Loading your venue profile…</span>
+        </Card>
+      </Page>
     );
   }
 
+  const publicProfileHref = handle ? `/profile/${handle}` : null;
+  const links = [instagram, youtube, website].filter(Boolean);
+
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
-      {/* PROFILE COMPLETENESS METER */}
+    <Page width="default">
       <ProfileCompleteness
         profile={{
           display_name: venueName,
@@ -391,257 +278,240 @@ export default function OrganizerProfilePage() {
         editHref="/profile"
       />
 
-      {/* PAGE HEADER */}
-      <header className="space-y-2">
-        <p className="text-xs font-semibold tracking-[0.16em] uppercase text-brand">
-          Organizer · Venue
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight text-ink-strong">
-          Your Venue Profile
-        </h1>
-        <p className="text-ink-subtle max-w-xl">
-          This is what musicians see when they check your venue on Arteve. Keep it
-          up to date so artists instantly understand your vibe.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Organizer · Venue"
+        title="Your venue profile"
+        subtitle="This is what musicians see when they check your venue on Arteve. Keep it up to date so artists instantly understand your vibe."
+        actions={
+          publicProfileHref ? (
+            <Link href={publicProfileHref} target="_blank">
+              <Button variant="outline" size="sm">View public profile</Button>
+            </Link>
+          ) : undefined
+        }
+      />
 
-      {/* PROFILE INFO CARD */}
-      <section className="relative rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
-        {/* Subtle gradient accent strip */}
-        <div className="pointer-events-none absolute inset-x-0 -top-px h-1 rounded-t-3xl" />
+      {/* ============ IDENTITY ============ */}
+      <Card elevated className="!p-0 overflow-hidden">
+        <div className="h-20 md:h-24 bg-[linear-gradient(120deg,var(--brand-100)_0%,var(--accent-100)_100%)]" />
 
-        {/* Avatar + Name */}
-        <div className="flex items-center gap-4">
-          <div className="relative w-20 h-20">
-            <img
-              src={avatarUrl || '/icons/default-avatar.png'}
-              className="w-20 h-20 rounded-full object-cover border border-line"
-              alt="Venue avatar"
-            />
-            <label className="absolute bottom-0 right-0 bg-surface border border-line rounded-full px-2 py-1 text-[11px] cursor-pointer shadow-sm">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarUpload}
-              />
-              {uploadingAvatar ? '…' : 'Edit'}
-            </label>
+        <div className="px-5 md:px-7 pb-6 -mt-12">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+            <div className="relative">
+              <div className="ring-4 ring-surface rounded-full">
+                <Avatar src={avatarUrl} alt={venueName || 'Venue'} size="2xl" />
+              </div>
+              <label className="absolute bottom-0 right-0 inline-flex items-center justify-center h-8 w-8 rounded-full bg-brand text-white shadow cursor-pointer hover:bg-brand-600 transition">
+                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                {uploadingAvatar ? (
+                  <Spinner size={14} />
+                ) : (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Change avatar">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                )}
+              </label>
+            </div>
+
+            <div className="flex-1 min-w-0 sm:pb-2">
+              <h2 className="text-xl md:text-2xl font-semibold text-ink-strong tracking-tight truncate">
+                {venueName || 'Venue name'}
+              </h2>
+              <p className="text-sm text-ink-subtle mt-0.5">
+                {handle ? `@${handle}` : 'A shareable @handle is generated when you save.'}
+              </p>
+              {location && (
+                <p className="mt-1 text-sm text-ink-muted flex items-center gap-1.5">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-9 8-14a8 8 0 0 0-16 0c0 5 8 14 8 14z" /><circle cx="12" cy="8" r="3" />
+                  </svg>
+                  {location}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-ink-strong truncate">
-              {venueName || 'Venue name'}
-            </h2>
-            <p className="text-sm text-ink-subtle truncate">
-              {handle ? `@${handle}` : 'A shareable handle will be generated when you save.'}
-            </p>
+          {/* Stats */}
+          <div className="grid grid-cols-2 mt-5 rounded-xl border border-line bg-surface-sunken overflow-hidden">
+            <button onClick={loadFollowers} className="px-4 py-3 text-center hover:bg-surface transition border-r border-line">
+              <p className="text-xl font-semibold text-ink-strong">{followersCount}</p>
+              <p className="text-[11px] uppercase tracking-wider text-ink-subtle mt-0.5">Followers</p>
+            </button>
+            <button onClick={loadFollowing} className="px-4 py-3 text-center hover:bg-surface transition">
+              <p className="text-xl font-semibold text-ink-strong">{followingCount}</p>
+              <p className="text-[11px] uppercase tracking-wider text-ink-subtle mt-0.5">Following</p>
+            </button>
           </div>
         </div>
+      </Card>
 
-        <div className="flex gap-8 mt-2">
-          <button onClick={loadFollowers}>
-            <div className="text-lg font-semibold text-ink-strong">
-              {followersCount}
-            </div>
-            <div className="text-xs text-ink-subtle">Followers</div>
-          </button>
+      {/* ============ EDIT FORM ============ */}
+      <Card className="mt-4">
+        <h2 className="section-title mb-1">Venue details</h2>
+        <p className="helper mb-5">Tell artists what makes your space worth a booking.</p>
 
-          <button onClick={loadFollowing}>
-            <div className="text-lg font-semibold text-ink-strong">
-              {followingCount}
-            </div>
-            <div className="text-xs text-ink-subtle">Following</div>
-          </button>
-        </div>
-
-        {/* Venue Name */}
-        <div className="space-y-1.5">
-          <label className="font-medium text-ink-strong">Venue name</label>
-          <input
-            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
+        <div className="space-y-4">
+          <Input
+            label="Venue name"
             value={venueName}
-            onChange={e => setVenueName(e.target.value)}
-            placeholder="Atomic Rooster"
+            onChange={(e) => setVenueName(e.target.value)}
+            placeholder="The Blue Stage"
           />
-        </div>
-
-        {/* About */}
-        <div className="space-y-1.5">
-          <label className="font-medium text-ink-strong">About this venue</label>
-          <textarea
-            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong min-h-[120px] outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
+          <Textarea
+            label="About this venue"
             value={bio}
-            onChange={e => setBio(e.target.value)}
+            onChange={(e) => setBio(e.target.value)}
             placeholder="Tell musicians about your stage, setup, crowd, ambience, capacity, genres you prefer, etc."
+            rows={5}
           />
-        </div>
-
-        {/* Location */}
-        <div className="space-y-1.5">
-          <label className="font-medium text-ink-strong">Location</label>
-          <input
-            className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
+          <Input
+            label="Location"
             value={location}
-            onChange={e => setLocation(e.target.value)}
+            onChange={(e) => setLocation(e.target.value)}
             placeholder="303 Bank Street, Ottawa, ON"
           />
+          <Input
+            label="@ handle"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            placeholder="auto-generated if left blank"
+            helper="Lowercase letters, numbers, and dashes."
+            leadingIcon={<span className="font-medium">@</span>}
+          />
         </div>
-      </section>
+      </Card>
 
-      {/* SOCIAL LINKS */}
-      <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-6 sm:p-7 space-y-5">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-semibold text-ink-strong">Online presence</h2>
-            <p className="text-sm text-ink-subtle mt-1">
-              Add links so artists can quickly explore your venue online.
-            </p>
-          </div>
-        </div>
+      {/* ============ LINKS ============ */}
+      <Card className="mt-4">
+        <h2 className="section-title mb-1">Online presence</h2>
+        <p className="helper mb-5">Links artists can use to vet your venue.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <label className="te  xt-sm font-medium text-ink-strong">Instagram</label>
-            <input
-              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
-              value={instagram}
-              onChange={e => setInstagram(e.target.value)}
-              placeholder="@yourvenue"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="font-medium text-ink-strong">YouTube</label>
-            <input
-              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
-              value={youtube}
-              onChange={e => setYoutube(e.target.value)}
-              placeholder="Channel link"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="font-medium text-ink-strong">Website</label>
-            <input
-              className="w-full rounded-xl border border-line bg-surface-sunken px-3 py-2 text-sm text-ink-strong outline-none focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand-200"
-              value={website}
-              onChange={e => setWebsite(e.target.value)}
-              placeholder="https://example.com"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* VENUE PHOTOS */}
-      <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-6 sm:p-7 space-y-5">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-semibold text-ink-strong">Venue photos</h2>
-            <p className="text-ink-subtle mt-1">
-              Upload photos of your stage, interior, and the crowd vibe.
-            </p>
-          </div>
-        </div>
-
-        <label className="inline-flex items-center gap-2 cursor-pointer">
-          <span className="px-4 py-2 rounded-xl border border-line bg-surface-sunken text-ink-strong hover:bg-surface-sunken">
-            {uploadingPhotos ? 'Uploading…' : 'Upload photos'}
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleVenuePhotoUpload}
+          <Input
+            label="Instagram"
+            value={instagram}
+            onChange={(e) => setInstagram(e.target.value)}
+            placeholder="@yourvenue"
           />
-        </label>
+          <Input
+            label="YouTube"
+            value={youtube}
+            onChange={(e) => setYoutube(e.target.value)}
+            placeholder="Channel link"
+          />
+          <Input
+            label="Website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="https://example.com"
+          />
+        </div>
 
-        {venuePhotos.length > 0 ? (
+        {links.length > 0 && (
+          <p className="helper mt-3">
+            {links.length} link{links.length === 1 ? '' : 's'} set.
+          </p>
+        )}
+      </Card>
+
+      {/* ============ VENUE PHOTOS ============ */}
+      <Card className="mt-4">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 className="section-title">Venue photos</h2>
+            <p className="helper">Upload photos of your stage, interior, and the crowd vibe.</p>
+          </div>
+          <label>
+            <input type="file" accept="image/*" multiple className="hidden" onChange={handleVenuePhotoUpload} />
+            <Button
+              variant="primary"
+              size="sm"
+              loading={uploadingPhotos}
+              type="button"
+              onClick={(e) => (e.currentTarget.previousElementSibling as HTMLInputElement)?.click()}
+            >
+              Upload
+            </Button>
+          </label>
+        </div>
+
+        {venuePhotos.length === 0 ? (
+          <EmptyState
+            title="No venue photos yet"
+            description="Add a few photos to give artists a sense of the space."
+          />
+        ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {venuePhotos.map(url => (
-              <div
-                key={url}
-                className="relative overflow-hidden rounded-2xl border border-line bg-surface-sunken aspect-video"
-              >
-                <img src={url} className="w-full h-full object-cover" alt="Venue photo" />
+            {venuePhotos.map((url) => (
+              <div key={url} className="group relative overflow-hidden rounded-xl border border-line bg-surface-sunken aspect-video">
+                <img src={url} className="w-full h-full object-cover" alt="Venue" />
+                <button
+                  type="button"
+                  onClick={() => removeVenuePhoto(url)}
+                  aria-label="Remove photo"
+                  className="absolute top-2 right-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink-strong/80 text-white opacity-0 group-hover:opacity-100 transition"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
               </div>
             ))}
           </div>
-        ) : (
-          <p className="text-xs text-ink-subtle">No photos added yet.</p>
         )}
-      </section>
+      </Card>
 
-      {/* ACTION BUTTONS */}
-      <div className="flex flex-wrap gap-3 pt-2">
-        <button
-          onClick={saveProfile}
-          disabled={saving}
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-brand text-white font-medium shadow-sm hover:bg-[#406985] disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving…' : 'Save profile'}
-        </button>
-
-        <button
-          onClick={signOut}
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-line font-medium text-ink-strong hover:bg-surface-sunken"
-        >
-          Sign out
-        </button>
+      {/* ============ ACTIONS ============ */}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <Button onClick={saveProfile} loading={saving} size="lg">
+          Save profile
+        </Button>
+        {savedAt && (
+          <Badge tone="success">
+            Saved at {savedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </Badge>
+        )}
+        {err && <Badge tone="danger">{err}</Badge>}
       </div>
 
-      {err && <p className="text-danger">{err}</p>}
-
-      {showFollowModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-          <button
-            className="absolute inset-0"
-            onClick={async () => {
-              setShowFollowModal(null);
-              await refreshFollowStats();
-            }}
-          />
-
-          <div className="relative bg-surface rounded-3xl w-full max-w-md p-6 max-h-[70vh] overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-4">
-              {showFollowModal === 'followers' ? 'Followers' : 'Following'}
-            </h2>
-
-            <ul className="space-y-3">
-              {(showFollowModal === 'followers'
-                ? followersList
-                : followingList
-              ).map(p => (
-                <li key={p.id} className="flex items-center gap-3">
-                  <img
-                    src={p.avatar_url ?? '/default-avatar.png'}
-                    className="w-10 h-10 rounded-full object-cover border border-line"
-                  />
-
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{p.display_name}</p>
-                    <p className="text-xs text-ink-subtle">@{p.handle}</p>
-                  </div>
-
+      {/* ============ FOLLOWERS / FOLLOWING MODAL ============ */}
+      <Modal
+        open={showFollowModal !== null}
+        onClose={() => { setShowFollowModal(null); refreshFollowStats(); }}
+        title={showFollowModal === 'followers' ? 'Followers' : 'Following'}
+      >
+        {(() => {
+          const list = showFollowModal === 'followers' ? followersList : followingList;
+          if (list.length === 0) {
+            return <p className="text-sm text-ink-subtle">No one here yet.</p>;
+          }
+          return (
+            <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {list.map((p) => (
+                <li key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-sunken">
+                  <Link href={`/profile/${p.handle ?? p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar src={p.avatar_url} alt={p.display_name ?? ''} size="md" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-strong truncate">{p.display_name}</p>
+                      <p className="text-xs text-ink-subtle truncate">@{p.handle}</p>
+                    </div>
+                  </Link>
                   {userId !== p.id && (
-                    <button
+                    <Button
+                      size="sm"
+                      variant={myFollowingIds.includes(p.id) ? 'outline' : 'primary'}
                       onClick={() => toggleFollowFromModal(p.id)}
-                      className={`px-3 py-1 text-xs rounded-lg border ${
-                        myFollowingIds.includes(p.id)
-                          ? 'bg-line-strong'
-                          : 'bg-ink-strong text-white'
-                      }`}
                     >
                       {myFollowingIds.includes(p.id) ? 'Unfollow' : 'Follow'}
-                    </button>
+                    </Button>
                   )}
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
-      )}
-    </main>
+          );
+        })()}
+      </Modal>
+    </Page>
   );
 }

@@ -8,34 +8,22 @@ import { supabase } from '@arteve/supabase/client';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
 import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
+import {
+  Page,
+  Card,
+  Button,
+  Avatar,
+  Badge,
+  EmptyState,
+  Tabs,
+  Modal,
+  Spinner,
+} from '@arteve/ui/components';
 
-type Achievement = {
-  id: string;
-  title: string | null;
-  description: string | null;
-  year: number | null;
-};
-
-type Show = {
-  id: string;
-  title: string | null;
-  venue: string | null;
-  location: string | null;
-  event_date: string | null;
-};
-
-type Skill = {
-  id: string;
-  skill: string | null;
-  level: string | null;
-};
-
-type Recommendation = {
-  id: string;
-  author: string | null;
-  content: string | null;
-};
-
+type Achievement = { id: string; title: string | null; description: string | null; year: number | null };
+type Show = { id: string; title: string | null; venue: string | null; location: string | null; event_date: string | null };
+type Skill = { id: string; skill: string | null; level: string | null };
+type Recommendation = { id: string; author: string | null; content: string | null };
 type Profile = {
   id: string;
   display_name: string | null;
@@ -47,7 +35,6 @@ type Profile = {
   location: string | null;
   quote: string | null;
 };
-
 type PostMedia = {
   id: string;
   media_url: string;
@@ -56,20 +43,9 @@ type PostMedia = {
   kind: 'post' | 'bit';
   created_at: string;
 };
+type FollowerRow = { follower_id: string; profiles: Profile | null };
+type FollowingRow = { following_id: string; profiles: Profile | null };
 
-type FollowerRow = {
-  follower_id: string;
-  profiles: Profile | null;
-};
-
-type FollowingRow = {
-  following_id: string;
-  profiles: Profile | null;
-};
-
-/* ---------------------------------------------------------
-    Extract storage path from PUBLIC URL
---------------------------------------------------------- */
 function extractStoragePath(publicUrl: string): string | null {
   const marker = '/storage/v1/object/public/media/';
   const index = publicUrl.indexOf(marker);
@@ -77,15 +53,11 @@ function extractStoragePath(publicUrl: string): string | null {
   return publicUrl.substring(index + marker.length);
 }
 
-/* ---------------------------------------------------------
-    MAIN COMPONENT
---------------------------------------------------------- */
 export default function ProfilePage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
-
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [shows, setShows] = useState<Show[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -100,163 +72,84 @@ export default function ProfilePage() {
 
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
-
   const [followersList, setFollowersList] = useState<Profile[]>([]);
   const [followingList, setFollowingList] = useState<Profile[]>([]);
   const [myFollowingIds, setMyFollowingIds] = useState<string[]>([]);
 
   const [activeTab, setActiveTab] = useState<'media' | 'about'>('media');
-
-  const [counts, setCounts] = useState({
-    posts: 0,
-    followers: 0,
-    following: 0,
-  });
+  const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0 });
 
   function profilePath(user: Profile) {
-    const slug =
-      (user as unknown as Record<string, string>).handle ??
-      user.display_name?.trim().toLowerCase().replace(/\s+/g, '') ??
-      user.id;
-
+    const slug = user.handle ?? user.display_name?.trim().toLowerCase().replace(/\s+/g, '') ?? user.id;
     return `/profile/${slug}`;
   }
 
-  /* ---------------------------------------------------------
-      LOAD ALL PROFILE DATA
-  --------------------------------------------------------- */
   useEffect(() => {
     (async () => {
       const { data } = await supabase.auth.getUser();
       const user = data.user;
-
       if (!user) {
         router.push('/login');
         return;
       }
-
       try {
-        const { data: p } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
+        const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         setProfile(p as Profile);
 
         const c = await fetchProfileCounts(user.id);
         setCounts(c);
 
-        const { data: myFollows } = await supabase
-          .from('followers')
-          .select('following_id')
-          .eq('follower_id', user.id);
+        const { data: myFollows } = await supabase.from('followers').select('following_id').eq('follower_id', user.id);
+        setMyFollowingIds(myFollows?.map((f) => f.following_id) ?? []);
 
-        setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
-
-        const { data: a } = await supabase
-          .from('achievements')
-          .select('*')
-          .eq('profile_id', user.id)
-          .order('created_at', { ascending: false });
+        const [{ data: a }, { data: s }, { data: sk }, { data: posts }, { data: r }] = await Promise.all([
+          supabase.from('achievements').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('shows').select('*').eq('profile_id', user.id).order('event_date', { ascending: false }),
+          supabase.from('skills').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('posts').select('id, media_url, media_type, caption, kind, created_at').eq('profile_id', user.id).in('kind', ['post', 'bit']).not('media_url', 'is', null).order('created_at', { ascending: false }),
+          supabase.from('recommendations').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }),
+        ]);
         setAchievements((a ?? []) as Achievement[]);
-
-        const { data: s } = await supabase
-          .from('shows')
-          .select('*')
-          .eq('profile_id', user.id)
-          .order('event_date', { ascending: false });
         setShows((s ?? []) as Show[]);
-
-        const { data: sk } = await supabase
-          .from('skills')
-          .select('*')
-          .eq('profile_id', user.id)
-          .order('created_at', { ascending: false });
         setSkills((sk ?? []) as Skill[]);
-
-        const { data: posts } = await supabase
-          .from('posts')
-          .select('id, media_url, media_type, caption, kind, created_at')
-          .eq('profile_id', user.id)
-          .in('kind', ['post', 'bit'])
-          .not('media_url', 'is', null)
-          .order('created_at', { ascending: false });
-
         setMedia((posts ?? []) as PostMedia[]);
-
-        const { data: r } = await supabase
-          .from('recommendations')
-          .select('*')
-          .eq('profile_id', user.id)
-          .order('created_at', { ascending: false });
         setRecommendations((r ?? []) as Recommendation[]);
       } catch (e: unknown) {
         console.error('PROFILE LOAD ERROR:', e);
-        const message = e instanceof Error ? e.message : 'Failed to load profile';
-        setErr(message);
+        setErr(e instanceof Error ? e.message : 'Failed to load profile');
       }
-
       setLoading(false);
     })();
   }, [router]);
 
-  useEffect(() => {
-    function esc(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeModal();
-    }
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  }, []);
-
-  if (loading) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20">
-        Loading…
-      </main>
-    );
-  }
-  if (err) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20 text-danger">
-        {err}
-      </main>
-    );
-  }
-  if (!profile) {
-    return (
-      <main className="mx-auto max-w-3xl px-4 pt-10 pb-20">
-        No profile found.
-      </main>
-    );
+  async function fetchProfileCounts(userId: string) {
+    const [postsRes, followersRes, followingRes] = await Promise.all([
+      supabase.from('posts').select('id', { count: 'exact', head: true }).eq('profile_id', userId),
+      supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('following_id', userId),
+      supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('follower_id', userId),
+    ]);
+    return {
+      posts: postsRes.count || 0,
+      followers: followersRes.count || 0,
+      following: followingRes.count || 0,
+    };
   }
 
-  /* ---------------------------------------------------------
-      UPLOAD MEDIA
-  --------------------------------------------------------- */
   async function handleUpload(e: ChangeEvent<HTMLInputElement>) {
     try {
       const file = e.target.files?.[0];
       if (!file || !profile) return;
-
       setUploading(true);
 
       const ext = file.name.split('.').pop();
       const fileName = `${profile.id}-${Date.now()}.${ext}`;
       const filePath = `profiles/${profile.id}/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(filePath, file);
-
+      const { error: uploadError } = await supabase.storage.from('media').upload(filePath, file);
       if (uploadError) throw uploadError;
 
       const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
-
-      const mediaType =
-        file.type.startsWith('video') ? 'video' :
-        file.type.startsWith('audio') ? 'audio' :
-        'image';
+      const mediaType = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
 
       await supabase.from('posts').insert({
         profile_id: profile.id,
@@ -270,7 +163,6 @@ export default function ProfilePage() {
         .select('id, media_url, media_type, caption, kind, created_at')
         .eq('profile_id', profile.id)
         .order('created_at', { ascending: false });
-
       setMedia((posts ?? []) as PostMedia[]);
     } catch (err) {
       console.error(err);
@@ -280,152 +172,98 @@ export default function ProfilePage() {
     }
   }
 
-  async function fetchProfileCounts(userId: string) {
-    const supa = supabase;
-
-    const [postsRes, followersRes, followingRes] = await Promise.all([
-      supa.from('posts').select('id', { count: 'exact', head: true }).eq('profile_id', userId),
-      supa
-        .from('followers')
-        .select('follower_id', { count: 'exact', head: true })
-        .eq('following_id', userId),
-      supa
-        .from('followers')
-        .select('follower_id', { count: 'exact', head: true })
-        .eq('follower_id', userId),
-    ]);
-
-    return {
-      posts: postsRes.count || 0,
-      followers: followersRes.count || 0,
-      following: followingRes.count || 0,
-    };
-  }
-
-  /* ---------------------------------------------------------
-      DELETE MEDIA
-  --------------------------------------------------------- */
   async function deleteMedia(item: PostMedia) {
     if (!item.media_url) return;
-
     const storagePath = extractStoragePath(item.media_url);
-    if (!storagePath) return;
-
-    await supabase.storage.from('media').remove([storagePath]);
+    if (storagePath) await supabase.storage.from('media').remove([storagePath]);
     await supabase.from('posts').delete().eq('id', item.id);
-
-    setMedia(prev => prev.filter(m => m.id !== item.id));
-    closeModal();
+    setMedia((prev) => prev.filter((m) => m.id !== item.id));
+    setSelectedMedia(null);
   }
 
-  /* ---------------------------- Load Followers ---------------------------- */
   async function loadFollowers() {
     if (!profile) return;
-
     const { data, error } = (await supabase
       .from('followers')
-      .select('follower_id, profiles:follower_id(*)')) as unknown as {
-      data: FollowerRow[] | null;
-      error: Error | null;
-    };
-
-    if (!error && data) {
-      setFollowersList(
-        data.map(row => row.profiles).filter((p): p is Profile => p !== null),
-      );
-    }
-
+      .select('follower_id, profiles:follower_id(*)')
+      .eq('following_id', profile.id)) as unknown as { data: FollowerRow[] | null; error: Error | null };
+    if (!error && data) setFollowersList(data.map((r) => r.profiles).filter((p): p is Profile => p !== null));
     setShowFollowersModal(true);
+  }
+
+  async function loadFollowing() {
+    if (!profile) return;
+    const { data, error } = (await supabase
+      .from('followers')
+      .select('following_id, profiles:following_id(*)')
+      .eq('follower_id', profile.id)) as unknown as { data: FollowingRow[] | null; error: Error | null };
+    if (!error && data) setFollowingList(data.map((r) => r.profiles).filter((p): p is Profile => p !== null));
+    setShowFollowingModal(true);
   }
 
   async function toggleFollowFromModal(targetId: string) {
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) return alert('Login required.');
-
     const me = auth.user.id;
-
     if (myFollowingIds.includes(targetId)) {
-      await supabase
-        .from('followers')
-        .delete()
-        .eq('follower_id', me)
-        .eq('following_id', targetId);
-
-      setMyFollowingIds(prev => prev.filter(id => id !== targetId));
-      setCounts(c => ({ ...c, following: c.following - 1 }));
+      await supabase.from('followers').delete().eq('follower_id', me).eq('following_id', targetId);
+      setMyFollowingIds((prev) => prev.filter((id) => id !== targetId));
     } else {
-      await supabase.from('followers').insert({
-        follower_id: me,
-        following_id: targetId,
-      });
-
-      setMyFollowingIds(prev => [...prev, targetId]);
-      setCounts(c => ({ ...c, following: c.following + 1 }));
+      await supabase.from('followers').insert({ follower_id: me, following_id: targetId });
+      setMyFollowingIds((prev) => [...prev, targetId]);
     }
   }
 
-  /* ---------------------------- Load Following ---------------------------- */
-  async function loadFollowing() {
-    if (!profile) return;
-
-    const { data, error } = (await supabase
-      .from('followers')
-      .select('following_id, profiles:following_id(*)')) as unknown as {
-      data: FollowingRow[] | null;
-      error: Error | null;
-    };
-
-    if (!error && data) {
-      setFollowingList(
-        data.map(row => row.profiles).filter((p): p is Profile => p !== null),
-      );
-    }
-
-    setShowFollowingModal(true);
-  }
-
-  /* ---------------------------------------------------------
-      MODAL HANDLERS
-  --------------------------------------------------------- */
-  function openModal(i: number) {
+  function openMedia(i: number) {
     setSelectedIndex(i);
     setSelectedMedia(media[i]);
   }
-
-  function closeModal() {
-    setSelectedMedia(null);
-  }
-
-  function showNext() {
+  function nextMedia() {
     const next = (selectedIndex + 1) % media.length;
     setSelectedIndex(next);
     setSelectedMedia(media[next]);
   }
-
-  function showPrev() {
+  function prevMedia() {
     const prev = (selectedIndex - 1 + media.length) % media.length;
     setSelectedIndex(prev);
     setSelectedMedia(media[prev]);
   }
 
-  const username = profile.handle;
+  // ---- Loading / error states ----
+  if (loading) {
+    return (
+      <Page width="default">
+        <Card className="flex items-center gap-3">
+          <Spinner size={16} />
+          <span className="text-sm text-ink-muted">Loading your profile…</span>
+        </Card>
+      </Page>
+    );
+  }
+  if (err) {
+    return (
+      <Page width="default">
+        <Card>
+          <p className="text-sm font-medium text-danger">Couldn&apos;t load profile</p>
+          <p className="mt-1 text-sm text-ink-muted">{err}</p>
+        </Card>
+      </Page>
+    );
+  }
+  if (!profile) {
+    return (
+      <Page width="default">
+        <EmptyState title="No profile found" description="Please sign in again." />
+      </Page>
+    );
+  }
 
-  const primaryMedia = media.at(0) ?? null;
+  const username = profile.handle ?? profile.display_name?.toLowerCase().replace(/\s+/g, '') ?? profile.id.slice(0, 8);
   const genres = profile.genres ?? [];
+  const publicProfileUrl = typeof window !== 'undefined' ? `${window.location.origin}/profile/${username}` : '';
 
-  const handle =
-    (profile as unknown as Record<string, string>).handle ??
-    profile.display_name?.trim().toLowerCase().replace(/\s+/g, '') ??
-    profile.id;
-
-  const publicProfileUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/profile/${handle}`
-      : '';
-      
-    async function handleShare() {
+  async function handleShare() {
     try {
-      // Prefer native share on mobile
       if (navigator.share) {
         await navigator.share({
           title: profile?.display_name ?? 'Artist on Arteve',
@@ -433,7 +271,6 @@ export default function ProfilePage() {
           url: publicProfileUrl,
         });
       } else {
-        // Fallback: copy to clipboard
         await navigator.clipboard.writeText(publicProfileUrl);
         alert('Profile link copied to clipboard');
       }
@@ -442,13 +279,8 @@ export default function ProfilePage() {
     }
   }
 
-
-  /* ---------------------------------------------------------
-      UI
-  --------------------------------------------------------- */
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
-      {/* PROFILE COMPLETENESS METER */}
+    <Page width="default">
       <ProfileCompleteness
         profile={profile}
         role="musician"
@@ -460,443 +292,345 @@ export default function ProfilePage() {
         }}
       />
 
-      {/* HEADER CARD (clean white hero) */}
-      <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
-        {/* Top row: Avatar + Details */}
-        <div className="flex items-start gap-6">
-          <img
-            src={profile.avatar_url ?? '/placeholder-avatar.png'}
-            className="w-24 h-24 rounded-full object-cover border border-line-strong"
-            alt="Profile avatar"
-          />
+      {/* ============ HEADER ============ */}
+      <Card elevated className="!p-0 overflow-hidden">
+        {/* Soft brand banner */}
+        <div className="h-20 md:h-28 bg-[linear-gradient(120deg,var(--brand-100)_0%,var(--accent-100)_100%)]" />
 
-          <div className="flex-1 space-y-1">
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-ink-strong">
-              {profile.display_name ?? 'Unnamed artist'}
-            </h1>
-
-            <p className="text-sm text-ink-subtle">@{username}</p>
-
-            {profile.location && (
-              <p className="text-sm text-ink-muted">{profile.location}</p>
-            )}
-
-            <div className="pt-1">
-              <RatingDisplay profileId={profile.id} variant="inline" />
+        <div className="px-5 md:px-7 pb-6 -mt-12 md:-mt-14">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+            <div className="ring-4 ring-surface rounded-full">
+              <Avatar src={profile.avatar_url} alt={profile.display_name ?? ''} size="2xl" />
             </div>
 
-            {genres.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {genres.map(g => (
-                  <span
-                    key={g}
-                    className="px-3 py-1 rounded-full bg-surface-sunken text-sm text-ink"
-                  >
-                    {g}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {profile.bio && (
-              <p className="text-ink leading-snug pt-1">
-                {profile.bio}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div className="flex justify-evenly text-center mt-2">
-          <div>
-            <p className="text-lg font-semibold text-ink-strong">{counts.posts}</p>
-            <p className="text-[11px] text-ink-muted">Posts</p>
-          </div>
-
-          <button
-            onClick={loadFollowers}
-            className="flex flex-col items-center hover:text-ink-strong"
-          >
-            <p className="text-lg font-semibold text-ink-strong">
-              {counts.followers}
-            </p>
-            <p className="text-[11px] text-ink-muted">Followers</p>
-          </button>
-
-          <button
-            onClick={loadFollowing}
-            className="flex flex-col items-center hover:text-ink-strong"
-          >
-            <p className="text-lg font-semibold text-ink-strong">
-              {counts.following}
-            </p>
-            <p className="text-[11px] text-ink-muted">Following</p>
-          </button>
-        </div>
-
-        {/* Buttons row */}
-        <div className="flex flex-wrap gap-2 justify-center mt-2">
-          <Link
-            href="/profile/edit"
-            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
-          >
-            Edit Profile
-          </Link>
-
-          <Link
-            href="/gigs"
-            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
-          >
-            My Gigs
-          </Link>
-
-          <Link
-            href="/press-kit"
-            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
-          >
-            Press kit
-          </Link>
-
-          <button
-            onClick={handleShare}
-            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
-          >
-            Share
-          </button>
-        </div>
-
-        {/* Quote */}
-        {profile.quote && (
-          <div className="px-4 py-3 rounded-xl bg-surface-sunken mt-3">
-            <p className="text-[11px] uppercase tracking-wide text-ink-subtle">
-              Artist Quote
-            </p>
-            <p className="mt-1 italic text-ink-strong">
-              “{profile.quote}”
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* TABS (Instagram-style, text-only) */}
-      <div className="border-b border-line">
-        <div className="flex justify-center gap-10">
-          {(['media', 'about'] as const).map(tab => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`relative pb-3 font-medium ${
-                activeTab === tab
-                  ? 'text-ink-strong'
-                  : 'text-ink-subtle hover:text-ink'
-              }`}
-            >
-              {tab === 'media' ? 'Media' : 'About'}
-              {activeTab === tab && (
-                <span className="absolute left-0 right-0 -bottom-0.5 mx-auto h-[2px] w-8 rounded-full bg-ink-strong" />
+            <div className="flex-1 min-w-0 sm:pb-2">
+              <h1 className="page-title !text-2xl md:!text-3xl truncate">{profile.display_name ?? 'Unnamed artist'}</h1>
+              <p className="text-sm text-ink-subtle mt-0.5">@{username}</p>
+              {profile.location && (
+                <p className="mt-1 text-sm text-ink-muted flex items-center gap-1.5">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-9 8-14a8 8 0 0 0-16 0c0 5 8 14 8 14z" /><circle cx="12" cy="8" r="3" />
+                  </svg>
+                  {profile.location}
+                </p>
               )}
+              <div className="mt-1.5">
+                <RatingDisplay profileId={profile.id} variant="inline" />
+              </div>
+            </div>
+          </div>
+
+          {/* Genres */}
+          {genres.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {genres.map((g) => (
+                <Badge key={g} tone="brand">{g}</Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Bio */}
+          {profile.bio && <p className="mt-4 text-sm text-ink leading-relaxed">{profile.bio}</p>}
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 mt-5 rounded-xl border border-line bg-surface-sunken overflow-hidden">
+            <div className="px-4 py-3 text-center">
+              <p className="text-xl font-semibold text-ink-strong">{counts.posts}</p>
+              <p className="text-[11px] uppercase tracking-wider text-ink-subtle mt-0.5">Posts</p>
+            </div>
+            <button onClick={loadFollowers} className="px-4 py-3 text-center border-x border-line hover:bg-surface transition">
+              <p className="text-xl font-semibold text-ink-strong">{counts.followers}</p>
+              <p className="text-[11px] uppercase tracking-wider text-ink-subtle mt-0.5">Followers</p>
             </button>
-          ))}
+            <button onClick={loadFollowing} className="px-4 py-3 text-center hover:bg-surface transition">
+              <p className="text-xl font-semibold text-ink-strong">{counts.following}</p>
+              <p className="text-[11px] uppercase tracking-wider text-ink-subtle mt-0.5">Following</p>
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 mt-5">
+            <Link href="/profile/edit"><Button variant="primary" size="sm">Edit profile</Button></Link>
+            <Link href="/gigs"><Button variant="outline" size="sm">My gigs</Button></Link>
+            <Link href="/press-kit"><Button variant="outline" size="sm">Press kit</Button></Link>
+            <Button variant="ghost" size="sm" onClick={handleShare}>
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+              Share
+            </Button>
+          </div>
+
+          {/* Quote */}
+          {profile.quote && (
+            <div className="mt-5 rounded-xl border border-accent-200 bg-accent-50 px-4 py-3">
+              <p className="eyebrow text-accent-700">Artist quote</p>
+              <p className="mt-1 italic text-ink-strong">&ldquo;{profile.quote}&rdquo;</p>
+            </div>
+          )}
         </div>
+      </Card>
+
+      {/* ============ TABS ============ */}
+      <div className="mt-6">
+        <Tabs<'media' | 'about'>
+          value={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { value: 'media', label: 'Media', count: media.length },
+            { value: 'about', label: 'About' },
+          ]}
+        />
       </div>
 
-      {/* MEDIA TAB */}
+      {/* ============ MEDIA ============ */}
       {activeTab === 'media' && (
-        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between gap-3">
+        <Card className="mt-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-ink-strong">
-                Media
-              </h2>
-              <p className="text-sm text-ink-subtle mt-1">
-                Add photos and videos from your performances.
-              </p>
+              <h2 className="section-title">Your media</h2>
+              <p className="helper">Photos, videos, and tracks from your performances.</p>
             </div>
-
-            <label className="cursor-pointer inline-flex items-center px-3 py-1.5 rounded-full border border-line-strong text-sm font-medium hover:bg-surface-sunken">
-              {uploading ? 'Uploading…' : 'Upload'}
-              <input
-                type="file"
-                accept="image/*,video/*,audio/*"
-                className="hidden"
-                onChange={handleUpload}
-              />
+            <label>
+              <input type="file" accept="image/*,video/*,audio/*" className="hidden" onChange={handleUpload} />
+              <Button variant="primary" size="sm" loading={uploading} type="button" onClick={(e) => (e.currentTarget.previousElementSibling as HTMLInputElement)?.click()}>
+                Upload
+              </Button>
             </label>
           </div>
 
           {media.length === 0 ? (
-            <div className="border border-dashed border-line-strong rounded-2xl py-10 flex flex-col items-center justify-center text-center bg-surface-sunken">
-              <p className="text-ink-muted">No media uploaded yet.</p>
-            </div>
+            <EmptyState
+              title="No media uploaded yet"
+              description="Upload your best clips or photos to make your profile shine."
+              action={
+                <label>
+                  <input type="file" accept="image/*,video/*,audio/*" className="hidden" onChange={handleUpload} />
+                  <Button variant="primary" loading={uploading} type="button" onClick={(e) => (e.currentTarget.previousElementSibling as HTMLInputElement)?.click()}>
+                    Upload media
+                  </Button>
+                </label>
+              }
+            />
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {media.map((item, index) => (
                 <button
                   type="button"
                   key={item.id}
-                  onClick={() => openModal(index)}
-                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-line-strong"
+                  onClick={() => openMedia(index)}
+                  className="group relative w-full pb-[100%] rounded-xl overflow-hidden bg-surface-sunken focus-visible:outline-none"
+                  aria-label={`Open media ${index + 1}`}
                 >
                   {item.media_type === 'image' && (
-                    <img
-                      src={item.media_url}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      alt=""
-                    />
+                    <img src={item.media_url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="" />
                   )}
                   {item.media_type === 'video' && (
-                    <video
-                      src={item.media_url}
-                      muted
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
+                    <>
+                      <video src={item.media_url} muted className="absolute inset-0 w-full h-full object-cover" />
+                      <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
+                        Video
+                      </span>
+                    </>
                   )}
                   {item.media_type === 'audio' && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-fuchsia-100 text-indigo-900">
-                      <span className="text-4xl">🎵</span>
-                      <span className="mt-2 text-[11px] font-medium uppercase tracking-wide">Audio</span>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[linear-gradient(135deg,var(--brand-50),var(--accent-50))] text-brand-700">
+                      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+                      </svg>
+                      <span className="mt-1 text-[10px] font-medium uppercase tracking-wider">Audio</span>
                     </div>
                   )}
                 </button>
               ))}
             </div>
           )}
-        </section>
+        </Card>
       )}
 
-      {/* ABOUT TAB */}
+      {/* ============ ABOUT ============ */}
       {activeTab === 'about' && (
-        <section className="space-y-6">
-          {/* About + links card */}
-          <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] overflow-hidden">
-            <div className="px-5 py-6 space-y-6">
-              {profile.bio && (
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-ink-strong">About</h2>
-                  <p className="text-ink leading-relaxed">
-                    {profile.bio}
-                  </p>
-                </div>
-              )}
-
-              {profile.links && Object.keys(profile.links).length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-ink-strong">Links</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(profile.links)
-                      .filter(([, v]) => !!v)
-                      .map(([key, value]) => (
-                        <a
-                          key={key}
-                          href={value as string}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1 rounded-full border border-line-strong text-sm text-ink hover:bg-surface-sunken"
-                        >
-                          {key}
-                        </a>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Grid sections */}
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Left column */}
-            <div className="space-y-4">
-              {/* Achievements */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
-                  Achievements
-                </h2>
-                {achievements.length === 0 ? (
-                  <p className="text-ink-subtle">No achievements yet.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {achievements.map(a => (
-                      <li
-                        key={a.id}
-                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 space-y-1"
-                      >
-                        <div className="font-medium text-ink-strong">
-                          {a.title}
-                        </div>
-                        {a.description && (
-                          <div className="text-sm text-ink">
-                            {a.description}
-                          </div>
-                        )}
-                        {a.year && (
-                          <div className="text-sm text-ink-subtle">{a.year}</div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              {/* Shows */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
-                  Recent shows
-                </h2>
-                {shows.length === 0 ? (
-                  <p className="text-ink-subtle">No shows yet.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {shows.map(s => (
-                      <li
-                        key={s.id}
-                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 space-y-1"
-                      >
-                        <div className="font-medium text-ink-strong">
-                          {s.title}
-                        </div>
-                        <div className="text-sm text-ink">
-                          {[s.venue, s.location].filter(Boolean).join(', ')}
-                        </div>
-                        {s.event_date && (
-                          <div className="text-sm text-ink-subtle">
-                            {new Date(s.event_date).toLocaleDateString()}
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
-
-            {/* Right column */}
-            <div className="space-y-4">
-              {/* Skills */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-ink-strong">Skills</h2>
-                {skills.length === 0 ? (
-                  <p className="text-ink-subtle">No skills yet.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {skills.map(sk => (
-                      <li
-                        key={sk.id}
-                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 flex justify-between items-center"
-                      >
-                        <span className="font-medium text-ink-strong">
-                          {sk.skill}
-                        </span>
-                        <span className="text-sm italic text-ink-muted">
-                          {sk.level}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              {/* Booking reviews */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5 space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-ink-strong">
-                    Reviews
-                  </h2>
-                  <RatingDisplay profileId={profile.id} variant="inline" />
-                </div>
-                <ReviewList profileId={profile.id} limit={5} />
-              </section>
-
-              {/* Recommendations */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
-                  Recommendations
-                </h2>
-                {recommendations.length === 0 ? (
-                  <p className=" text-ink-subtle">No recommendations yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {recommendations.map(r => (
-                      <blockquote
-                        key={r.id}
-                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3"
-                      >
-                        <p className="italic text-ink-strong">
-                          “{r.content}”
-                        </p>
-                        {r.author && (
-                          <p className="text-xs mt-1 text-ink-subtle">— {r.author}</p>
-                        )}
-                      </blockquote>
-                    ))}
-                  </div>
-                )}
-              </section>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* MEDIA MODAL */}
-      {selectedMedia && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <button
-            type="button"
-            className="absolute inset-0 cursor-pointer"
-            onClick={closeModal}
-          />
-          <div className="relative z-50 w-full max-w-3xl px-4">
-            <button
-              type="button"
-              onClick={() => deleteMedia(selectedMedia)}
-              className="absolute top-3 left-6 text-xs px-3 py-1 rounded-full bg-danger text-white shadow hover:bg-danger-700"
-            >
-              Delete
-            </button>
-
-            <button
-              type="button"
-              onClick={closeModal}
-              className="absolute top-1 right-6 text-3xl font-bold text-white"
-            >
-              ×
-            </button>
-
-            {selectedMedia.media_type === 'image' && (
-              <img
-                src={selectedMedia.media_url}
-                className="w-full max-h-[90vh] object-contain rounded-2xl"
-                alt=""
-              />
+        <div className="mt-4 space-y-4">
+          {/* About + links */}
+          <Card>
+            {profile.bio ? (
+              <>
+                <h2 className="section-title mb-2">About</h2>
+                <p className="text-sm text-ink leading-relaxed whitespace-pre-line">{profile.bio}</p>
+              </>
+            ) : (
+              <EmptyState title="No bio yet" description="Tell organizers a bit about yourself in your profile settings." />
             )}
-            {selectedMedia.media_type === 'video' && (
-              <video
-                src={selectedMedia.media_url}
-                controls
-                className="w-full max-h-[90vh] rounded-2xl"
-              />
-            )}
-            {selectedMedia.media_type === 'audio' && (
-              <div className="rounded-2xl bg-surface p-6">
-                <AudioPlayer src={selectedMedia.media_url} title={selectedMedia.caption ?? 'Audio'} />
+
+            {profile.links && Object.keys(profile.links).filter((k) => profile.links?.[k]).length > 0 && (
+              <div className="mt-5 pt-5 border-t border-line">
+                <h3 className="text-sm font-semibold text-ink-strong mb-2">Links</h3>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(profile.links)
+                    .filter(([, v]) => !!v)
+                    .map(([key, value]) => (
+                      <a
+                        key={key}
+                        href={value as string}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken transition"
+                      >
+                        {key}
+                        <svg viewBox="0 0 24 24" className="h-3 w-3 text-ink-subtle" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M7 17 17 7" /><path d="M7 7h10v10" />
+                        </svg>
+                      </a>
+                    ))}
+                </div>
               </div>
             )}
+          </Card>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Achievements */}
+            <Card>
+              <h2 className="section-title mb-3">Achievements</h2>
+              {achievements.length === 0 ? (
+                <p className="text-sm text-ink-subtle">No achievements yet.</p>
+              ) : (
+                <ul className="space-y-2.5">
+                  {achievements.map((a) => (
+                    <li key={a.id} className="rounded-lg border border-line bg-surface-sunken px-3 py-3">
+                      <p className="font-medium text-ink-strong text-sm">{a.title}</p>
+                      {a.description && <p className="text-xs text-ink mt-0.5">{a.description}</p>}
+                      {a.year && <p className="text-[11px] text-ink-subtle mt-1">{a.year}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            {/* Recent shows */}
+            <Card>
+              <h2 className="section-title mb-3">Recent shows</h2>
+              {shows.length === 0 ? (
+                <p className="text-sm text-ink-subtle">No shows yet.</p>
+              ) : (
+                <ul className="space-y-2.5">
+                  {shows.map((s) => (
+                    <li key={s.id} className="rounded-lg border border-line bg-surface-sunken px-3 py-3">
+                      <p className="font-medium text-ink-strong text-sm">{s.title}</p>
+                      <p className="text-xs text-ink mt-0.5">{[s.venue, s.location].filter(Boolean).join(', ')}</p>
+                      {s.event_date && (
+                        <p className="text-[11px] text-ink-subtle mt-1">{new Date(s.event_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            {/* Skills */}
+            <Card>
+              <h2 className="section-title mb-3">Skills</h2>
+              {skills.length === 0 ? (
+                <p className="text-sm text-ink-subtle">No skills yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {skills.map((sk) => (
+                    <li key={sk.id} className="flex items-center justify-between rounded-lg border border-line bg-surface-sunken px-3 py-2.5">
+                      <span className="text-sm font-medium text-ink-strong">{sk.skill}</span>
+                      {sk.level && <Badge tone="brand">{sk.level}</Badge>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            {/* Reviews */}
+            <Card>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="section-title">Reviews</h2>
+                <RatingDisplay profileId={profile.id} variant="inline" />
+              </div>
+              <ReviewList profileId={profile.id} limit={5} />
+            </Card>
+
+            {/* Recommendations */}
+            <Card className="md:col-span-2">
+              <h2 className="section-title mb-3">Recommendations</h2>
+              {recommendations.length === 0 ? (
+                <p className="text-sm text-ink-subtle">No recommendations yet.</p>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {recommendations.map((r) => (
+                    <blockquote key={r.id} className="rounded-lg border-l-4 border-accent-300 bg-surface-sunken px-4 py-3">
+                      <p className="italic text-ink-strong text-sm">&ldquo;{r.content}&rdquo;</p>
+                      {r.author && <p className="text-[11px] mt-1.5 text-ink-subtle">— {r.author}</p>}
+                    </blockquote>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* ============ MEDIA MODAL ============ */}
+      {selectedMedia && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
+          <button
+            type="button"
+            aria-label="Close"
+            className="absolute inset-0 cursor-default"
+            onClick={() => setSelectedMedia(null)}
+          />
+
+          <div className="relative z-10 w-full max-w-3xl">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <Button variant="danger" size="sm" onClick={() => deleteMedia(selectedMedia)}>
+                Delete
+              </Button>
+              <button
+                type="button"
+                onClick={() => setSelectedMedia(null)}
+                aria-label="Close"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="rounded-2xl overflow-hidden bg-black">
+              {selectedMedia.media_type === 'image' && (
+                <img src={selectedMedia.media_url} className="w-full max-h-[80vh] object-contain" alt="" />
+              )}
+              {selectedMedia.media_type === 'video' && (
+                <video src={selectedMedia.media_url} controls className="w-full max-h-[80vh]" />
+              )}
+              {selectedMedia.media_type === 'audio' && (
+                <div className="p-6 bg-surface">
+                  <AudioPlayer src={selectedMedia.media_url} title={selectedMedia.caption ?? 'Audio'} />
+                </div>
+              )}
+            </div>
 
             {media.length > 1 && (
               <>
                 <button
                   type="button"
-                  onClick={showPrev}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-4xl text-white"
+                  onClick={prevMedia}
+                  aria-label="Previous"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
                 >
-                  ‹
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                 </button>
                 <button
                   type="button"
-                  onClick={showNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-4xl text-white"
+                  onClick={nextMedia}
+                  aria-label="Next"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
                 >
-                  ›
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
                 </button>
               </>
             )}
@@ -904,127 +638,69 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* FOLLOWERS MODAL */}
-      {showFollowersModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
-            <button
-              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
-              onClick={() => setShowFollowersModal(false)}
-            >
-              ×
-            </button>
+      {/* ============ FOLLOWERS MODAL ============ */}
+      <Modal
+        open={showFollowersModal}
+        onClose={() => setShowFollowersModal(false)}
+        title="Followers"
+      >
+        {followersList.length === 0 ? (
+          <p className="text-sm text-ink-subtle">No followers yet.</p>
+        ) : (
+          <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {followersList.map((user) => (
+              <li key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-sunken">
+                <Link href={profilePath(user)} className="flex items-center gap-3 flex-1 min-w-0">
+                  <Avatar src={user.avatar_url} alt={user.display_name ?? ''} size="md" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-strong truncate">{user.display_name}</p>
+                    <p className="text-xs text-ink-subtle truncate">@{user.handle ?? user.display_name?.toLowerCase().replace(/\s+/g, '')}</p>
+                  </div>
+                </Link>
+                <Button
+                  size="sm"
+                  variant={myFollowingIds.includes(user.id) ? 'outline' : 'primary'}
+                  onClick={() => toggleFollowFromModal(user.id)}
+                >
+                  {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
 
-            <h2 className="text-xl font-semibold mb-4 text-ink-strong">Followers</h2>
-
-            {followersList.length === 0 ? (
-              <p className="text-sm text-ink-subtle">No followers yet.</p>
-            ) : (
-              <ul className="space-y-4">
-                {followersList.map(user => (
-                  <li key={user.id}>
-                    <Link
-                      href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
-                    >
-                      <img
-                        src={user.avatar_url ?? '/default-avatar.png'}
-                        className="w-12 h-12 rounded-full object-cover"
-                        alt=""
-                      />
-
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ink-strong">
-                          {user.display_name}
-                        </p>
-                        <p className="text-xs text-ink-subtle">
-                          @{(user as unknown as Record<string, string>).handle ??
-                            user.display_name?.toLowerCase().replace(/\s+/g, '')}
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={e => {
-                          e.preventDefault();
-                          toggleFollowFromModal(user.id);
-                        }}
-                        className={`px-3 py-1 text-xs rounded-lg border ${
-                          myFollowingIds.includes(user.id)
-                            ? 'bg-line-strong text-ink-strong'
-                            : 'bg-black text-white'
-                        }`}
-                      >
-                        {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
-                      </button>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* FOLLOWING MODAL */}
-      {showFollowingModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
-            <button
-              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
-              onClick={() => setShowFollowingModal(false)}
-            >
-              ×
-            </button>
-
-            <h2 className="text-xl font-semibold mb-4 text-ink-strong">Following</h2>
-
-            {followingList.length === 0 ? (
-              <p className="text-sm text-ink-subtle">Not following anyone yet.</p>
-            ) : (
-              <ul className="space-y-4">
-                {followingList.map(user => (
-                  <li key={user.id}>
-                    <Link
-                      href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
-                    >
-                      <img
-                        src={user.avatar_url ?? '/default-avatar.png'}
-                        className="w-12 h-12 rounded-full object-cover"
-                        alt=""
-                      />
-
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ink-strong">
-                          {user.display_name}
-                        </p>
-                        <p className="text-xs text-ink-subtle">
-                          @{(user as unknown as Record<string, string>).handle ??
-                            user.display_name?.toLowerCase().replace(/\s+/g, '')}
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={e => {
-                          e.preventDefault();
-                          toggleFollowFromModal(user.id);
-                        }}
-                        className={`px-3 py-1 text-xs rounded-lg border ${
-                          myFollowingIds.includes(user.id)
-                            ? 'bg-line-strong text-ink-strong'
-                            : 'bg-black text-white'
-                        }`}
-                      >
-                        {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
-                      </button>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-    </main>
+      {/* ============ FOLLOWING MODAL ============ */}
+      <Modal
+        open={showFollowingModal}
+        onClose={() => setShowFollowingModal(false)}
+        title="Following"
+      >
+        {followingList.length === 0 ? (
+          <p className="text-sm text-ink-subtle">Not following anyone yet.</p>
+        ) : (
+          <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {followingList.map((user) => (
+              <li key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-sunken">
+                <Link href={profilePath(user)} className="flex items-center gap-3 flex-1 min-w-0">
+                  <Avatar src={user.avatar_url} alt={user.display_name ?? ''} size="md" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-strong truncate">{user.display_name}</p>
+                    <p className="text-xs text-ink-subtle truncate">@{user.handle ?? user.display_name?.toLowerCase().replace(/\s+/g, '')}</p>
+                  </div>
+                </Link>
+                <Button
+                  size="sm"
+                  variant={myFollowingIds.includes(user.id) ? 'outline' : 'primary'}
+                  onClick={() => toggleFollowFromModal(user.id)}
+                >
+                  {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+    </Page>
   );
 }

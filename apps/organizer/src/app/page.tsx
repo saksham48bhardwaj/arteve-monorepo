@@ -284,22 +284,19 @@ export default function OrganizerHomePage() {
       {bits.length > 0 && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-ink">
-              Featured Bits
-            </h2>
-            <button
-              type="button"
-              className="text-xs font-medium text-ink-subtle hover:text-ink-strong"
-            >
-              See all
-            </button>
+            <h2 className="eyebrow">Featured Bits</h2>
+            <Link href="/find?tab=people" className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline">
+              Discover all artists →
+            </Link>
           </div>
 
-          <div className="-mx-1 flex gap-3 overflow-x-auto pb-1">
+          <div className="-mx-4 px-4 md:-mx-6 md:px-6 flex gap-3 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory">
             {bits.slice(0, 10).map(post => (
-              <article
+              <Link
                 key={post.id}
-                className="relative h-56 w-40 shrink-0 overflow-hidden rounded-3xl bg-ink-strong sm:h-64 sm:w-48"
+                href={`/profile/${post.profiles?.handle ?? ''}`}
+                aria-label={post.caption ?? 'Open bit'}
+                className="group relative h-56 w-40 shrink-0 overflow-hidden rounded-2xl bg-ink-strong sm:h-64 sm:w-48 snap-start shadow-sm hover:shadow-md transition"
               >
                 {post.media_type === 'video' ? (
                   <video
@@ -313,18 +310,31 @@ export default function OrganizerHomePage() {
                   <img
                     src={post.media_url}
                     alt={post.caption ?? ''}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
                   />
                 )}
 
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent p-3">
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-ink-strong shadow-lg">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 ml-0.5" fill="currentColor" aria-hidden>
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </span>
+                </div>
+
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-3">
+                  {post.profiles?.display_name && (
+                    <p className="text-[11px] font-semibold text-white/95 truncate">
+                      {post.profiles.display_name}
+                    </p>
+                  )}
                   {post.caption && (
-                    <p className="line-clamp-2 text-xs font-medium text-white">
+                    <p className="line-clamp-2 text-xs text-white/85 mt-0.5">
                       {post.caption}
                     </p>
                   )}
                 </div>
-              </article>
+              </Link>
             ))}
           </div>
         </section>
@@ -415,24 +425,32 @@ export default function OrganizerHomePage() {
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-6 px-6 py-4 text-xs text-ink-muted">
+                <div className="flex items-center gap-2 px-4 md:px-6 py-3 border-t border-line">
                   <button
                     onClick={() => toggleLike(post.id)}
-                    className="font-medium hover:text-ink-strong"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-surface-sunken hover:text-ink transition"
                   >
-                    👍 {likes}
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    {likes > 0 && <span>{likes}</span>}
                   </button>
-
                   <button
                     onClick={() => setCommentModalPost(post)}
-                    className="font-medium hover:text-ink-strong"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-surface-sunken hover:text-ink transition"
                   >
-                    💬 {comments}
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z" />
+                    </svg>
+                    {comments > 0 && <span>{comments}</span>}
                   </button>
 
-                  <button className="ml-auto rounded-full bg-ink-strong px-4 py-1.5 text-xs font-medium text-white hover:bg-ink-strong">
-                    Shortlist
-                  </button>
+                  <Link
+                    href={`/book/${post.profiles?.id ?? ''}`}
+                    className="ml-auto btn btn-primary btn-sm"
+                  >
+                    Book
+                  </Link>
                 </div>
 
                 {/* Inline comments preview */}

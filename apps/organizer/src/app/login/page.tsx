@@ -4,36 +4,45 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@arteve/supabase/client';
+import { Button, Input } from '@arteve/ui/components';
 
-export default function LoginPage() {
+function EyeIcon({ off }: { off: boolean }) {
+  return off ? (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5 0-9.27-3-11-8 1.21-3.06 3.34-5.44 6-6.67" />
+      <path d="M1 1l22 22" />
+      <path d="M9.53 9.53A3.5 3.5 0 0 0 12 15.5a3.5 3.5 0 0 0 2.47-5.97" />
+    </svg>
+  ) : (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+export default function OrganizerLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'signin' | 'signup'>('signup');
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const router = useRouter();
   const [resetSent, setResetSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
   async function handleForgotPassword() {
     if (!email) {
       setMsg('Please enter your email first');
       return;
     }
-
     setLoading(true);
     setMsg(null);
-
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
-
-    if (error) {
-      setMsg(error.message);
-    } else {
-      setResetSent(true);
-    }
-
+    if (error) setMsg(error.message);
+    else setResetSent(true);
     setLoading(false);
   }
 
@@ -41,19 +50,23 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setMsg(null);
-
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
+        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) throw signUpError;
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('profiles').upsert({
+            id: user.id,
+            role: 'organizer',
+          });
+        }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
       }
-
       router.push('/profile');
     } catch (err: unknown) {
       setMsg(err instanceof Error ? err.message : 'Something went wrong');
@@ -63,199 +76,119 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row bg-surface-muted text-ink">
-      {/* Desktop left hero */}
+    <main className="min-h-screen flex flex-col md:flex-row bg-surface-muted">
+      {/* Hero — desktop */}
       <section className="relative hidden md:flex md:w-1/2 lg:w-3/5">
-        <Image
-          src="/images/hero.png"
-          alt="Crowd enjoying a live performance"
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="relative z-10 flex flex-col justify-between w-full px-10 lg:px-14 py-8 bg-gradient-to-t from-black/75 via-black/50 to-black/30 justify-center">
-          <div>
-            <h1 className="mt-6 text-3xl lg:text-4xl font-semibold text-white">
-              Discover the right artists for every event.
-            </h1>
-            <p className="mt-4 lg:text-base text-white/80 max-w-xl">
-              Build lineups, manage bookings, and keep your events running
-              smoothly from a single, clean dashboard.
-            </p>
-          </div>
-          <p className="mt-8 text-xs text-white/65">
-            Arteve · Connecting artists &amp; venues
+        <Image src="/images/hero.png" alt="Crowd enjoying a live performance" fill className="object-cover" priority />
+        <div className="relative z-10 flex flex-col justify-end w-full px-10 lg:px-16 py-12 bg-gradient-to-t from-ink-strong/85 via-ink-strong/55 to-transparent">
+          <h1 className="text-3xl lg:text-4xl font-semibold text-white max-w-xl leading-tight">
+            Discover the right artists for every event.
+          </h1>
+          <p className="mt-4 text-base text-white/85 max-w-xl">
+            Build lineups, manage bookings, and keep your events running smoothly from a single, clean dashboard.
+          </p>
+          <p className="mt-10 text-xs text-white/65 uppercase tracking-[0.18em]">
+            Arteve · Organizer portal
           </p>
         </div>
       </section>
 
-      {/* Right side: form (mobile + desktop) */}
-      <section className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-10 bg-[linear-gradient(120deg,_#4E7FA2,_white,_#FFE3CC)]">
+      {/* Form */}
+      <section className="flex-1 flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10 bg-[linear-gradient(135deg,var(--brand-50)_0%,var(--surface)_50%,var(--accent-50)_100%)]">
         <div className="w-full max-w-md">
-          {/* Card with toggle + form */}
-          <div className="rounded-3xl bg-white/95 border border-white/80 shadow-md shadow-black/5 backdrop-blur-sm px-6 py-7 sm:px-8 sm:py-8">
-            {/* Mode toggle */}
-            <div className='mb-4'>
-              <Image
-                src="/images/arteve_logo.png"
-                alt="Arteve Organizer"
-                width={200}
-                height={40}
-                className="mx-auto mt-2 mb-8"
-              />
-              <p className="mt-1.5 text-ink-muted text-center">
-                Find verified artists, manage bookings, and keep every event on
-                track.
+          <div className="card-elevated p-7 sm:p-9 rounded-2xl bg-surface/95 backdrop-blur">
+            <div className="mb-6 flex flex-col items-center text-center">
+              <Image src="/images/arteve_logo.png" alt="Arteve Organizer" width={140} height={36} className="mb-4" />
+              <p className="text-sm text-ink-muted max-w-sm">
+                Find verified artists, manage bookings, and keep every event on track.
               </p>
             </div>
+
+            {/* Mode toggle */}
             <div className="mb-6 flex justify-center">
-              <div className="inline-flex items-center rounded-full border border-line bg-surface-sunken text-sm font-medium p-1">
+              <div className="inline-flex items-center rounded-full border border-line bg-surface-sunken p-1 text-sm font-medium">
                 <button
                   type="button"
                   onClick={() => setMode('signin')}
-                  className={`px-4 py-1.5 rounded-full transition-all ${
-                    mode === 'signin'
-                      ? 'bg-brand text-white shadow-sm'
-                      : 'text-ink-muted'
-                  }`}
+                  className={`px-4 py-1.5 rounded-full transition ${mode === 'signin' ? 'bg-brand text-white shadow-sm' : 'text-ink-muted hover:text-ink'}`}
                 >
                   Sign in
                 </button>
                 <button
                   type="button"
                   onClick={() => setMode('signup')}
-                  className={`px-4 py-1.5 rounded-full transition-all ${
-                    mode === 'signup'
-                      ? 'bg-brand text-white shadow-sm'
-                      : 'text-ink-muted'
-                  }`}
+                  className={`px-4 py-1.5 rounded-full transition ${mode === 'signup' ? 'bg-brand text-white shadow-sm' : 'text-ink-muted hover:text-ink'}`}
                 >
                   Create account
                 </button>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <label className="block font-medium text-ink">
-                  Work email
-                </label>
-                <input
-                  className="w-full rounded-2xl border border-line bg-surface-sunken px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-subtle outline-none transition focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand-100"
-                  type="email"
-                  placeholder="you@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                type="email"
+                label="Work email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
 
-              <div className="space-y-2">
-                <label className="block font-medium text-ink">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    className="w-full rounded-2xl border border-line bg-surface-sunken px-3.5 py-2.5 pr-11 text-sm text-ink placeholder:text-ink-subtle outline-none transition focus:border-brand focus:bg-surface focus:ring-2 focus:ring-brand-100"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete={
-                      mode === 'signin' ? 'current-password' : 'new-password'
-                    }
-                  />
-
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                label="Password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                trailingIcon={
                   <button
                     type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-subtle hover:text-ink-muted transition"
+                    onClick={() => setShowPassword((p) => !p)}
+                    className="text-ink-subtle hover:text-ink transition"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
                   >
-                    {showPassword ? (
-                      /* Eye Off */
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-5 0-9.27-3-11-8 1.21-3.06 3.34-5.44 6-6.67" />
-                        <path d="M1 1l22 22" />
-                        <path d="M9.53 9.53A3.5 3.5 0 0 0 12 15.5a3.5 3.5 0 0 0 2.47-5.97" />
-                      </svg>
-                    ) : (
-                      /* Eye */
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
+                    <EyeIcon off={showPassword} />
                   </button>
-                </div>
-              </div>
+                }
+              />
 
               {msg && (
-                <div className="rounded-2xl border border-danger/30 bg-danger/5 px-3.5 py-2 text-xs text-danger">
+                <div className="rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2 text-xs text-danger">
                   {msg}
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex w-full items-center justify-center rounded-2xl bg-brand px-4 py-2.75 font-medium text-white shadow-sm transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {loading
-                  ? 'Please wait…'
-                  : mode === 'signup'
-                  ? 'Create your organizer account'
-                  : 'Sign in'}
-              </button>
+              {resetSent && (
+                <div className="rounded-xl border border-success/30 bg-success/5 px-3.5 py-2 text-xs text-success">
+                  Password reset link sent. Check your email.
+                </div>
+              )}
+
+              <Button type="submit" loading={loading} fullWidth size="lg">
+                {mode === 'signup' ? 'Create organizer account' : 'Sign in'}
+              </Button>
 
               {mode === 'signin' && (
                 <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={handleForgotPassword}
-                    className="text-xs text-brand hover:underline"
+                    className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline"
                   >
                     Forgot password?
                   </button>
                 </div>
               )}
 
-              {resetSent && (
-                <div className="rounded-2xl border border-success/30 bg-success/5 px-3.5 py-2 text-xs text-success">
-                  Password reset link sent. Check your email.
-                </div>
-              )}
-
-              <p className="text-[11px] leading-relaxed text-ink-subtle text-center">
+              <p className="text-[11px] leading-relaxed text-ink-subtle text-center pt-1">
                 By continuing, you agree to Arteve&apos;s&nbsp;
-                <span className="underline underline-offset-2">
-                  terms of use
-                </span>{' '}
+                <span className="underline underline-offset-2">terms of use</span>{' '}
                 and{' '}
-                <span className="underline underline-offset-2">
-                  privacy policy
-                </span>
-                .
+                <span className="underline underline-offset-2">privacy policy</span>.
               </p>
             </form>
           </div>

@@ -22,7 +22,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leadingIcon && (
-            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-subtle">
+            <span className="pointer-events-none absolute left-0 top-0 bottom-0 flex w-10 items-center justify-center text-ink-subtle">
               {leadingIcon}
             </span>
           )}
@@ -32,14 +32,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               'input',
               leadingIcon && 'pl-10',
-              trailingIcon && 'pr-10',
+              trailingIcon && 'pr-11',
               errorText && '!border-danger',
               className,
             )}
             {...rest}
           />
           {trailingIcon && (
-            <span className="absolute inset-y-0 right-3 flex items-center text-ink-subtle">
+            <span className="absolute right-0 top-0 bottom-0 flex w-11 items-center justify-center text-ink-subtle">
               {trailingIcon}
             </span>
           )}
