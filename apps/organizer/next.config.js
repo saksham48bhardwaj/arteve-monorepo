@@ -67,9 +67,11 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   reactStrictMode: true,
   images: {
+    // Allow user-uploaded media from Supabase + any external avatar source
+    // (Google OAuth = lh*.googleusercontent.com, Gravatar, etc.). Early-app
+    // breadth is the right tradeoff here; tighten later if bandwidth is a concern.
     remotePatterns: [
-      { protocol: 'https', hostname: '**.supabase.co' },
-      { protocol: 'https', hostname: '**.supabase.in' },
+      { protocol: 'https', hostname: '**' },
     ],
   },
 };
