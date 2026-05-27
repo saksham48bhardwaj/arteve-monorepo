@@ -55,8 +55,8 @@ function getHeaderConfig(pathname: string, handleFromUrl?: string): HeaderConfig
     m(/^\/bookings\/[^/]+$/, { kind: 'title', title: 'Booking', showBack: true }) ??
     m(/^\/applications\/[^/]+$/, { kind: 'title', title: 'Application', showBack: true }) ??
     m(/^\/book\/[^/]+$/, { kind: 'title', title: 'Book artist', showBack: true }) ??
-    m(/^\/chat$/, { kind: 'title', title: 'Messages' }) ??
-    m(/^\/notifications$/, { kind: 'title', title: 'Notifications' }) ??
+    m(/^\/chat$/, { kind: 'title', title: 'Messages', showBack: true }) ??
+    m(/^\/notifications$/, { kind: 'title', title: 'Notifications', showBack: true }) ??
     m(/^\/venue\/[^/]+$/, { kind: 'title', title: 'Venue', showBack: true }) ??
     { kind: 'title', title: 'Arteve' }
   );

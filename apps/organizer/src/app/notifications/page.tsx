@@ -246,37 +246,29 @@ export default function NotificationsPage() {
 
   return (
     <main className="w-full mx-auto" style={{ maxWidth: 720 }}>
-      {/* Header */}
-      <div className="px-4 md:px-6 pt-5 pb-3 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-ink-strong tracking-tight">Notifications</h1>
-          <p className="text-xs text-ink-muted mt-0.5">
-            {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
-          </p>
+      {/* Filters + Mark-all in a single row (Notifications heading lives in TopNav) */}
+      <div className="px-4 md:px-6 pt-4 pb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowUnreadOnly(false)}
+            className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold transition ${!showUnreadOnly ? 'bg-brand text-white' : 'border border-line-strong text-ink-muted hover:bg-surface-sunken hover:text-ink'}`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowUnreadOnly(true)}
+            className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold transition ${showUnreadOnly ? 'bg-brand text-white' : 'border border-line-strong text-ink-muted hover:bg-surface-sunken hover:text-ink'}`}
+          >
+            Unread {unreadCount > 0 && <span className="ml-1.5 tabular text-[11px] opacity-90">{unreadCount}</span>}
+          </button>
         </div>
         {unreadCount > 0 && (
-          <Button size="sm" variant="outline" loading={marking} onClick={markAllAsRead}>
+          <Button size="sm" variant="ghost" loading={marking} onClick={markAllAsRead}>
             Mark all read
           </Button>
         )}
-      </div>
-
-      {/* Filters */}
-      <div className="px-4 md:px-6 pb-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setShowUnreadOnly(false)}
-          className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold transition ${!showUnreadOnly ? 'bg-brand text-white' : 'border border-line-strong text-ink-muted hover:bg-surface-sunken hover:text-ink'}`}
-        >
-          All
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowUnreadOnly(true)}
-          className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold transition ${showUnreadOnly ? 'bg-brand text-white' : 'border border-line-strong text-ink-muted hover:bg-surface-sunken hover:text-ink'}`}
-        >
-          Unread {unreadCount > 0 && <span className="ml-1.5 tabular text-[11px] opacity-90">{unreadCount}</span>}
-        </button>
       </div>
 
       {/* List */}

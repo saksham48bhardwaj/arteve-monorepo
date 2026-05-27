@@ -52,9 +52,9 @@ function getHeaderConfig(pathname: string, profileHandleFromUrl?: string): Heade
     m(/^\/bits\/new$/, { kind: 'title', title: 'New bit', showBack: true }) ??
     m(/^\/bookings$/, { kind: 'title', title: 'Bookings' }) ??
     m(/^\/bookings\/[^/]+$/, { kind: 'title', title: 'Booking', showBack: true }) ??
-    m(/^\/applications(\/.*)?$/, { kind: 'title', title: 'Applications', showBack: pathname !== '/applications' }) ??
-    m(/^\/chat$/, { kind: 'title', title: 'Messages' }) ??
-    m(/^\/notifications$/, { kind: 'title', title: 'Notifications' }) ??
+    m(/^\/applications(\/.*)?$/, { kind: 'title', title: 'Applications', showBack: true }) ??
+    m(/^\/chat$/, { kind: 'title', title: 'Messages', showBack: true }) ??
+    m(/^\/notifications$/, { kind: 'title', title: 'Notifications', showBack: true }) ??
     m(/^\/gigs$/, { kind: 'title', title: 'Gigs' }) ??
     m(/^\/gigs\/[^/]+$/, { kind: 'title', title: 'Gig', showBack: true }) ??
     m(/^\/gigs\/[^/]+\/apply$/, { kind: 'title', title: 'Apply', showBack: true }) ??
