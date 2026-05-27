@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 
-export default function BookMusician({ params }: { params: { musicianId: string } }) {
-  const musicianId = params.musicianId;
+export default function BookMusician({ params }: { params: Promise<{ musicianId: string }> }) {
+  const { musicianId } = use(params);
   const router = useRouter();
 
   const [event_title, setTitle] = useState('');

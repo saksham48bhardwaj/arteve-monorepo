@@ -351,7 +351,7 @@ export default function MusicianHomePage() {
             {bits.slice(0, 10).map(post => (
               <Link
                 key={post.id}
-                href="/bits"
+                href={`/bits?bit=${post.id}`}
                 aria-label={post.caption ?? 'Open bit'}
                 className="group relative h-56 w-40 shrink-0 overflow-hidden rounded-2xl bg-ink-strong sm:h-64 sm:w-48 snap-start shadow-sm hover:shadow-md transition"
               >
