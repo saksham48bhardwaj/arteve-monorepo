@@ -16,6 +16,9 @@
     "./types/application": "./types/application.ts",
     "./types/booking": "./types/booking.ts",
     "./types/user": "./types/user.ts",
-    "./utils/date": "./utils/date.ts"
-  } 
+    "./utils/date": "./utils/date.ts",
+    "./legal/content": "./legal/content.ts",
+    "./legal/LegalPage": "./legal/LegalPage.tsx",
+    "./auth/errors": "./auth/errors.ts"
+  }
 }

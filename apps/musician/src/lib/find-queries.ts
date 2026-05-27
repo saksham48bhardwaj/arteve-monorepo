@@ -83,6 +83,7 @@ export async function searchPeople(
     `
     )
     .eq('role', 'musician')
+    .is('deleted_at', null)
     .ilike('display_name', `%${query}%`)
     .range(from, to);
 
@@ -156,6 +157,7 @@ export async function searchVenues(
     .from('profiles')
     .select('id, handle, display_name, avatar_url, location')
     .eq('role', 'organizer')
+    .is('deleted_at', null)
     .ilike('display_name', `%${query}%`)
     .range(from, to);
 

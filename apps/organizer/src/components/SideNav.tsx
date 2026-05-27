@@ -6,7 +6,7 @@ import Image from 'next/image';
 import LogoutButton from './logout-button';
 import { useRealtimeNotifications } from '@arteve/shared/notifications/realtime';
 
-type IconName = 'home' | 'search' | 'plus' | 'list' | 'user' | 'message' | 'bell';
+type IconName = 'home' | 'search' | 'plus' | 'list' | 'user' | 'message' | 'bell' | 'settings';
 
 const mainNav: { href: string; label: string; icon: IconName }[] = [
   { href: '/', label: 'Home', icon: 'home' },
@@ -19,6 +19,7 @@ const mainNav: { href: string; label: string; icon: IconName }[] = [
 const secondaryNav: { href: string; label: string; icon: IconName; badge?: boolean }[] = [
   { href: '/chat', label: 'Messages', icon: 'message' },
   { href: '/notifications', label: 'Notifications', icon: 'bell', badge: true },
+  { href: '/account', label: 'Account', icon: 'settings' },
 ];
 
 function Icon({ name }: { name: IconName }) {
@@ -30,6 +31,7 @@ function Icon({ name }: { name: IconName }) {
     case 'user':    return (<><circle cx="12" cy="8" r="4" /><path d="M6 20a6 6 0 0 1 12 0" /></>);
     case 'message': return <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z" />;
     case 'bell':    return (<><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14V11a6 6 0 1 0-12 0v3a2 2 0 0 1-.6 1.4L4 17h5" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /></>);
+    case 'settings': return (<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></>);
     default:        return null;
   }
 }

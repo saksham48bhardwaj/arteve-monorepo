@@ -42,7 +42,8 @@ export async function searchPeople(
   let q = supabase
     .from('profiles')
     .select('id, handle, display_name, avatar_url, location, genres')
-    .eq('role', 'musician');
+    .eq('role', 'musician')
+    .is('deleted_at', null);
 
   if (query.trim()) {
     q = q.ilike('display_name', `%${query}%`);
