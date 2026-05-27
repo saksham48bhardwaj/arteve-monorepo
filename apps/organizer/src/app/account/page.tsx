@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { Button, Card, Input, Modal, toast } from '@arteve/ui/components';
-import { authErrorMessage, passwordStrength } from '@arteve/shared/auth/errors';
+import { authErrorMessage, passwordStrength } from '@/lib/auth-errors';
 
 export default function AccountPage() {
   const router = useRouter();

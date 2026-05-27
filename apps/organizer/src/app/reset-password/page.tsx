@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@arteve/supabase/client';
 import { Button, Input } from '@arteve/ui/components';
-import { authErrorMessage, passwordStrength } from '@arteve/shared/auth/errors';
+import { authErrorMessage, passwordStrength } from '@/lib/auth-errors';
 
 export const dynamic = 'force-dynamic';
 

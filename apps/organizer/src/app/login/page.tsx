@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { Button, Input, toast } from '@arteve/ui/components';
-import { authErrorMessage, passwordStrength } from '@arteve/shared/auth/errors';
+import { authErrorMessage, passwordStrength } from '@/lib/auth-errors';
 
 function generateRandomHandle(prefix = 'venue') {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
@@ -128,163 +128,205 @@ export default function OrganizerLoginPage() {
     : 'Sign in to continue to Arteve.';
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row bg-surface">
+    <main className="min-h-screen flex flex-col md:flex-row bg-surface-muted">
       {/* Hero — desktop only */}
       <section className="relative hidden md:flex md:w-1/2 lg:w-3/5">
         <Image src="/images/hero.png" alt="Crowd enjoying a live performance" fill className="object-cover" priority />
-        <div className="relative z-10 flex flex-col justify-end w-full px-10 lg:px-16 py-12 bg-gradient-to-t from-ink-strong/90 via-ink-strong/45 to-transparent">
-          <h1 className="text-3xl lg:text-4xl font-display tracking-tight text-white max-w-xl leading-[1.1]">
-            Book the right artist for every night.
-          </h1>
-          <p className="mt-4 text-base text-white/85 max-w-xl">
-            Discover artists, build lineups, and run your events from one clean dashboard.
-          </p>
-          <p className="mt-10 text-[11px] text-white/65 uppercase tracking-[0.18em]">
-            Arteve · For organizers
-          </p>
+        {/* Brand wash overlay so the white form on the right doesn't feel orphaned */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-brand-700/55 via-brand-500/20 to-transparent mix-blend-multiply" />
+        <div className="relative z-10 flex flex-col justify-between w-full px-10 lg:px-16 py-12 bg-gradient-to-t from-ink-strong/85 via-ink-strong/35 to-transparent">
+          <Image src="/images/arteve_logo.png" alt="Arteve" width={120} height={32} className="brightness-0 invert opacity-90" />
+          <div>
+            <h1 className="text-3xl lg:text-[44px] font-display tracking-[-0.02em] text-white max-w-xl leading-[1.05]">
+              Book the right artist for every night.
+            </h1>
+            <p className="mt-5 text-base lg:text-lg text-white/90 max-w-lg leading-relaxed">
+              Discover artists, build lineups, and run your events from one clean dashboard.
+            </p>
+            <div className="mt-10 flex items-center gap-3">
+              <div className="flex -space-x-2">
+                <div className="h-8 w-8 rounded-full bg-accent-500 ring-2 ring-white/90" />
+                <div className="h-8 w-8 rounded-full bg-brand-400 ring-2 ring-white/90" />
+                <div className="h-8 w-8 rounded-full bg-surface ring-2 ring-white/90" />
+              </div>
+              <p className="text-xs text-white/75 uppercase tracking-[0.18em]">
+                Built for venues, festivals &amp; agencies
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Form */}
-      <section className="flex-1 flex items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
-        <div className="w-full max-w-sm">
-          {/* Logo + heading */}
-          <div className="flex flex-col items-center text-center mb-7">
-            <Image src="/images/arteve_logo.png" alt="Arteve" width={112} height={28} className="mb-6" />
-            <h2 className="text-2xl font-display tracking-tight text-ink-strong">{heading}</h2>
-            <p className="mt-1.5 text-sm text-ink-muted">{subheading}</p>
-          </div>
+      <section className="flex-1 relative flex items-center justify-center px-4 py-10 sm:px-6 lg:px-12 bg-[linear-gradient(135deg,var(--brand-50)_0%,var(--surface)_45%,var(--accent-50)_100%)]">
+        {/* Decorative soft blobs (CSS only, no extra assets) */}
+        <div aria-hidden className="pointer-events-none absolute -top-20 -right-20 h-72 w-72 rounded-full bg-accent-200/40 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-brand-200/40 blur-3xl" />
 
-          {/* Form */}
-          <form onSubmit={isForgot ? handleForgotPassword : handleSubmit} className="space-y-4">
-            <Input
-              type="email"
-              label="Email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); clearMessages(); }}
-              required
-              autoComplete="email"
-              autoFocus
-            />
+        <div className="relative w-full max-w-md">
+          <div className="card-elevated rounded-3xl bg-surface/95 backdrop-blur-md shadow-[0_20px_60px_-15px_rgba(28,26,23,0.18)] border border-line/60 px-6 py-7 sm:px-8 sm:py-9">
+            {/* Logo (mobile only, since desktop hero already shows it) */}
+            <div className="flex md:hidden justify-center mb-5">
+              <Image src="/images/arteve_logo.png" alt="Arteve" width={120} height={30} />
+            </div>
 
+            {/* Heading */}
+            <div className="text-center mb-6">
+              <h2 className="text-[26px] sm:text-[28px] font-display tracking-tight text-ink-strong leading-tight">
+                {heading}
+              </h2>
+              <p className="mt-1.5 text-sm text-ink-muted">{subheading}</p>
+            </div>
+
+            {/* Segmented mode toggle (hidden in forgot mode) */}
             {!isForgot && (
-              <>
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  label="Password"
-                  placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); clearMessages(); }}
-                  required
-                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                  trailingIcon={
+              <div className="mb-5 flex p-1 rounded-full border border-line bg-surface-sunken">
+                <button
+                  type="button"
+                  onClick={() => { setMode('signin'); clearMessages(); }}
+                  className={
+                    'flex-1 py-2 rounded-full text-sm font-medium transition ' +
+                    (mode === 'signin'
+                      ? 'bg-surface text-ink-strong shadow-sm'
+                      : 'text-ink-muted hover:text-ink')
+                  }
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode('signup'); clearMessages(); }}
+                  className={
+                    'flex-1 py-2 rounded-full text-sm font-medium transition ' +
+                    (mode === 'signup'
+                      ? 'bg-surface text-ink-strong shadow-sm'
+                      : 'text-ink-muted hover:text-ink')
+                  }
+                >
+                  Create account
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={isForgot ? handleForgotPassword : handleSubmit} className="space-y-4">
+              <Input
+                type="email"
+                label="Email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); clearMessages(); }}
+                required
+                autoComplete="email"
+                autoFocus
+              />
+
+              {!isForgot && (
+                <>
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    label="Password"
+                    placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); clearMessages(); }}
+                    required
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                    trailingIcon={
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((p) => !p)}
+                        className="text-ink-subtle hover:text-ink transition"
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        tabIndex={-1}
+                      >
+                        <EyeIcon off={showPassword} />
+                      </button>
+                    }
+                  />
+
+                  {/* Password strength indicator (signup only) */}
+                  {pwStrength && (
+                    <div className="flex items-center gap-2 -mt-1">
+                      <div className="flex-1 h-1.5 rounded-full bg-surface-sunken overflow-hidden">
+                        <div
+                          className={
+                            'h-full transition-all duration-200 ' +
+                            (pwStrength.label === 'strong' ? 'bg-success w-full'
+                            : pwStrength.label === 'good' ? 'bg-success/70 w-3/4'
+                            : pwStrength.label === 'fair' ? 'bg-warning w-1/2'
+                            : 'bg-danger w-1/4')
+                          }
+                        />
+                      </div>
+                      <span className="text-[11px] font-medium text-ink-muted w-14 text-right capitalize">
+                        {pwStrength.label}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Messages */}
+              {errMsg && (
+                <div className="rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-xs text-danger">
+                  {errMsg}
+                </div>
+              )}
+              {infoMsg && (
+                <div className="rounded-xl border border-success/30 bg-success/5 px-3.5 py-2.5 text-xs text-success">
+                  {infoMsg}
+                </div>
+              )}
+
+              <Button type="submit" loading={loading} fullWidth size="lg">
+                {isForgot ? 'Send reset link' : mode === 'signup' ? 'Create account' : 'Sign in'}
+              </Button>
+
+              {/* Footer row */}
+              <div className="flex items-center justify-between text-xs font-medium pt-0.5">
+                {mode === 'signin' && (
+                  <>
                     <button
                       type="button"
-                      onClick={() => setShowPassword((p) => !p)}
-                      className="text-ink-subtle hover:text-ink transition"
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      tabIndex={-1}
+                      onClick={() => { setMode('forgot'); clearMessages(); }}
+                      className="text-brand-700 hover:text-brand-800 hover:underline"
                     >
-                      <EyeIcon off={showPassword} />
+                      Forgot password?
                     </button>
-                  }
-                />
-
-                {/* Password strength indicator (signup only) */}
-                {pwStrength && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1 rounded-full bg-surface-sunken overflow-hidden">
-                      <div
-                        className={
-                          'h-full transition-all duration-200 ' +
-                          (pwStrength.label === 'strong' ? 'bg-success w-full'
-                          : pwStrength.label === 'good' ? 'bg-success/70 w-3/4'
-                          : pwStrength.label === 'fair' ? 'bg-warning w-1/2'
-                          : 'bg-danger w-1/4')
-                        }
-                      />
-                    </div>
-                    <span className="text-[11px] font-medium text-ink-muted w-12 text-right capitalize">
-                      {pwStrength.label}
-                    </span>
-                  </div>
+                    <span className="text-ink-subtle">New here? Use Create account ↑</span>
+                  </>
                 )}
-              </>
-            )}
-
-            {/* Messages */}
-            {errMsg && (
-              <div className="rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-xs text-danger">
-                {errMsg}
-              </div>
-            )}
-            {infoMsg && (
-              <div className="rounded-xl border border-success/30 bg-success/5 px-3.5 py-2.5 text-xs text-success">
-                {infoMsg}
-              </div>
-            )}
-
-            <Button type="submit" loading={loading} fullWidth size="lg">
-              {isForgot ? 'Send reset link' : mode === 'signup' ? 'Create account' : 'Sign in'}
-            </Button>
-
-            {/* Inline mode-switch links */}
-            <div className="flex items-center justify-between text-xs font-medium pt-1">
-              {mode === 'signin' && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => { setMode('forgot'); clearMessages(); }}
-                    className="text-ink-muted hover:text-ink"
-                  >
-                    Forgot password?
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setMode('signup'); clearMessages(); }}
-                    className="text-ink-strong hover:underline"
-                  >
-                    Create account
-                  </button>
-                </>
-              )}
-              {mode === 'signup' && (
-                <>
-                  <span className="text-ink-subtle">Already have one?</span>
+                {mode === 'signup' && (
+                  <>
+                    <span className="text-ink-subtle">Already have an account?</span>
+                    <button
+                      type="button"
+                      onClick={() => { setMode('signin'); clearMessages(); }}
+                      className="text-brand-700 hover:text-brand-800 hover:underline"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                )}
+                {isForgot && (
                   <button
                     type="button"
                     onClick={() => { setMode('signin'); clearMessages(); }}
-                    className="text-ink-strong hover:underline"
+                    className="text-brand-700 hover:text-brand-800 hover:underline ml-auto"
                   >
-                    Sign in
+                    ← Back to sign in
                   </button>
-                </>
-              )}
-              {isForgot && (
-                <>
-                  <span />
-                  <button
-                    type="button"
-                    onClick={() => { setMode('signin'); clearMessages(); }}
-                    className="text-ink-strong hover:underline"
-                  >
-                    Back to sign in
-                  </button>
-                </>
-              )}
-            </div>
-          </form>
+                )}
+              </div>
+            </form>
+          </div>
 
-          {/* Terms + privacy */}
-          {!isForgot && (
-            <p className="text-[11px] leading-relaxed text-ink-subtle text-center mt-6">
-              By {mode === 'signup' ? 'creating an account' : 'continuing'}, you agree to Arteve&apos;s{' '}
-              <Link href="/terms" className="underline underline-offset-2 hover:text-ink">terms of use</Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="underline underline-offset-2 hover:text-ink">privacy policy</Link>.
-            </p>
-          )}
+          {/* Terms + privacy — outside the card so it feels like a footer */}
+          <p className="text-[11px] leading-relaxed text-ink-subtle text-center mt-5 max-w-sm mx-auto">
+            By {mode === 'signup' ? 'creating an account' : 'continuing'}, you agree to Arteve&apos;s{' '}
+            <Link href="/terms" className="text-ink underline underline-offset-2 hover:text-ink-strong">Terms of Use</Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="text-ink underline underline-offset-2 hover:text-ink-strong">Privacy Policy</Link>.
+          </p>
         </div>
       </section>
     </main>
