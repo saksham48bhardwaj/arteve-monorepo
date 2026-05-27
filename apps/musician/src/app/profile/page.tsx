@@ -17,6 +17,7 @@ import {
   Modal,
   Spinner,
   SocialLink,
+  toast,
 } from '@arteve/ui/components';
 
 type Achievement = { id: string; title: string | null; description: string | null; year: number | null };
@@ -166,7 +167,7 @@ export default function ProfilePage() {
       setMedia((posts ?? []) as PostMedia[]);
     } catch (err) {
       console.error(err);
-      alert('Failed to upload media');
+      toast.error('Failed to upload media');
     } finally {
       setUploading(false);
     }
@@ -203,7 +204,7 @@ export default function ProfilePage() {
 
   async function toggleFollowFromModal(targetId: string) {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return alert('Login required.');
+    if (!auth.user) return toast.error('Login required.');
     const me = auth.user.id;
     if (myFollowingIds.includes(targetId)) {
       await supabase.from('followers').delete().eq('follower_id', me).eq('following_id', targetId);
@@ -272,7 +273,7 @@ export default function ProfilePage() {
         });
       } else {
         await navigator.clipboard.writeText(publicProfileUrl);
-        alert('Profile link copied to clipboard');
+        toast.success('Profile link copied to clipboard');
       }
     } catch (err) {
       console.error('Share failed:', err);

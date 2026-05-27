@@ -34,4 +34,7 @@ export type { SpinnerProps } from './Spinner';
 export { SocialIcon, SocialLink, socialColor } from './SocialIcon';
 export type { SocialIconProps, SocialLinkProps } from './SocialIcon';
 
+export { ToastViewport, toast } from './Toast';
+export type { ToastOptions } from './Toast';
+
 export { cn } from './cn';

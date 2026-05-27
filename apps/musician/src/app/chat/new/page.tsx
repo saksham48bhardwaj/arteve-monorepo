@@ -3,6 +3,7 @@
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
+import { toast } from '@arteve/ui/components';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ function NewChatContent() {
         .single();
 
       if (targetErr || !target) {
-        alert('User not found');
+        toast.error('User not found');
         return;
       }
 
@@ -79,7 +80,7 @@ function NewChatContent() {
         .single();
 
       if (convoErr || !convo) {
-        alert(convoErr?.message || 'Failed to create conversation');
+        toast.error(convoErr?.message || 'Failed to create conversation');
         return;
       }
 
@@ -106,7 +107,7 @@ function NewChatContent() {
         ]);
 
       if (partError) {
-        alert(partError.message);
+        toast.error(partError.message);
         return;
       }
 

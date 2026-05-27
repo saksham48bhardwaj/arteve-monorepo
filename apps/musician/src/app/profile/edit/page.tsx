@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
+import { toast } from '@arteve/ui/components';
 
 type Profile = {
   id: string;
@@ -174,7 +175,7 @@ export default function EditProfilePage() {
       const file = e.target.files?.[0];
       if (!file) return;
       if (!userId) {
-        alert('User not loaded yet');
+        toast.error('User not loaded yet');
         return;
       }
 

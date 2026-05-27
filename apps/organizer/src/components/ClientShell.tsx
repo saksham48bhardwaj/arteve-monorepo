@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import TopNav from './TopNav';
 import BottomNav from './BottomNav';
 import SideNav from './SideNav';
+import { ToastViewport } from '@arteve/ui/components';
 
 function isHeaderlessRoute(pathname: string): boolean {
   if (pathname.endsWith('/chat') && pathname !== '/chat') return true;
@@ -31,6 +32,8 @@ export default function ClientShell({ children }: { children: React.ReactNode })
       </div>
 
       {!isAuthPage && <BottomNav />}
+
+      <ToastViewport />
     </div>
   );
 }

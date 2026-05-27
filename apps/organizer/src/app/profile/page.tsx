@@ -14,6 +14,7 @@ import {
   Modal,
   Spinner,
   SocialLink,
+  toast,
 } from '@arteve/ui/components';
 
 type Profile = {
@@ -160,7 +161,7 @@ export default function OrganizerProfilePage() {
         });
       } else {
         await navigator.clipboard.writeText(publicProfileUrl);
-        alert('Profile link copied to clipboard');
+        toast.success('Profile link copied to clipboard');
       }
     } catch (err) {
       console.error('Share failed:', err);

@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import TopNav from './TopNav';
 import BottomNav from './BottomNav';
 import SideNav from './SideNav';
+import { ToastViewport } from '@arteve/ui/components';
 
 // Routes that render their own page-level chrome and skip the mobile TopNav.
 function isHeaderlessRoute(pathname: string): boolean {
@@ -43,6 +44,9 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 
       {/* BottomNav — mobile only */}
       {!isAuthPage && <BottomNav />}
+
+      {/* Global toast surface */}
+      <ToastViewport />
     </div>
   );
 }

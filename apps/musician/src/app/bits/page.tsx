@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
-import { Avatar, Spinner } from '@arteve/ui/components';
+import { Avatar, Spinner, toast } from '@arteve/ui/components';
 
 type ProfileInfo = {
   display_name: string | null;
@@ -208,7 +208,7 @@ function BitsReelsPage() {
         await navigator.share({ title: 'Arteve · Bit', url });
       } else {
         await navigator.clipboard.writeText(url);
-        alert('Link copied');
+        toast.success('Link copied');
       }
     } catch { /* user cancelled */ }
   }

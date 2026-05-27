@@ -15,6 +15,7 @@ import {
   Modal,
   Spinner,
   SocialLink,
+  toast,
 } from '@arteve/ui/components';
 
 type PostMedia = {
@@ -147,7 +148,7 @@ export default function MusicianPublicProfilePage() {
 
   async function toggleFollow() {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) { alert('Login required.'); return; }
+    if (!auth.user) { toast.error('Login required.'); return; }
     if (!profile) return;
     if (auth.user.id === profile.id) return;
     if (isFollowing) {
