@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
-import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
 import {
   Card,
@@ -292,24 +291,13 @@ export default function ProfilePage() {
       </header>
 
       <div className="px-4 md:px-6 pt-5 pb-8">
-        <ProfileCompleteness
-          profile={profile}
-          role="musician"
-          related={{
-            mediaCount: media.length,
-            skillsCount: skills.length,
-            showsCount: shows.length,
-            achievementsCount: achievements.length,
-          }}
-        />
-
         {/* ============ AVATAR + STATS ROW ============ */}
-        <div className="flex items-center gap-5 mt-4">
+        <div className="flex items-center gap-5">
           <div className="shrink-0">
             <img
               src={profile.avatar_url ?? '/default-avatar.png'}
               alt={profile.display_name ?? 'Profile'}
-              className="h-24 w-24 rounded-2xl object-cover border border-line"
+              className="h-24 w-24 rounded-full object-cover ring-1 ring-line"
             />
           </div>
 

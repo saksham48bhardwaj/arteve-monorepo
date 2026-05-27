@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
-import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
 import {
   Card,
   Button,
@@ -180,27 +179,13 @@ export default function OrganizerProfilePage() {
       </header>
 
       <div className="px-4 md:px-6 pt-5 pb-8">
-        <ProfileCompleteness
-          profile={{
-            display_name: profile.display_name,
-            handle: profile.handle,
-            avatar_url: profile.avatar_url,
-            bio: profile.bio,
-            location: profile.location,
-            links,
-          }}
-          role="organizer"
-          related={{ mediaCount: venuePhotos.length }}
-          editHref="/profile/edit"
-        />
-
         {/* AVATAR + STATS ROW */}
-        <div className="flex items-center gap-5 mt-4">
+        <div className="flex items-center gap-5">
           <div className="shrink-0">
             <img
               src={profile.avatar_url ?? '/default-avatar.png'}
               alt={profile.display_name ?? 'Venue'}
-              className="h-24 w-24 rounded-2xl object-cover border border-line"
+              className="h-24 w-24 rounded-full object-cover ring-1 ring-line"
             />
           </div>
 
