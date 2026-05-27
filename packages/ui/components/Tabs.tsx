@@ -38,9 +38,11 @@ export function Tabs<T extends string = string>({
             onClick={() => onChange(item.value)}
             className={cn('tab', size === 'sm' && 'text-xs pb-2')}
           >
-            {item.label}
+            <span>{item.label}</span>
             {typeof item.count === 'number' && (
-              <span className="ml-1 text-xs text-ink-subtle">{item.count}</span>
+              <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-sunken px-1.5 text-[10px] font-semibold text-ink-muted">
+                {item.count}
+              </span>
             )}
           </button>
         );

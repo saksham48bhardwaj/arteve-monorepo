@@ -9,7 +9,6 @@ import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
 import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
 import {
-  Page,
   Card,
   Button,
   Avatar,
@@ -48,9 +47,14 @@ type FollowingRow = { following_id: string; profiles: Profile | null };
 
 function extractStoragePath(publicUrl: string): string | null {
   const marker = '/storage/v1/object/public/media/';
-  const index = publicUrl.indexOf(marker);
-  if (index === -1) return null;
-  return publicUrl.substring(index + marker.length);
+  const i = publicUrl.indexOf(marker);
+  return i === -1 ? null : publicUrl.substring(i + marker.length);
+}
+
+function abbreviateCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, '')}K`;
+  return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0).replace(/\.0$/, '')}M`;
 }
 
 export default function ProfilePage() {
@@ -140,24 +144,19 @@ export default function ProfilePage() {
       const file = e.target.files?.[0];
       if (!file || !profile) return;
       setUploading(true);
-
       const ext = file.name.split('.').pop();
       const fileName = `${profile.id}-${Date.now()}.${ext}`;
       const filePath = `profiles/${profile.id}/${fileName}`;
-
       const { error: uploadError } = await supabase.storage.from('media').upload(filePath, file);
       if (uploadError) throw uploadError;
-
       const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
       const mediaType = file.type.startsWith('video') ? 'video' : file.type.startsWith('audio') ? 'audio' : 'image';
-
       await supabase.from('posts').insert({
         profile_id: profile.id,
         media_url: urlData.publicUrl,
         media_type: mediaType,
         kind: 'post',
       });
-
       const { data: posts } = await supabase
         .from('posts')
         .select('id, media_url, media_type, caption, kind, created_at')
@@ -229,38 +228,38 @@ export default function ProfilePage() {
     setSelectedMedia(media[prev]);
   }
 
-  // ---- Loading / error states ----
   if (loading) {
     return (
-      <Page width="default">
+      <main className="page page-narrow">
         <Card className="flex items-center gap-3">
           <Spinner size={16} />
           <span className="text-sm text-ink-muted">Loading your profile…</span>
         </Card>
-      </Page>
+      </main>
     );
   }
   if (err) {
     return (
-      <Page width="default">
+      <main className="page page-narrow">
         <Card>
           <p className="text-sm font-medium text-danger">Couldn&apos;t load profile</p>
           <p className="mt-1 text-sm text-ink-muted">{err}</p>
         </Card>
-      </Page>
+      </main>
     );
   }
   if (!profile) {
     return (
-      <Page width="default">
+      <main className="page page-narrow">
         <EmptyState title="No profile found" description="Please sign in again." />
-      </Page>
+      </main>
     );
   }
 
   const username = profile.handle ?? profile.display_name?.toLowerCase().replace(/\s+/g, '') ?? profile.id.slice(0, 8);
   const genres = profile.genres ?? [];
   const publicProfileUrl = typeof window !== 'undefined' ? `${window.location.origin}/profile/${username}` : '';
+  const validLinks = profile.links ? Object.entries(profile.links).filter(([, v]) => !!v) : [];
 
   async function handleShare() {
     try {
@@ -280,178 +279,177 @@ export default function ProfilePage() {
   }
 
   return (
-    <Page width="default">
-      <ProfileCompleteness
-        profile={profile}
-        role="musician"
-        related={{
-          mediaCount: media.length,
-          skillsCount: skills.length,
-          showsCount: shows.length,
-          achievementsCount: achievements.length,
-        }}
-      />
+    <main className="w-full mx-auto" style={{ maxWidth: 720 }}>
+      {/* Sticky username header */}
+      <header className="sticky top-14 md:top-0 z-20 flex items-center justify-between px-4 py-3 border-b border-line bg-surface/90 backdrop-blur">
+        <div className="w-8" />
+        <h1 className="text-base font-semibold text-ink-strong truncate">@{username}</h1>
+        <Link href="/profile/edit" aria-label="Edit profile" className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-muted hover:bg-surface-sunken hover:text-ink transition">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
+          </svg>
+        </Link>
+      </header>
 
-      {/* ============ HEADER ============ */}
-      <Card elevated className="!p-0 overflow-hidden">
-        {/* Soft brand banner */}
-        <div className="h-20 md:h-28 bg-[linear-gradient(120deg,var(--brand-100)_0%,var(--accent-100)_100%)]" />
+      <div className="px-4 md:px-6 pt-5 pb-8">
+        <ProfileCompleteness
+          profile={profile}
+          role="musician"
+          related={{
+            mediaCount: media.length,
+            skillsCount: skills.length,
+            showsCount: shows.length,
+            achievementsCount: achievements.length,
+          }}
+        />
 
-        <div className="px-5 md:px-7 pb-6 -mt-12 md:-mt-14">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-            <div className="ring-4 ring-surface rounded-full">
-              <Avatar src={profile.avatar_url} alt={profile.display_name ?? ''} size="2xl" />
-            </div>
-
-            <div className="flex-1 min-w-0 sm:pb-2">
-              <h1 className="page-title !text-2xl md:!text-3xl truncate">{profile.display_name ?? 'Unnamed artist'}</h1>
-              <p className="text-sm text-ink-subtle mt-0.5">@{username}</p>
-              {profile.location && (
-                <p className="mt-1 text-sm text-ink-muted flex items-center gap-1.5">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 22s8-9 8-14a8 8 0 0 0-16 0c0 5 8 14 8 14z" /><circle cx="12" cy="8" r="3" />
-                  </svg>
-                  {profile.location}
-                </p>
-              )}
-              <div className="mt-1.5">
-                <RatingDisplay profileId={profile.id} variant="inline" />
-              </div>
-            </div>
+        {/* ============ AVATAR + STATS ROW ============ */}
+        <div className="flex items-center gap-5 mt-4">
+          <div className="shrink-0">
+            <img
+              src={profile.avatar_url ?? '/default-avatar.png'}
+              alt={profile.display_name ?? 'Profile'}
+              className="h-24 w-24 rounded-2xl object-cover border border-line"
+            />
           </div>
 
-          {/* Genres */}
+          <div className="flex-1 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(counts.posts)}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Posts</p>
+            </div>
+            <button onClick={loadFollowers} className="rounded-lg hover:bg-surface-sunken transition py-1">
+              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(counts.followers)}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Followers</p>
+            </button>
+            <button onClick={loadFollowing} className="rounded-lg hover:bg-surface-sunken transition py-1">
+              <p className="text-lg font-semibold text-ink-strong leading-tight">{abbreviateCount(counts.following)}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Following</p>
+            </button>
+          </div>
+        </div>
+
+        {/* ============ NAME + BIO ============ */}
+        <div className="mt-4 space-y-1">
+          <h2 className="text-base font-bold text-ink-strong">{profile.display_name ?? 'Unnamed artist'}</h2>
+          {profile.location && <p className="text-xs text-ink-muted">{profile.location}</p>}
+          {profile.bio && <p className="text-sm text-ink whitespace-pre-line mt-2 leading-relaxed">{profile.bio}</p>}
           {genres.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4">
+            <div className="flex flex-wrap gap-1.5 pt-2">
               {genres.map((g) => (
                 <Badge key={g} tone="brand">{g}</Badge>
               ))}
             </div>
           )}
-
-          {/* Bio */}
-          {profile.bio && <p className="mt-4 text-sm text-ink leading-relaxed">{profile.bio}</p>}
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 mt-5 rounded-xl border border-line bg-surface-sunken overflow-hidden">
-            <div className="px-4 py-3 text-center">
-              <p className="text-xl font-semibold text-ink-strong">{counts.posts}</p>
-              <p className="text-[11px] uppercase tracking-wider text-ink-subtle mt-0.5">Posts</p>
-            </div>
-            <button onClick={loadFollowers} className="px-4 py-3 text-center border-x border-line hover:bg-surface transition">
-              <p className="text-xl font-semibold text-ink-strong">{counts.followers}</p>
-              <p className="text-[11px] uppercase tracking-wider text-ink-subtle mt-0.5">Followers</p>
-            </button>
-            <button onClick={loadFollowing} className="px-4 py-3 text-center hover:bg-surface transition">
-              <p className="text-xl font-semibold text-ink-strong">{counts.following}</p>
-              <p className="text-[11px] uppercase tracking-wider text-ink-subtle mt-0.5">Following</p>
-            </button>
+          <div className="pt-1">
+            <RatingDisplay profileId={profile.id} variant="inline" />
           </div>
-
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 mt-5">
-            <Link href="/profile/edit"><Button variant="primary" size="sm">Edit profile</Button></Link>
-            <Link href="/gigs"><Button variant="outline" size="sm">My gigs</Button></Link>
-            <Link href="/press-kit"><Button variant="outline" size="sm">Press kit</Button></Link>
-            <Button variant="ghost" size="sm" onClick={handleShare}>
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" />
-              </svg>
-              Share
-            </Button>
-          </div>
-
-          {/* Quote */}
-          {profile.quote && (
-            <div className="mt-5 rounded-xl border border-accent-200 bg-accent-50 px-4 py-3">
-              <p className="eyebrow text-accent-700">Artist quote</p>
-              <p className="mt-1 italic text-ink-strong">&ldquo;{profile.quote}&rdquo;</p>
-            </div>
-          )}
         </div>
-      </Card>
+
+        {/* ============ ACTION BUTTONS ============ */}
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          <Link href="/profile/edit">
+            <Button fullWidth size="sm" variant="primary">Edit</Button>
+          </Link>
+          <Button fullWidth size="sm" variant="outline" onClick={handleShare}>
+            Share
+          </Button>
+          <Link href="/press-kit">
+            <Button fullWidth size="sm" variant="outline">Press kit</Button>
+          </Link>
+        </div>
+
+        {/* Quote */}
+        {profile.quote && (
+          <div className="mt-5 rounded-xl border border-accent-200 bg-accent-50 px-4 py-3">
+            <p className="eyebrow text-accent-700">Artist quote</p>
+            <p className="mt-1 italic text-ink-strong text-sm">&ldquo;{profile.quote}&rdquo;</p>
+          </div>
+        )}
+      </div>
 
       {/* ============ TABS ============ */}
-      <div className="mt-6">
+      <div className="px-4 md:px-6">
         <Tabs<'media' | 'about'>
           value={activeTab}
           onChange={setActiveTab}
           items={[
-            { value: 'media', label: 'Media', count: media.length },
+            { value: 'media', label: 'Media' },
             { value: 'about', label: 'About' },
           ]}
+          className="!gap-8 justify-center"
         />
       </div>
 
-      {/* ============ MEDIA ============ */}
+      {/* ============ MEDIA GRID ============ */}
       {activeTab === 'media' && (
-        <Card className="mt-4">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <h2 className="section-title">Your media</h2>
-              <p className="helper">Photos, videos, and tracks from your performances.</p>
-            </div>
-            <label>
-              <input type="file" accept="image/*,video/*,audio/*" className="hidden" onChange={handleUpload} />
-              <Button variant="primary" size="sm" loading={uploading} type="button" onClick={(e) => (e.currentTarget.previousElementSibling as HTMLInputElement)?.click()}>
-                Upload
-              </Button>
-            </label>
-          </div>
-
+        <section className="px-1 md:px-2 mt-1">
           {media.length === 0 ? (
-            <EmptyState
-              title="No media uploaded yet"
-              description="Upload your best clips or photos to make your profile shine."
-              action={
+            <div className="px-4 md:px-6 mt-4">
+              <EmptyState
+                title="No media uploaded yet"
+                description="Upload your best clips or photos to make your profile shine."
+                action={
+                  <label>
+                    <input type="file" accept="image/*,video/*,audio/*" className="hidden" onChange={handleUpload} />
+                    <Button variant="primary" loading={uploading} type="button" onClick={(e) => (e.currentTarget.previousElementSibling as HTMLInputElement)?.click()}>
+                      Upload media
+                    </Button>
+                  </label>
+                }
+              />
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-[2px] md:gap-1">
+                {media.map((item, index) => (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => openMedia(index)}
+                    className="group relative w-full pb-[100%] overflow-hidden bg-surface-sunken focus-visible:outline-none"
+                    aria-label={`Open media ${index + 1}`}
+                  >
+                    {item.media_type === 'image' && (
+                      <img src={item.media_url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="" />
+                    )}
+                    {item.media_type === 'video' && (
+                      <>
+                        <video src={item.media_url} muted className="absolute inset-0 w-full h-full object-cover" />
+                        <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
+                        </span>
+                      </>
+                    )}
+                    {item.media_type === 'audio' && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-[linear-gradient(135deg,var(--brand-50),var(--accent-50))] text-brand-700">
+                        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+                        </svg>
+                        <span className="mt-1 text-[10px] font-medium uppercase tracking-wider">Audio</span>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Upload affordance below grid */}
+              <div className="px-4 md:px-6 mt-4 flex justify-center">
                 <label>
                   <input type="file" accept="image/*,video/*,audio/*" className="hidden" onChange={handleUpload} />
-                  <Button variant="primary" loading={uploading} type="button" onClick={(e) => (e.currentTarget.previousElementSibling as HTMLInputElement)?.click()}>
-                    Upload media
+                  <Button variant="outline" size="sm" loading={uploading} type="button" onClick={(e) => (e.currentTarget.previousElementSibling as HTMLInputElement)?.click()}>
+                    Add more media
                   </Button>
                 </label>
-              }
-            />
-          ) : (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {media.map((item, index) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  onClick={() => openMedia(index)}
-                  className="group relative w-full pb-[100%] rounded-xl overflow-hidden bg-surface-sunken focus-visible:outline-none"
-                  aria-label={`Open media ${index + 1}`}
-                >
-                  {item.media_type === 'image' && (
-                    <img src={item.media_url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="" />
-                  )}
-                  {item.media_type === 'video' && (
-                    <>
-                      <video src={item.media_url} muted className="absolute inset-0 w-full h-full object-cover" />
-                      <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
-                        Video
-                      </span>
-                    </>
-                  )}
-                  {item.media_type === 'audio' && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[linear-gradient(135deg,var(--brand-50),var(--accent-50))] text-brand-700">
-                      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
-                      </svg>
-                      <span className="mt-1 text-[10px] font-medium uppercase tracking-wider">Audio</span>
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
+              </div>
+            </>
           )}
-        </Card>
+        </section>
       )}
 
       {/* ============ ABOUT ============ */}
       {activeTab === 'about' && (
-        <div className="mt-4 space-y-4">
+        <section className="px-4 md:px-6 mt-4 space-y-4 pb-8">
           {/* About + links */}
           <Card>
             {profile.bio ? (
@@ -463,33 +461,30 @@ export default function ProfilePage() {
               <EmptyState title="No bio yet" description="Tell organizers a bit about yourself in your profile settings." />
             )}
 
-            {profile.links && Object.keys(profile.links).filter((k) => profile.links?.[k]).length > 0 && (
+            {validLinks.length > 0 && (
               <div className="mt-5 pt-5 border-t border-line">
                 <h3 className="text-sm font-semibold text-ink-strong mb-2">Links</h3>
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(profile.links)
-                    .filter(([, v]) => !!v)
-                    .map(([key, value]) => (
-                      <a
-                        key={key}
-                        href={value as string}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken transition"
-                      >
-                        {key}
-                        <svg viewBox="0 0 24 24" className="h-3 w-3 text-ink-subtle" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M7 17 17 7" /><path d="M7 7h10v10" />
-                        </svg>
-                      </a>
-                    ))}
+                  {validLinks.map(([key, value]) => (
+                    <a
+                      key={key}
+                      href={value as string}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-sunken transition"
+                    >
+                      {key}
+                      <svg viewBox="0 0 24 24" className="h-3 w-3 text-ink-subtle" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 17 17 7" /><path d="M7 7h10v10" />
+                      </svg>
+                    </a>
+                  ))}
                 </div>
               </div>
             )}
           </Card>
 
           <div className="grid md:grid-cols-2 gap-4">
-            {/* Achievements */}
             <Card>
               <h2 className="section-title mb-3">Achievements</h2>
               {achievements.length === 0 ? (
@@ -507,7 +502,6 @@ export default function ProfilePage() {
               )}
             </Card>
 
-            {/* Recent shows */}
             <Card>
               <h2 className="section-title mb-3">Recent shows</h2>
               {shows.length === 0 ? (
@@ -527,7 +521,6 @@ export default function ProfilePage() {
               )}
             </Card>
 
-            {/* Skills */}
             <Card>
               <h2 className="section-title mb-3">Skills</h2>
               {skills.length === 0 ? (
@@ -544,7 +537,6 @@ export default function ProfilePage() {
               )}
             </Card>
 
-            {/* Reviews */}
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="section-title">Reviews</h2>
@@ -553,7 +545,6 @@ export default function ProfilePage() {
               <ReviewList profileId={profile.id} limit={5} />
             </Card>
 
-            {/* Recommendations */}
             <Card className="md:col-span-2">
               <h2 className="section-title mb-3">Recommendations</h2>
               {recommendations.length === 0 ? (
@@ -570,10 +561,10 @@ export default function ProfilePage() {
               )}
             </Card>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* ============ MEDIA MODAL ============ */}
+      {/* ============ MEDIA LIGHTBOX ============ */}
       {selectedMedia && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
           <button
@@ -616,20 +607,10 @@ export default function ProfilePage() {
 
             {media.length > 1 && (
               <>
-                <button
-                  type="button"
-                  onClick={prevMedia}
-                  aria-label="Previous"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
-                >
+                <button type="button" onClick={prevMedia} aria-label="Previous" className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                 </button>
-                <button
-                  type="button"
-                  onClick={nextMedia}
-                  aria-label="Next"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
-                >
+                <button type="button" onClick={nextMedia} aria-label="Next" className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
                   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
                 </button>
               </>
@@ -638,12 +619,8 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ============ FOLLOWERS MODAL ============ */}
-      <Modal
-        open={showFollowersModal}
-        onClose={() => setShowFollowersModal(false)}
-        title="Followers"
-      >
+      {/* ============ FOLLOWERS / FOLLOWING MODAL ============ */}
+      <Modal open={showFollowersModal} onClose={() => setShowFollowersModal(false)} title="Followers">
         {followersList.length === 0 ? (
           <p className="text-sm text-ink-subtle">No followers yet.</p>
         ) : (
@@ -657,11 +634,7 @@ export default function ProfilePage() {
                     <p className="text-xs text-ink-subtle truncate">@{user.handle ?? user.display_name?.toLowerCase().replace(/\s+/g, '')}</p>
                   </div>
                 </Link>
-                <Button
-                  size="sm"
-                  variant={myFollowingIds.includes(user.id) ? 'outline' : 'primary'}
-                  onClick={() => toggleFollowFromModal(user.id)}
-                >
+                <Button size="sm" variant={myFollowingIds.includes(user.id) ? 'outline' : 'primary'} onClick={() => toggleFollowFromModal(user.id)}>
                   {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
                 </Button>
               </li>
@@ -670,12 +643,7 @@ export default function ProfilePage() {
         )}
       </Modal>
 
-      {/* ============ FOLLOWING MODAL ============ */}
-      <Modal
-        open={showFollowingModal}
-        onClose={() => setShowFollowingModal(false)}
-        title="Following"
-      >
+      <Modal open={showFollowingModal} onClose={() => setShowFollowingModal(false)} title="Following">
         {followingList.length === 0 ? (
           <p className="text-sm text-ink-subtle">Not following anyone yet.</p>
         ) : (
@@ -689,11 +657,7 @@ export default function ProfilePage() {
                     <p className="text-xs text-ink-subtle truncate">@{user.handle ?? user.display_name?.toLowerCase().replace(/\s+/g, '')}</p>
                   </div>
                 </Link>
-                <Button
-                  size="sm"
-                  variant={myFollowingIds.includes(user.id) ? 'outline' : 'primary'}
-                  onClick={() => toggleFollowFromModal(user.id)}
-                >
+                <Button size="sm" variant={myFollowingIds.includes(user.id) ? 'outline' : 'primary'} onClick={() => toggleFollowFromModal(user.id)}>
                   {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
                 </Button>
               </li>
@@ -701,6 +665,6 @@ export default function ProfilePage() {
           </ul>
         )}
       </Modal>
-    </Page>
+    </main>
   );
 }
