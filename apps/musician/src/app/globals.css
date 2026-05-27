@@ -284,9 +284,22 @@ a:focus-visible,
     border-radius: var(--radius-lg);
     box-shadow: 0 6px 16px rgba(28,26,23,0.06);
   }
+  .card-hover {
+    transition: transform 120ms var(--ease-out, ease-out),
+                box-shadow 160ms var(--ease-out, ease-out),
+                border-color 160ms var(--ease-out, ease-out);
+    -webkit-tap-highlight-color: transparent;
+  }
   .card-hover:hover {
     border-color: var(--line-strong);
     box-shadow: 0 6px 20px -4px rgba(28,26,23,0.08);
+  }
+  .card-hover:active {
+    transform: scale(0.985);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover { transition: none; }
+    .card-hover:active { transform: none; }
   }
   .card-padded { padding: 1.25rem; }
   @media (min-width: 768px) {
@@ -476,8 +489,23 @@ a:focus-visible,
 .page-in {
   animation: arteve-page-in 180ms var(--ease-out, ease-out) both;
 }
+
+/* Tap feedback — subtle press-down on touch/click. Pair with .card or
+   any interactive surface to make the app feel responsive on mobile.
+   `cursor:pointer` is intentional so it works as a hint on desktop too. */
+.tap-feedback {
+  transition: transform 120ms var(--ease-out, ease-out);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tap-feedback:active {
+  transform: scale(0.985);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-in { animation: none; }
+  .tap-feedback { transition: none; }
+  .tap-feedback:active { transform: none; }
 }
 @layer components {
   .toast-viewport {

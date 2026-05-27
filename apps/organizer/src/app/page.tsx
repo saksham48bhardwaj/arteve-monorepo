@@ -369,17 +369,32 @@ export default function OrganizerHomePage() {
           Recent performances
         </h2>
 
-        {/* Initial skeleton */}
+        {/* Initial skeleton — matches real post card so there's no jump */}
         {isInitialLoading && (
           <div className="space-y-4">
             {[0, 1, 2].map(i => (
-              <div
+              <article
                 key={i}
-                className="animate-pulse overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-sm"
+                className="overflow-hidden rounded-3xl border border-line bg-surface shadow-sm"
               >
-                <div className="mb-4 h-4 w-32 rounded-full bg-surface-sunken" />
-                <div className="h-56 w-full rounded-2xl bg-surface-sunken" />
-              </div>
+                <div className="flex items-center gap-3 p-4">
+                  <div className="skeleton h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="skeleton h-3 w-32 rounded" />
+                    <div className="skeleton h-2.5 w-20 rounded" />
+                  </div>
+                </div>
+                <div className="skeleton aspect-square w-full rounded-none" />
+                <div className="flex items-center gap-4 p-4">
+                  <div className="skeleton h-6 w-6 rounded-full" />
+                  <div className="skeleton h-6 w-6 rounded-full" />
+                  <div className="skeleton h-6 w-6 rounded-full" />
+                </div>
+                <div className="space-y-2 px-4 pb-4">
+                  <div className="skeleton h-3 w-3/4 rounded" />
+                  <div className="skeleton h-3 w-1/2 rounded" />
+                </div>
+              </article>
             ))}
           </div>
         )}

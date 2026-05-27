@@ -44,6 +44,11 @@ export function usePullToRefresh({ onRefresh, threshold = 70, enabled = true }: 
       if (refreshingRef.current) return;
       const top = window.scrollY || document.documentElement.scrollTop;
       if (top > 0) return;
+      // Skip touches that start near the screen edges so iOS swipe-back
+      // (and the right-edge forward gesture, if any) isn't shadowed by
+      // the pull-to-refresh listener.
+      const x = e.touches[0].clientX;
+      if (x < 24 || x > window.innerWidth - 24) return;
       startY.current = e.touches[0].clientY;
     }
 

@@ -232,9 +232,14 @@ function BitsReelsPage() {
   }
 
   if (loading) {
+    // Show the chrome the user expects (close button + action rail) so the
+    // page doesn't feel like a void while videos load.
     return (
-      <main className="h-screen w-full bg-black flex items-center justify-center">
-        <Spinner size={20} className="text-white" />
+      <main className="h-screen w-full bg-black flex flex-col items-center justify-center text-white">
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/10">
+          <Spinner size={20} className="text-white" />
+        </span>
+        <p className="mt-3 text-xs uppercase tracking-widest text-white/60">Loading bits</p>
       </main>
     );
   }
