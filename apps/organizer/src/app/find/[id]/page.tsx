@@ -1,85 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
+import { Spinner } from '@arteve/ui/components';
 
-type Profile = {
-  id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  location: string | null;
-  genres: string[] | null;
-  links: Record<string, string> | null;
-};
-
-export default function MusicianProfilePage({ params }: { params: { id: string } }) {
-  const artistId = params.id;
-  const [artist, setArtist] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+// Legacy route — canonical URL is /profile/[handle].
+export default function LegacyFindIdPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params?.id as string | undefined;
 
   useEffect(() => {
-    const load = async () => {
+    if (!id) return;
+    (async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', artistId)
+        .select('handle')
+        .eq('id', id)
         .single();
-
-      setArtist(data);
-      setLoading(false);
-    };
-
-    load();
-  }, [artistId]);
-
-  if (loading) return (
-    <main className="page page-narrow">
-      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading profile…</p></div>
-    </main>
-  );
-  if (!artist) return <div className="p-6">Artist not found.</div>;
+      router.replace(data?.handle ? `/profile/${data.handle}` : '/find');
+    })();
+  }, [id, router]);
 
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
-      <div className="flex gap-4 items-center">
-        <img
-          src={artist.avatar_url ?? '/default-avatar.png'}
-          className="w-24 h-24 rounded-full object-cover"
-        />
-        <div>
-          <h2 className="text-xl font-semibold">{artist.display_name}</h2>
-          <p className="text-ink-subtle">{artist.location}</p>
-        </div>
-      </div>
-
-      {artist.bio && (
-        <p className="text-ink">{artist.bio}</p>
-      )}
-
-      <div>
-        <h3 className="font-medium mb-2">Genres</h3>
-        {artist.genres?.length ? (
-          <div className="flex flex-wrap gap-2">
-            {artist.genres.map((g, i) => (
-              <span key={i} className="px-3 py-1 text-sm bg-surface-sunken rounded-full">
-                {g}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-ink-subtle">No genres listed</p>
-        )}
-      </div>
-
-      <Link
-        href={`/book/${artist.id}`}
-        className="block text-center px-4 py-2 bg-brand text-white rounded-xl"
-      >
-        Book Musician
-      </Link>
-
+    <main className="page page-narrow flex items-center justify-center">
+      <Spinner />
     </main>
   );
 }
