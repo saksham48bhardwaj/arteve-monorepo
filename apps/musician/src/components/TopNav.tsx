@@ -25,6 +25,8 @@ function getHeaderConfig(pathname: string, profileHandleFromUrl?: string): Heade
   if (pathname === '/bits') return { kind: 'hidden' };
   if (pathname === '/post') return { kind: 'hidden' };
   if (pathname === '/find') return { kind: 'hidden' };
+  if (pathname === '/post/new') return { kind: 'hidden' };
+  if (pathname === '/bits/new') return { kind: 'hidden' };
 
   if (pathname === '/') {
     return { kind: 'logo', rightSlot: 'home' };

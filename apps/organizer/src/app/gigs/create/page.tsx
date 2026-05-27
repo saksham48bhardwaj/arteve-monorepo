@@ -1,186 +1,255 @@
 'use client';
 
-import { useState } from 'react';
-import type { FormEvent } from 'react';
-import { supabase } from '@arteve/supabase/client';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { supabase } from '@arteve/supabase/client';
+import { Button, Input, Textarea, Badge, Spinner } from '@arteve/ui/components';
+
+const MAX_DESC = 1500;
 
 export default function CreateGigPage() {
+  const router = useRouter();
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [eventDate, setEventDate] = useState<string>('');
-  const [eventTime, setEventTime] = useState<string>('');
+  const [eventDate, setEventDate] = useState('');
+  const [eventTime, setEventTime] = useState('');
   const [location, setLocation] = useState('');
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
-  const [genres, setGenres] = useState(''); // comma separated
-  const router = useRouter();
+  const [genresInput, setGenresInput] = useState('');
 
   const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) router.push('/login');
+    })();
+  }, [router]);
+
+  const genres = genresInput
+    .split(',')
+    .map((g) => g.trim())
+    .filter(Boolean);
+
+  const canSubmit = title.trim().length > 0 && !loading;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
     setLoading(true);
-    setFeedback(null);
+    setErrorMsg(null);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      setFeedback('You must be logged in as an organizer.');
+      setErrorMsg('You must be logged in as an organizer.');
       setLoading(false);
       return;
     }
 
-    const genresArray =
-      genres.trim().length > 0
-        ? genres
-            .split(',')
-            .map((g) => g.trim())
-            .filter(Boolean)
-        : null;
+    const minN = budgetMin ? Number(budgetMin) : null;
+    const maxN = budgetMax ? Number(budgetMax) : null;
+    if (minN && maxN && minN > maxN) {
+      setErrorMsg('Min budget cannot exceed max budget.');
+      setLoading(false);
+      return;
+    }
 
     const { error } = await supabase.from('gigs').insert({
-      organizer_id: user.id, // FK to profiles
-      created_by: user.id, // convenience / backwards compatibility
-      title: title.trim() || 'Untitled gig',
+      organizer_id: user.id,
+      created_by: user.id,
+      title: title.trim(),
       description: description.trim() || null,
       event_date: eventDate || null,
       event_time: eventTime || null,
       location: location.trim() || null,
-      budget_min: budgetMin ? Number(budgetMin) : null,
-      budget_max: budgetMax ? Number(budgetMax) : null,
-      genres: genresArray,
-      status: 'open', // default matches your check constraint
+      budget_min: minN,
+      budget_max: maxN,
+      genres: genres.length ? genres : null,
+      status: 'open',
     });
 
     if (error) {
       console.error(error);
-      setFeedback('Failed to create gig. Please try again.');
-    } else {
-      router.push('/gigs');
+      setErrorMsg(error.message || 'Failed to create gig. Please try again.');
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);
+    router.push('/gigs');
   }
 
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
-      <h1 className="text-xl font-semibold mb-4">Create a Gig</h1>
-
-      {feedback && (
-        <div className="mb-4 text-sm text-ink whitespace-pre-line">
-          {feedback}
+    <main className="w-full mx-auto pb-24" style={{ maxWidth: 720 }}>
+      {/* Sticky header (page owns it because TopNav is hidden on this route) */}
+      <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85 px-4 py-3 border-b border-line">
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            href="/gigs"
+            aria-label="Back"
+            className="inline-flex h-9 w-9 -ml-1 items-center justify-center rounded-full text-ink-muted hover:bg-surface-sunken hover:text-ink transition"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </Link>
+          <h1 className="text-base font-semibold text-ink-strong">New gig</h1>
+          <Button size="sm" type="submit" form="gig-form" loading={loading} disabled={!canSubmit}>
+            Publish
+          </Button>
         </div>
-      )}
+      </header>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="gig-form" onSubmit={handleSubmit} className="px-4 md:px-6 pt-5 space-y-6">
+        {/* INTRO */}
         <div>
-          <label className="block text-sm font-medium mb-1">Gig title</label>
-          <input
-            className="w-full border rounded-xl px-3 py-2 border-line"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Wedding reception, club night, studio session…"
-            required
-          />
+          <p className="page-title !text-xl md:!text-2xl">Post a gig</p>
+          <p className="page-subtitle">Tell artists what you&apos;re looking for and how to reach you.</p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Description
-          </label>
-          <textarea
-            className="w-full border rounded-xl px-3 py-2 min-h-[120px] text-sm border-line"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Share gig details, expectations, duration, etc."
-          />
-        </div>
+        {/* THE BASICS */}
+        <section>
+          <h3 className="eyebrow mb-3">The basics</h3>
+          <div className="space-y-4">
+            <Input
+              label="Gig title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Friday jazz night, wedding cocktail set"
+              required
+              helper="A clear, specific title gets more applications."
+            />
+            <div>
+              <div className="flex items-end justify-between mb-1.5">
+                <label htmlFor="gig-desc" className="label !mb-0">Description</label>
+                <span className={`text-[11px] tabular ${description.length > MAX_DESC ? 'text-danger' : 'text-ink-subtle'}`}>
+                  {description.length}/{MAX_DESC}
+                </span>
+              </div>
+              <Textarea
+                id="gig-desc"
+                rows={5}
+                maxLength={MAX_DESC}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Style, duration, equipment provided, expectations, what kind of crowd…"
+              />
+            </div>
+          </div>
+        </section>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Event date
-            </label>
-            <input
+        {/* DATE + LOCATION */}
+        <section>
+          <h3 className="eyebrow mb-3">When &amp; where</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Event date"
               type="date"
-              className="w-full border rounded-xl px-3 py-2 border-line"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Event time (optional)
-            </label>
-            <input
+            <Input
+              label="Start time"
               type="time"
-              className="w-full border rounded-xl px-3 py-2 border-line"
               value={eventTime}
               onChange={(e) => setEventTime(e.target.value)}
+              helper="Optional"
             />
           </div>
-        </div>
+          <div className="mt-4">
+            <Input
+              label="Location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Venue name, neighbourhood, or city"
+              leadingIcon={
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-9 8-14a8 8 0 0 0-16 0c0 5 8 14 8 14z" />
+                  <circle cx="12" cy="8" r="3" />
+                </svg>
+              }
+            />
+          </div>
+        </section>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Location</label>
-          <input
-            className="w-full border rounded-xl px-3 py-2 border-line"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="City / venue"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Min budget (optional)
-            </label>
-            <input
+        {/* BUDGET */}
+        <section>
+          <h3 className="eyebrow mb-3">Budget</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Minimum ($)"
               type="number"
-              className="w-full border rounded-xl px-3 py-2 border-line"
+              min={0}
               value={budgetMin}
               onChange={(e) => setBudgetMin(e.target.value)}
+              placeholder="200"
+              leadingIcon={<span className="text-sm font-semibold">$</span>}
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Max budget (optional)
-            </label>
-            <input
+            <Input
+              label="Maximum ($)"
               type="number"
-              className="w-full border rounded-xl px-3 py-2 border-line"
+              min={0}
               value={budgetMax}
               onChange={(e) => setBudgetMax(e.target.value)}
+              placeholder="500"
+              leadingIcon={<span className="text-sm font-semibold">$</span>}
             />
           </div>
-        </div>
+          <p className="helper">Sharing a range gets ~3× more applications than &ldquo;negotiable&rdquo;.</p>
+        </section>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Genres (optional)
-          </label>
-          <input
-            className="w-full border rounded-xl px-3 py-2 text-sm border-line"
-            value={genres}
-            onChange={(e) => setGenres(e.target.value)}
-            placeholder="rock, pop, jazz"
+        {/* GENRES */}
+        <section>
+          <h3 className="eyebrow mb-3">Genres &amp; vibe</h3>
+          <Input
+            label="Genres"
+            value={genresInput}
+            onChange={(e) => setGenresInput(e.target.value)}
+            placeholder="rock, jazz, indie pop"
+            helper="Separate with commas."
           />
+          {genres.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {genres.map((g) => (
+                <Badge key={g} tone="brand">{g}</Badge>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ERROR */}
+        {errorMsg && (
+          <div className="rounded-xl border border-danger/30 bg-danger/5 px-3.5 py-2.5 text-sm font-medium text-danger flex items-start gap-2">
+            <svg viewBox="0 0 24 24" className="h-4 w-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {/* MOBILE PUBLISH */}
+        <div className="md:hidden">
+          <Button type="submit" fullWidth size="lg" loading={loading} disabled={!canSubmit}>
+            Publish gig
+          </Button>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 rounded-xl bg-brand text-white text-sm disabled:opacity-60"
-        >
-          {loading ? 'Creating…' : 'Create gig'}
-        </button>
+        <p className="text-[11px] text-ink-subtle text-center">
+          Your gig becomes visible to musicians as soon as you publish.
+        </p>
       </form>
+
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/40 backdrop-blur-sm">
+          <div className="rounded-xl bg-surface px-5 py-4 shadow-xl flex items-center gap-3">
+            <Spinner size={18} />
+            <span className="text-sm font-medium text-ink-strong">Publishing…</span>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

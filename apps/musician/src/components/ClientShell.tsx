@@ -9,7 +9,13 @@ import SideNav from './SideNav';
 function isHeaderlessRoute(pathname: string): boolean {
   if (pathname.endsWith('/chat') && pathname !== '/chat') return true;
   if (pathname.startsWith('/chat/') && pathname !== '/chat') return true;
-  return pathname === '/bits' || pathname === '/post' || pathname === '/find';
+  return (
+    pathname === '/bits' ||
+    pathname === '/post' ||
+    pathname === '/post/new' ||
+    pathname === '/bits/new' ||
+    pathname === '/find'
+  );
 }
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
