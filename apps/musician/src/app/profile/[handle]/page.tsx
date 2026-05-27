@@ -1,51 +1,37 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
-import { useRouter } from 'next/navigation';
-
-/* ----------------------------- Shared Types ----------------------------- */
+import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
+import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
+import {
+  Button,
+  Avatar,
+  Badge,
+  EmptyState,
+  Tabs,
+  Modal,
+  Spinner,
+  SocialLink,
+} from '@arteve/ui/components';
 
 type PostMedia = {
   id: string;
   media_url: string;
-  media_type: 'image' | 'video';
+  media_type: 'image' | 'video' | 'audio';
   caption: string | null;
   kind: 'post' | 'bit';
   created_at: string;
 };
-
-type Achievement = {
-  id: string;
-  title: string | null;
-  description: string | null;
-  year: number | null;
-};
-
-type Show = {
-  id: string;
-  title: string | null;
-  venue: string | null;
-  location: string | null;
-  event_date: string | null;
-};
-
-type Skill = {
-  id: string;
-  skill: string | null;
-  level: string | null;
-};
-
-type Recommendation = {
-  id: string;
-  author: string | null;
-  content: string | null;
-};
-
+type Achievement = { id: string; title: string | null; description: string | null; year: number | null };
+type Show = { id: string; title: string | null; venue: string | null; location: string | null; event_date: string | null };
+type Skill = { id: string; skill: string | null; level: string | null };
+type Recommendation = { id: string; author: string | null; content: string | null };
 type BaseProfile = {
   id: string;
+  role: 'musician' | 'organizer' | null;
   display_name: string | null;
   handle: string | null;
   avatar_url: string | null;
@@ -54,284 +40,98 @@ type BaseProfile = {
   links: Record<string, string> | null;
   location: string | null;
   quote: string | null;
-  role: string | null;
-  venue_photos: string[] | null;
 };
+type FollowProfile = { id: string; display_name: string | null; handle: string | null; avatar_url: string | null };
 
-type OrganizerGig = {
-  id: string;
-  title: string | null;
-  event_date: string | null;
-  location: string | null;
-  status: 'open' | 'booked' | 'closed' | string;
-  budget_min: number | null;
-  budget_max: number | null;
-  created_at: string;
-};
-
-type FollowerRow = {
-  follower_id: string;
-  profiles: BaseProfile | null;
-};
-
-type FollowingRow = {
-  following_id: string;
-  profiles: BaseProfile | null;
-};
-
-async function fetchProfileCounts(userId: string) {
-  const supa = supabase;
-
-  const [postsRes, followersRes, followingRes] = await Promise.all([
-    supa
-      .from('posts')
-      .select('id', { count: 'exact', head: true })
-      .eq('profile_id', userId),
-    supa
-      .from('followers')
-      .select('follower_id', { count: 'exact', head: true })
-      .eq('following_id', userId),
-    supa
-      .from('followers')
-      .select('follower_id', { count: 'exact', head: true })
-      .eq('follower_id', userId),
-  ]);
-
-  return {
-    posts: postsRes.count || 0,
-    followers: followersRes.count || 0,
-    following: followingRes.count || 0,
-  };
+function abbreviateCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, '')}K`;
+  return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0).replace(/\.0$/, '')}M`;
 }
 
-/* ---------------------------------------------------------------------- */
-/*  PUBLIC PROFILE PAGE                                                   */
-/* ---------------------------------------------------------------------- */
-
-export default function PublicProfilePage() {
+export default function MusicianPublicProfilePage() {
   const { handle } = useParams<{ handle: string }>();
   const router = useRouter();
 
   const [profile, setProfile] = useState<BaseProfile | null>(null);
-
-  // musician data
   const [posts, setPosts] = useState<PostMedia[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [shows, setShows] = useState<Show[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [counts, setCounts] = useState({ posts: 0, followers: 0, following: 0 });
 
-  // organizer data
-  const [organizerGigs, setOrganizerGigs] = useState<OrganizerGig[]>([]);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'media' | 'about'>('media');
+
+  const [selectedMedia, setSelectedMedia] = useState<PostMedia | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // media modal
-  const [selectedMedia, setSelectedMedia] = useState<PostMedia | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  // venue modal (only for organizers)
-  const [venueModalUrl, setVenueModalUrl] = useState<string | null>(null);
-
-  // Followers & Following modal
-  const [showFollowersModal, setShowFollowersModal] = useState(false);
-  const [showFollowingModal, setShowFollowingModal] = useState(false);
-
-  const [followersList, setFollowersList] = useState<BaseProfile[]>([]);
-  const [followingList, setFollowingList] = useState<BaseProfile[]>([]);
+  const [viewerId, setViewerId] = useState<string | null>(null);
   const [myFollowingIds, setMyFollowingIds] = useState<string[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'media' | 'about'>('media');
+  const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
+  const [followersList, setFollowersList] = useState<FollowProfile[]>([]);
+  const [followingList, setFollowingList] = useState<FollowProfile[]>([]);
 
-  const [viewerRole, setViewerRole] = useState<string | null>(null);
-  const [viewerId, setViewerId] = useState<string | null>(null);  
-
-  const [counts, setCounts] = useState({
-    posts: 0,
-    followers: 0,
-    following: 0,
-  });
-
-  const canMessage =
-  !!profile &&
-  !!viewerId &&
-  viewerId !== profile.id &&
-  !(
-    viewerRole === 'organizer' &&
-    profile.role === 'organizer'
-  );
-
-  const [isFollowing, setIsFollowing] = useState(false);
-
-  function profilePath(user: BaseProfile) {
-    return user.handle ? `/profile/${user.handle}` : `/profile/${user.id}`;
-  }
-  
   useEffect(() => {
     if (!handle) return;
-
     (async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) return;
-
       const { data: myProfile } = await supabase
-        .from('profiles')
-        .select('id, handle, role')
-        .eq('id', auth.user.id)
-        .maybeSingle();
-
-      // 🚨 Musician trying to view THEIR OWN public profile
-      if (
-        myProfile?.role === 'musician' &&
-        myProfile.handle === handle
-      ) {
-        router.replace('/profile'); // private musician profile
-      }
+        .from('profiles').select('id, handle').eq('id', auth.user.id).maybeSingle();
+      if (myProfile?.handle === handle) router.replace('/profile');
     })();
   }, [handle, router]);
 
-  /* -------------------------------------------- */
-  /*  LOAD DATA                                   */
-  /* -------------------------------------------- */
   useEffect(() => {
     if (!handle) return;
-
     (async () => {
       try {
-        // 1) PROFILE
         const { data: p, error: pErr } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('handle', handle)
-          .maybeSingle();
-
-        if (pErr) throw pErr;
-        if (!p) throw new Error('Profile not found');
-
+          .from('profiles').select('*').eq('handle', handle).maybeSingle();
+        if (pErr || !p) throw new Error('Profile not found');
         const prof = p as BaseProfile;
         setProfile(prof);
 
-        const c = await fetchProfileCounts(prof.id);
-        setCounts(c);
+        const [postsCntRes, followersRes, followingRes] = await Promise.all([
+          supabase.from('posts').select('id', { count: 'exact', head: true }).eq('profile_id', prof.id),
+          supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('following_id', prof.id),
+          supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('follower_id', prof.id),
+        ]);
+        setCounts({
+          posts: postsCntRes.count || 0,
+          followers: followersRes.count || 0,
+          following: followingRes.count || 0,
+        });
 
-        // 🔑 ALWAYS load viewer info first
         const { data: auth } = await supabase.auth.getUser();
-
         if (auth.user) {
           setViewerId(auth.user.id);
-
-          const { data: viewerProfile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', auth.user.id)
-            .maybeSingle();
-
-          setViewerRole(viewerProfile?.role ?? null);
-        }
-
-        // THEN branch by profile type
-        if (prof.role === 'organizer') {
-          const { data: gigsData, error: gigsErr } = await supabase
-            .from('gigs')
-            .select('*')
-            .eq('organizer_id', prof.id)
-            .order('created_at', { ascending: false });
-
-          if (gigsErr) throw gigsErr;
-          setOrganizerGigs((gigsData ?? []) as OrganizerGig[]);
-        }
-
-        if (auth.user) {
-          const currentUserId = auth.user.id;
-
           const { data: myFollows } = await supabase
-            .from('followers')
-            .select('following_id')
-            .eq('follower_id', currentUserId);
-
-          setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
-
+            .from('followers').select('following_id').eq('follower_id', auth.user.id);
+          setMyFollowingIds(myFollows?.map((f) => f.following_id) ?? []);
           const { data: followData } = await supabase
-            .from('followers')
-            .select('*')
-            .eq('follower_id', currentUserId)
-            .eq('following_id', prof.id)
-            .maybeSingle();
-
+            .from('followers').select('*')
+            .eq('follower_id', auth.user.id).eq('following_id', prof.id).maybeSingle();
           setIsFollowing(!!followData);
         }
 
-        // 2) MUSICIAN VIEW
-        const currentUserId = auth.user?.id;
-
-        if (auth.user) {
-          setViewerId(auth.user.id);
-
-          const { data: viewerProfile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', auth.user.id)
-            .maybeSingle();
-
-          setViewerRole(viewerProfile?.role ?? null);
-        }
-
-        if (currentUserId) {
-          const { data: myFollows } = await supabase
-            .from('followers')
-            .select('following_id')
-            .eq('follower_id', currentUserId);
-
-          setMyFollowingIds(myFollows?.map(f => f.following_id) ?? []);
-
-          const { data: followData } = await supabase
-            .from('followers')
-            .select('*')
-            .eq('follower_id', currentUserId)
-            .eq('following_id', prof.id)
-            .maybeSingle();
-
-          setIsFollowing(!!followData);
-        }
-
-        const [
-          { data: postData },
-          { data: a },
-          { data: s },
-          { data: sk },
-          { data: r },
-        ] = await Promise.all([
+        const [{ data: postData }, { data: a }, { data: s }, { data: sk }, { data: r }] = await Promise.all([
           supabase
-            .from('posts')
-            .select(
-              'id, media_url, media_type, caption, kind, created_at',
-            )
-            .eq('profile_id', prof.id)
+            .from('posts').select('id, media_url, media_type, caption, kind, created_at')
+            .eq('profile_id', prof.id).in('kind', ['post', 'bit'])
             .not('media_url', 'is', null)
             .order('created_at', { ascending: false }),
-          supabase
-            .from('achievements')
-            .select('*')
-            .eq('profile_id', prof.id)
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('shows')
-            .select('*')
-            .eq('profile_id', prof.id)
-            .order('event_date', { ascending: false }),
-          supabase
-            .from('skills')
-            .select('*')
-            .eq('profile_id', prof.id)
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('recommendations')
-            .select('*')
-            .eq('profile_id', prof.id)
-            .order('created_at', { ascending: false }),
+          supabase.from('achievements').select('*').eq('profile_id', prof.id).order('created_at', { ascending: false }),
+          supabase.from('shows').select('*').eq('profile_id', prof.id).order('event_date', { ascending: false }),
+          supabase.from('skills').select('*').eq('profile_id', prof.id).order('created_at', { ascending: false }),
+          supabase.from('recommendations').select('*').eq('profile_id', prof.id).order('created_at', { ascending: false }),
         ]);
-
         setPosts((postData ?? []) as PostMedia[]);
         setAchievements((a ?? []) as Achievement[]);
         setShows((s ?? []) as Show[]);
@@ -345,682 +145,183 @@ export default function PublicProfilePage() {
     })();
   }, [handle]);
 
-  /* -------------------------------------------- */
-  /*  ESC KEY CLOSE MODAL                         */
-  /* -------------------------------------------- */
-  useEffect(() => {
-    const esc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSelectedMedia(null);
-        setVenueModalUrl(null);
-      }
-    };
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  }, []);
-
-  /* -------------------------------------------- */
-  /*  BASIC STATES                                */
-  /* -------------------------------------------- */
-  if (loading) {
-    return (
-      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24">
-        Loading profile…
-      </main>
-    );
-  }
-
-  if (err || !profile) {
-    return (
-      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 text-danger">
-        Error: {err}
-      </main>
-    );
-  }
-
-  const isOrganizer = profile.role === 'organizer';
-
-  /* ====================================================================== */
-  /*                    ORGANIZER PROFILE PAGE (VENUE)                      */
-  /* ====================================================================== */
-
-  const FollowersAndFollowingModals = (
-    <>
-      {/* FOLLOWERS MODAL */}
-      {showFollowersModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
-            <button
-              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
-              onClick={() => setShowFollowersModal(false)}
-            >
-              ×
-            </button>
-
-            <h2 className="text-xl font-semibold mb-4 text-ink-strong">
-              Followers
-            </h2>
-
-            {followersList.length === 0 ? (
-              <p className="text-[13px] text-ink-subtle">No followers yet.</p>
-            ) : (
-              <ul className="space-y-4">
-                {followersList.map(user => (
-                  <li key={user.id}>
-                    <Link
-                      href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
-                    >
-                      <img
-                        src={user.avatar_url ?? '/default-avatar.png'}
-                        className="w-12 h-12 rounded-full object-cover"
-                        alt=""
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium text-ink-strong">
-                          {user.display_name}
-                        </p>
-                        <p className="text-xs text-ink-subtle">
-                          @{user.handle}
-                        </p>
-                      </div>
-
-                      {viewerId !== user.id && (
-                        <button
-                          onClick={e => {
-                            e.preventDefault();
-                            toggleFollowFromModal(user.id);
-                          }}
-                          className={`px-3 py-1 text-xs rounded-lg border ${
-                            myFollowingIds.includes(user.id)
-                              ? 'bg-line-strong text-ink-strong'
-                              : 'bg-ink-strong text-white'
-                          }`}
-                        >
-                          {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
-                        </button>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* FOLLOWING MODAL */}
-      {showFollowingModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
-            <button
-              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
-              onClick={() => setShowFollowingModal(false)}
-            >
-              ×
-            </button>
-
-            <h2 className="text-xl font-semibold mb-4 text-ink-strong">
-              Following
-            </h2>
-
-            {followingList.length === 0 ? (
-              <p className="text-[13px] text-ink-subtle">
-                Not following anyone yet.
-              </p>
-            ) : (
-              <ul className="space-y-4">
-                {followingList.map(user => (
-                  <li key={user.id}>
-                    <Link
-                      href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
-                    >
-                      <img
-                        src={user.avatar_url ?? '/default-avatar.png'}
-                        className="w-12 h-12 rounded-full object-cover"
-                        alt=""
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium text-ink-strong">
-                          {user.display_name}
-                        </p>
-                        <p className="text-xs text-ink-subtle">
-                          @{user.handle}
-                        </p>
-                      </div>
-
-                      {viewerId !== user.id && (
-                        <button
-                          onClick={e => {
-                            e.preventDefault();
-                            toggleFollowFromModal(user.id);
-                          }}
-                          className={`px-3 py-1 text-xs rounded-lg border ${
-                            myFollowingIds.includes(user.id)
-                              ? 'bg-line-strong text-ink-strong'
-                              : 'bg-ink-strong text-white'
-                          }`}
-                        >
-                          {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
-                        </button>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  );
-
-  if (isOrganizer) {
-    const venuePhotos = profile.venue_photos ?? [];
-    const primaryVenuePhoto = venuePhotos[0] ?? null;
-
-    return (
-      <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 space-y-8">
-        {/* HEADER / HERO CARD */}
-        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] overflow-hidden">
-          <div className="h-48 md:h-64 w-full relative bg-ink-strong">
-            {primaryVenuePhoto && (
-              <img
-                src={primaryVenuePhoto}
-                alt="Venue"
-                className="w-full h-full object-cover opacity-70"
-              />
-            )}
-            <div className="absolute inset-0 bg-black/35 pointer-events-none" />
-            <div className="absolute bottom-6 left-6 right-6 md:left-10 md:right-10 flex flex-col gap-3">
-              <h1 className="text-2xl md:text-3xl font-semibold text-white">
-                {profile.display_name}
-              </h1>
-              {profile.location && (
-                <p className="text-[13px] text-ink-disabled">
-                  {profile.location}
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-2 mt-4">
-                {viewerId && viewerId !== profile.id && (
-                  <button
-                    onClick={toggleFollow}
-                    className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
-                  >
-                    {isFollowing ? 'Unfollow' : 'Follow'}
-                  </button>
-                )}
-
-                <button
-                  onClick={shareProfile}
-                  className="px-4 py-1.5 rounded-xl border border-line-strong bg-surface font-medium hover:bg-surface-sunken"
-                >
-                  Share
-                </button>
-              </div>
-              <div className="flex gap-8 mt-1">
-
-                <button
-                  onClick={loadFollowers}
-                  className="flex flex-col items-center"
-                >
-                  <StatPill
-                    label="Followers"
-                    value={counts.followers}
-                    inverse
-                  />
-                </button>
-
-                <button
-                  onClick={loadFollowing}
-                  className="flex flex-col items-center"
-                >
-                  <StatPill
-                    label="Following"
-                    value={counts.following}
-                    inverse
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="px-6 py-6 md:px-8 md:py-7 space-y-4">
-            {profile.bio && (
-              <p className="text-[15px] leading-relaxed text-ink-strong whitespace-pre-line">
-                {profile.bio}
-              </p>
-            )}
-
-            {profile.links && Object.keys(profile.links).length > 0 && (
-              <div className="space-y-2">
-                <h3 className="text-[15px] font-semibold text-ink-strong">
-                  Online presence
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(profile.links)
-                    .filter(([, v]) => !!v)
-                    .map(([key, value]) => (
-                      <a
-                        key={key}
-                        href={value as string}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3 py-1 rounded-full border border-line-strong text-[13px] text-ink-strong hover:bg-surface-sunken"
-                      >
-                        {key}
-                      </a>
-                    ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* VENUE PHOTOS */}
-        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-6 py-6 space-y-4">
-          <h2 className="text-lg font-semibold text-ink-strong">
-            Venue photos
-          </h2>
-          {venuePhotos.length === 0 ? (
-            <p className="text-[13px] text-ink-subtle">
-              No venue photos available.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {venuePhotos.map(url => (
-                <button
-                  key={url}
-                  onClick={() => setVenueModalUrl(url)}
-                  className="relative w-full pb-[75%] rounded-2xl overflow-hidden bg-line-strong"
-                >
-                  <img
-                    src={url}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    alt=""
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ORGANIZER GIGS */}
-        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-6 py-6 space-y-4">
-          <h2 className="text-lg font-semibold text-ink-strong">
-            Gigs by this organizer
-          </h2>
-          {organizerGigs.length === 0 ? (
-            <p className="text-[13px] text-ink-subtle">
-              No gigs posted yet.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {organizerGigs.map(gig => (
-                <Link
-                  key={gig.id}
-                  href={`/gigs/${gig.id}`}
-                  className="block rounded-2xl border border-line px-4 py-3 hover:bg-surface-sunken"
-                >
-                  <p className="font-medium text-ink-strong">
-                    {gig.title || 'Untitled gig'}
-                  </p>
-                  <p className="text-[13px] text-ink-muted">
-                    {gig.event_date
-                      ? new Date(gig.event_date).toLocaleDateString()
-                      : 'Date TBD'}
-                    {gig.location ? ` • ${gig.location}` : ''}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* VENUE PHOTO MODAL */}
-        {venueModalUrl && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-            <button
-              className="absolute inset-0"
-              onClick={() => setVenueModalUrl(null)}
-            />
-            <div className="relative max-w-5xl w-full px-4">
-              <img
-                src={venueModalUrl}
-                className="rounded-2xl max-h-[90vh] w-full object-contain"
-                alt=""
-              />
-              <button
-                className="absolute top-2 right-4 text-3xl font-bold text-white"
-                onClick={() => setVenueModalUrl(null)}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
-
-        {FollowersAndFollowingModals}
-      </main>
-    );
-  }
-
-  /* ====================================================================== */
-  /*                    MUSICIAN PROFILE PAGE                                */
-  /* ====================================================================== */
-
-  const primaryMedia = posts[0];
-  const genres = Array.isArray(profile.genres) ? profile.genres : [];
-  const username = profile.handle;
-
-  function shareProfile() {
-    if (!profile) return;
-
-    const url = `${window.location.origin}/profile/${profile.handle}`;
-
-    if (navigator.share) {
-      navigator.share({
-        title: profile.display_name ?? 'Artist profile',
-        url,
-      });
-    } else {
-      navigator.clipboard.writeText(url);
-      alert('Profile link copied!');
-    }
-  }
-
-  function openModal(i: number) {
-    setSelectedIndex(i);
-    setSelectedMedia(posts[i]);
-  }
-  function closeModal() {
-    setSelectedMedia(null);
-  }
-  function showNext() {
-    const next = (selectedIndex + 1) % posts.length;
-    setSelectedIndex(next);
-    setSelectedMedia(posts[next]);
-  }
-  function showPrev() {
-    const prev = (selectedIndex - 1 + posts.length) % posts.length;
-    setSelectedIndex(prev);
-    setSelectedMedia(posts[prev]);
-  }
-
   async function toggleFollow() {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) {
-      alert('Please log in to follow artists.');
-      return;
-    }
+    if (!auth.user) { alert('Login required.'); return; }
     if (!profile) return;
-
+    if (auth.user.id === profile.id) return;
     if (isFollowing) {
-      await supabase
-        .from('followers')
-        .delete()
-        .eq('follower_id', auth.user.id)
-        .eq('following_id', profile.id);
-
+      await supabase.from('followers').delete()
+        .eq('follower_id', auth.user.id).eq('following_id', profile.id);
       setIsFollowing(false);
-      setCounts(prev => ({ ...prev, followers: prev.followers - 1 }));
+      setCounts((c) => ({ ...c, followers: c.followers - 1 }));
     } else {
       await supabase.from('followers').insert({
-        follower_id: auth.user.id,
-        following_id: profile.id,
+        follower_id: auth.user.id, following_id: profile.id,
       });
-
       setIsFollowing(true);
-      setCounts(prev => ({ ...prev, followers: prev.followers + 1 }));
+      setCounts((c) => ({ ...c, followers: c.followers + 1 }));
     }
   }
 
   async function toggleFollowFromModal(targetId: string) {
-    const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return;
-
-    // 🚫 ABSOLUTE SELF-FOLLOW BLOCK
-    if (auth.user.id === targetId) {
-      console.warn('Self-follow prevented');
-      return;
-    }
-
-    const me = auth.user.id;
+    if (!viewerId || viewerId === targetId) return;
     const alreadyFollowing = myFollowingIds.includes(targetId);
-
     if (alreadyFollowing) {
-      await supabase
-        .from('followers')
-        .delete()
-        .eq('follower_id', me)
-        .eq('following_id', targetId);
-
-      setMyFollowingIds(prev => prev.filter(id => id !== targetId));
+      await supabase.from('followers').delete()
+        .eq('follower_id', viewerId).eq('following_id', targetId);
+      setMyFollowingIds((prev) => prev.filter((id) => id !== targetId));
     } else {
-      await supabase.from('followers').insert({
-        follower_id: me,
-        following_id: targetId,
-      });
-
-      setMyFollowingIds(prev => [...prev, targetId]);
+      await supabase.from('followers').insert({ follower_id: viewerId, following_id: targetId });
+      setMyFollowingIds((prev) => [...prev, targetId]);
     }
   }
 
   async function loadFollowers() {
     if (!profile) return;
-
-    const { data, error } = (await supabase
+    const { data } = await supabase
       .from('followers')
-      .select('follower_id, profiles:follower_id(*)')
-      .eq('following_id', profile.id)) as unknown as {
-      data: FollowerRow[] | null;
-      error: Error | null;
-    };
-
-    if (!error && data) {
-      setFollowersList(
-        data.map(row => row.profiles).filter((p): p is BaseProfile => p !== null),
-      );
-    }
-
-    setShowFollowersModal(true);
+      .select('profiles!followers_follower_id_fkey ( id, display_name, handle, avatar_url )')
+      .eq('following_id', profile.id);
+    setFollowersList((data ?? []).flatMap((d) => d.profiles).filter(Boolean) as FollowProfile[]);
+    setShowFollowModal('followers');
   }
-
   async function loadFollowing() {
     if (!profile) return;
-
-    const { data, error } = (await supabase
+    const { data } = await supabase
       .from('followers')
-      .select('following_id, profiles:following_id(*)')
-      .eq('follower_id', profile.id)) as unknown as {
-      data: FollowingRow[] | null;
-      error: Error | null;
-    };
-
-    if (!error && data) {
-      setFollowingList(
-        data.map(row => row.profiles).filter((p): p is BaseProfile => p !== null),
-      );
-    }
-
-    setShowFollowingModal(true);
+      .select('profiles!followers_following_id_fkey ( id, display_name, handle, avatar_url )')
+      .eq('follower_id', profile.id);
+    setFollowingList((data ?? []).flatMap((d) => d.profiles).filter(Boolean) as FollowProfile[]);
+    setShowFollowModal('following');
   }
 
-  /* ====================================================================== */
-  /*                    MUSICIAN PUBLIC PROFILE UI                          */
-  /* ====================================================================== */
+  function openMedia(i: number) { setSelectedIndex(i); setSelectedMedia(posts[i]); }
+  function nextMedia() { const next = (selectedIndex + 1) % posts.length; setSelectedIndex(next); setSelectedMedia(posts[next]); }
+  function prevMedia() { const prev = (selectedIndex - 1 + posts.length) % posts.length; setSelectedIndex(prev); setSelectedMedia(posts[prev]); }
+
+  if (loading) {
+    return (
+      <main className="px-4 py-6">
+        <div className="card card-padded flex items-center gap-3">
+          <Spinner size={16} />
+          <span className="text-sm text-ink-muted">Loading profile…</span>
+        </div>
+      </main>
+    );
+  }
+  if (err || !profile) {
+    return (
+      <main className="px-4 py-6">
+        <EmptyState title="Couldn't load profile" description={err ?? 'Profile not found.'} />
+      </main>
+    );
+  }
+
+  const genres = profile.genres ?? [];
+  const validLinks = profile.links ? Object.entries(profile.links).filter(([, v]) => !!v) : [];
+  const isOwn = viewerId === profile.id;
 
   return (
-    <main className="w-full mx-auto max-w-5xl px-4 sm:px-6 md:px-0 pt-10 pb-24 space-y-8">
-      {/* HEADER CARD */}
-      <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.06)] p-6 sm:p-7 space-y-6">
-        {/* Top Row */}
-        <div className="flex items-start gap-6">
-          <img
-            src={profile.avatar_url ?? '/placeholder-avatar.png'}
-            className="w-24 h-24 rounded-full object-cover border border-line-strong"
-            alt="Profile avatar"
-          />
-
-          <div className="flex-1 space-y-1">
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-ink-strong">
-              {profile.display_name}
-            </h1>
-
-            <p className="text-[13px] text-ink-subtle">@{username}</p>
-
-            {profile.location && (
-              <p className="text-[13px] text-ink-muted">
-                {profile.location}
-              </p>
-            )}
-
-            {genres.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {genres.map(g => (
-                  <span
-                    key={g}
-                    className="px-3 py-1 rounded-full bg-surface-sunken text-[13px] text-ink"
-                  >
-                    {g}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {profile.bio && (
-              <p className="text-ink leading-snug pt-1 whitespace-pre-line">
-                {profile.bio}
-              </p>
-            )}
+    <main className="w-full mx-auto" style={{ maxWidth: 720 }}>
+      <div className="px-4 md:px-6 pt-5 pb-8">
+        <div className="flex items-center gap-5">
+          <div className="shrink-0">
+            <img
+              src={profile.avatar_url ?? '/default-avatar.png'}
+              alt={profile.display_name ?? 'Profile'}
+              className="h-24 w-24 rounded-full object-cover ring-1 ring-line"
+            />
+          </div>
+          <div className="flex-1 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(counts.posts)}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Posts</p>
+            </div>
+            <button onClick={loadFollowers} className="rounded-lg hover:bg-surface-sunken transition py-1">
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(counts.followers)}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Followers</p>
+            </button>
+            <button onClick={loadFollowing} className="rounded-lg hover:bg-surface-sunken transition py-1">
+              <p className="text-lg font-bold text-ink-strong leading-tight tabular">{abbreviateCount(counts.following)}</p>
+              <p className="text-xs text-ink-muted mt-0.5">Following</p>
+            </button>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex justify-evenly text-center mt-2">
-          <StatPill label="Posts" value={counts.posts} />
-          <button
-            onClick={loadFollowers}
-            className="flex flex-col items-center hover:text-ink-strong"
-          >
-            <div className="text-lg font-semibold text-ink-strong">
-              {counts.followers}
+        <div className="mt-4 space-y-1">
+          <h2 className="text-base font-bold text-ink-strong">{profile.display_name ?? 'Unnamed'}</h2>
+          {profile.location && <p className="text-xs text-ink-muted">{profile.location}</p>}
+          {profile.bio && <p className="text-sm text-ink whitespace-pre-line mt-2 leading-relaxed">{profile.bio}</p>}
+          {genres.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              {genres.map((g) => (<Badge key={g} tone="brand">{g}</Badge>))}
             </div>
-            <div className="text-[11px] text-ink-muted">Followers</div>
-          </button>
-          <button
-            onClick={loadFollowing}
-            className="flex flex-col items-center hover:text-ink-strong"
-          >
-            <div className="text-lg font-semibold text-ink-strong">
-              {counts.following}
-            </div>
-            <div className="text-[11px] text-ink-muted">Following</div>
-          </button>
+          )}
+          <div className="pt-1">
+            <RatingDisplay profileId={profile.id} variant="inline" />
+          </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-wrap gap-2 justify-center mt-2">
-          {viewerId && viewerId !== profile.id && (
-            <button
-              onClick={toggleFollow}
-              className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
-            >
-              {isFollowing ? 'Unfollow' : 'Follow'}
-            </button>
-          )}
-
-          {canMessage && (
-            <button
-              onClick={() => router.push(`/chat/new?user=${profile.handle}`)}
-              className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
-            >
-              Message
-            </button>
-          )}
-
-          {viewerRole === 'organizer' && viewerId !== profile.id && (
-            <Link
-              href={`/book/${profile.handle}`}
-              className="px-4 py-1.5 rounded-xl bg-ink-strong text-white font-medium hover:bg-black"
-            >
-              Book
+        {/* Musician viewing other: Message + Follow (no Book) */}
+        {!isOwn && (
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <Link href={`/chat/new?user=${profile.handle ?? ''}`}>
+              <Button fullWidth size="sm" variant="outline">Message</Button>
             </Link>
-          )}
-
-          <button
-            onClick={shareProfile}
-            className="px-4 py-1.5 rounded-xl border border-line-strong font-medium hover:bg-surface-sunken"
-          >
-            Share
-          </button>
-        </div>
-
-        {/* Quote */}
-        {profile.quote && (
-          <div className="px-4 py-3 rounded-xl bg-surface-sunken mt-3">
-            <p className="text-[11px] uppercase tracking-wide text-ink-subtle">
-              Artist Quote
-            </p>
-            <p className="mt-1 italic text-ink-strong">
-              “{profile.quote}”
-            </p>
+            <Button fullWidth size="sm" variant={isFollowing ? 'outline' : 'primary'} onClick={toggleFollow}>
+              {isFollowing ? 'Following' : 'Follow'}
+            </Button>
           </div>
         )}
-      </section>
-
-      {/* TABS */}
-      <div className="border-b border-line">
-        <div className="flex justify-center gap-10">
-          {(['media', 'about'] as const).map(tab => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`relative pb-3 font-medium ${
-                activeTab === tab
-                  ? 'text-ink-strong'
-                  : 'text-ink-subtle hover:text-ink'
-              }`}
-            >
-              {tab === 'media' ? 'Media' : 'About'}
-              {activeTab === tab && (
-                <span className="absolute left-0 right-0 -bottom-0.5 mx-auto h-[2px] w-8 rounded-full bg-ink-strong" />
-              )}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* MEDIA TAB */}
+      <div className="px-4 md:px-6">
+        <Tabs<'media' | 'about'>
+          value={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { value: 'media', label: 'Media' },
+            { value: 'about', label: 'About' },
+          ]}
+          className="!gap-8 justify-center"
+        />
+      </div>
+
       {activeTab === 'media' && (
-        <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] p-5 sm:p-6 space-y-4">
+        <section className="px-1 md:px-2 mt-1">
           {posts.length === 0 ? (
-            <div className="border border-dashed border-line-strong rounded-2xl py-10 flex flex-col items-center justify-center bg-surface-sunken text-ink-muted">
-              No media uploaded yet.
+            <div className="px-4 md:px-6 mt-4">
+              <EmptyState title="No media yet" description="This profile hasn't uploaded anything." />
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {posts.map((item, i) => (
+            <div className="grid grid-cols-3 gap-[2px] md:gap-1">
+              {posts.map((item, index) => (
                 <button
                   key={item.id}
-                  onClick={() => openModal(i)}
-                  className="relative w-full pb-[100%] rounded-2xl overflow-hidden bg-line-strong"
+                  type="button"
+                  onClick={() => openMedia(index)}
+                  className="group relative w-full pb-[100%] overflow-hidden bg-surface-sunken focus-visible:outline-none"
+                  aria-label={`Open media ${index + 1}`}
                 >
-                  {item.media_type === 'image' ? (
-                    <img
-                      src={item.media_url}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      alt=""
-                    />
-                  ) : (
-                    <video
-                      src={item.media_url}
-                      muted
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
+                  {item.media_type === 'image' && (
+                    <img src={item.media_url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="" />
+                  )}
+                  {item.media_type === 'video' && (
+                    <>
+                      <video src={item.media_url} muted className="absolute inset-0 w-full h-full object-cover" />
+                      <span className="absolute top-1.5 right-1.5 inline-flex items-center rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
+                      </span>
+                    </>
+                  )}
+                  {item.media_type === 'audio' && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[linear-gradient(135deg,var(--brand-50),var(--accent-50))] text-brand-700">
+                      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
+                      </svg>
+                      <span className="mt-1 text-[10px] font-medium uppercase tracking-wider">Audio</span>
+                    </div>
                   )}
                 </button>
               ))}
@@ -1029,225 +330,191 @@ export default function PublicProfilePage() {
         </section>
       )}
 
-      {/* ABOUT TAB */}
       {activeTab === 'about' && (
-        <section className="space-y-6">
-          {/* About + Links */}
-          <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] overflow-hidden">
-            <div className="px-5 py-6 space-y-6">
-              {profile.bio && (
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold text-ink-strong">
-                    About
-                  </h2>
-                  <p className="text-ink leading-relaxed whitespace-pre-line">
-                    {profile.bio}
-                  </p>
-                </div>
-              )}
-
-              {profile.links && Object.keys(profile.links).length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-ink-strong">Links</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(profile.links)
-                      .filter(([, v]) => !!v)
-                      .map(([k, v]) => (
-                        <a
-                          key={k}
-                          href={v as string}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1 rounded-full border border-line-strong text-[13px] text-ink-strong hover:bg-surface-sunken"
-                        >
-                          {k}
-                        </a>
-                      ))}
-                  </div>
-                </div>
-              )}
+        <section className="mt-4 pb-8">
+          {profile.quote && (
+            <div className="relative w-full overflow-hidden h-44 md:h-52">
+              {(() => {
+                const bgMedia = posts.find((m) => m.media_type === 'image');
+                return bgMedia ? (
+                  <img src={bgMedia.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--brand-700),var(--brand-500),var(--accent-500))]" />
+                );
+              })()}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/60 to-black/35" />
+              <div className="relative h-full flex items-center justify-center px-6 md:px-10 text-center">
+                <p className="text-white text-base md:text-lg font-semibold italic leading-snug max-w-xl drop-shadow">
+                  &ldquo;{profile.quote}&rdquo;
+                </p>
+              </div>
             </div>
-          </section>
+          )}
 
-          {/* Achievements / Shows / Skills / Recommendations */}
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Left column */}
-            <div className="space-y-4">
-              {/* Achievements */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
-                  Achievements
-                </h2>
-                {achievements.length === 0 ? (
-                  <p className="text-[13px] text-ink-subtle">
-                    No achievements yet.
-                  </p>
-                ) : (
-                  <ul className="space-y-2">
-                    {achievements.map(a => (
-                      <li
-                        key={a.id}
-                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 space-y-1"
-                      >
-                        <div className="font-medium text-ink-strong">
-                          {a.title}
-                        </div>
-                        {a.description && (
-                          <div className="text-[13px] text-ink">
-                            {a.description}
-                          </div>
-                        )}
-                        {a.year && (
-                          <div className="text-[13px] text-ink-subtle">
-                            {a.year}
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              {/* Shows */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
-                  Recent shows
-                </h2>
-                {shows.length === 0 ? (
-                  <p className="text-[13px] text-ink-subtle">No shows yet.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {shows.map(s => (
-                      <li
-                        key={s.id}
-                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 space-y-1"
-                      >
-                        <div className="font-medium text-ink-strong">
-                          {s.title}
-                        </div>
-                        <div className="text-[13px] text-ink">
-                          {[s.venue, s.location].filter(Boolean).join(', ')}
-                        </div>
-                        {s.event_date && (
-                          <div className="text-[13px] text-ink-subtle">
-                            {new Date(s.event_date).toLocaleDateString()}
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+          {achievements.length > 0 && (
+            <div className="px-4 md:px-6 mt-6">
+              <h3 className="text-base font-bold text-ink-strong mb-3">Achievements</h3>
+              <ul className="divide-y divide-line border-y border-line">
+                {achievements.map((a) => (
+                  <li key={a.id} className="flex items-start gap-3 py-3">
+                    <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="8" r="6" /><path d="M8.21 13.89 7 21l5-3 5 3-1.21-7.11" />
+                      </svg>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-strong">{a.title}</p>
+                      {a.description && <p className="text-sm text-ink mt-0.5">{a.description}</p>}
+                      {a.year && <p className="text-xs text-ink-subtle mt-0.5">{a.year}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
+          )}
 
-            {/* Right column */}
-            <div className="space-y-4">
-              {/* Skills */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
-                  Skills
-                </h2>
-                {skills.length === 0 ? (
-                  <p className="text-[13px] text-ink-subtle">No skills yet.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {skills.map(sk => (
-                      <li
-                        key={sk.id}
-                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3 flex justify-between items-center"
-                      >
-                        <span className="font-medium text-ink-strong">
-                          {sk.skill}
-                        </span>
-                        <span className="text-[13px] italic text-ink-muted">
-                          {sk.level}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              {/* Recommendations */}
-              <section className="rounded-3xl border border-line bg-surface shadow-[0_18px_48px_rgba(15,23,42,0.04)] px-5 py-5">
-                <h2 className="text-lg font-semibold mb-2 text-ink-strong">
-                  Recommendations
-                </h2>
-                {recommendations.length === 0 ? (
-                  <p className="text-[13px] text-ink-subtle">
-                    No recommendations yet.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {recommendations.map(r => (
-                      <blockquote
-                        key={r.id}
-                        className="rounded-2xl border border-line bg-surface-sunken px-3 py-3"
-                      >
-                        <p className="italic text-ink-strong">
-                          “{r.content}”
-                        </p>
-                        {r.author && (
-                          <p className="text-xs mt-1 text-ink-subtle">
-                            — {r.author}
+          {shows.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-base font-bold text-ink-strong mb-3 px-4 md:px-6">Recent shows</h3>
+              <div className="flex gap-3 overflow-x-auto px-4 md:px-6 pb-2 scroll-smooth snap-x snap-mandatory">
+                {shows.map((s, i) => {
+                  const imgs = posts.filter((m) => m.media_type === 'image');
+                  const bgMedia = imgs[i % Math.max(1, imgs.length)];
+                  return (
+                    <article key={s.id} className="relative shrink-0 w-56 md:w-64 h-44 rounded-2xl overflow-hidden border border-line bg-ink-strong snap-start">
+                      {bgMedia ? (
+                        <img src={bgMedia.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--brand-700),var(--brand-500))]" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 p-3 text-white">
+                        <p className="text-sm font-semibold leading-tight">{s.title ?? 'Show'}</p>
+                        {[s.venue, s.location].filter(Boolean).length > 0 && (
+                          <p className="text-[11px] text-white/85 mt-0.5 line-clamp-1">
+                            {[s.venue, s.location].filter(Boolean).join(', ')}
                           </p>
                         )}
-                      </blockquote>
-                    ))}
-                  </div>
-                )}
-              </section>
+                        {s.event_date && (
+                          <p className="text-[10px] text-white/70 mt-0.5">
+                            {new Date(s.event_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
+          )}
+
+          {skills.length > 0 && (
+            <div className="px-4 md:px-6 mt-6">
+              <h3 className="text-base font-bold text-ink-strong mb-3">Skills</h3>
+              <ul className="space-y-1.5">
+                {skills.map((sk) => (
+                  <li key={sk.id} className="flex items-baseline gap-2">
+                    <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-ink-strong shrink-0" />
+                    <p className="text-sm text-ink">
+                      <span className="font-semibold text-ink-strong">{sk.skill}</span>
+                      {sk.level && <span className="text-ink-muted"> — {sk.level}</span>}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {recommendations.length > 0 && (
+            <div className="px-4 md:px-6 mt-6">
+              <h3 className="text-base font-bold text-ink-strong mb-3">Recommendations</h3>
+              <ul className="divide-y divide-line border-y border-line">
+                {recommendations.map((r) => (
+                  <li key={r.id} className="py-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-sunken text-ink-muted text-xs font-semibold">
+                        {r.author?.slice(0, 1).toUpperCase() ?? '?'}
+                      </div>
+                      <p className="text-sm font-semibold text-ink-strong">{r.author ?? 'Anonymous'}</p>
+                      <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-brand" fill="currentColor" aria-hidden>
+                        <path fill="currentColor" d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1.06 14.54L6.4 12l1.41-1.41 3.13 3.12 6.25-6.25L18.6 8.87l-7.66 7.67z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-ink leading-relaxed">&ldquo;{r.content}&rdquo;</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="px-4 md:px-6 mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-ink-strong">Reviews</h3>
+              <RatingDisplay profileId={profile.id} variant="inline" />
+            </div>
+            <ReviewList profileId={profile.id} limit={3} />
           </div>
+
+          {validLinks.length > 0 && (
+            <div className="px-4 md:px-6 mt-6">
+              <h3 className="text-base font-bold text-ink-strong mb-3">Social Links</h3>
+              <div className="flex flex-wrap items-center gap-3">
+                {validLinks.map(([key, value]) => (
+                  <SocialLink key={key} name={key} href={value as string} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!profile.quote && !achievements.length && !shows.length && !skills.length && !recommendations.length && !validLinks.length && (
+            <div className="px-4 md:px-6 mt-4">
+              {profile.bio ? (
+                <>
+                  <h3 className="text-base font-bold text-ink-strong mb-3">About</h3>
+                  <p className="text-sm text-ink leading-relaxed whitespace-pre-line">{profile.bio}</p>
+                </>
+              ) : (
+                <EmptyState title="No about info yet" />
+              )}
+            </div>
+          )}
         </section>
       )}
 
-      {/* MEDIA MODAL */}
       {selectedMedia && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <button
-            type="button"
-            className="absolute inset-0"
-            onClick={closeModal}
-          />
-          <div className="relative max-w-5xl w-full px-4">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="absolute top-2 right-4 text-3xl font-bold text-white"
-            >
-              ×
-            </button>
-
-            {selectedMedia.media_type === 'image' ? (
-              <img
-                src={selectedMedia.media_url}
-                className="w-full max-h-[90vh] object-contain rounded-2xl"
-                alt=""
-              />
-            ) : (
-              <video
-                src={selectedMedia.media_url}
-                controls
-                className="w-full max-h-[90vh] rounded-2xl"
-              />
-            )}
-
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
+          <button type="button" aria-label="Close" className="absolute inset-0 cursor-default" onClick={() => setSelectedMedia(null)} />
+          <div className="relative z-10 w-full max-w-3xl">
+            <div className="flex items-center justify-end mb-3">
+              <button type="button" onClick={() => setSelectedMedia(null)} aria-label="Close"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden bg-black">
+              {selectedMedia.media_type === 'image' && (
+                <img src={selectedMedia.media_url} className="w-full max-h-[80vh] object-contain" alt="" />
+              )}
+              {selectedMedia.media_type === 'video' && (
+                <video src={selectedMedia.media_url} controls className="w-full max-h-[80vh]" />
+              )}
+              {selectedMedia.media_type === 'audio' && (
+                <div className="p-6 bg-surface">
+                  <AudioPlayer src={selectedMedia.media_url} title={selectedMedia.caption ?? 'Audio'} />
+                </div>
+              )}
+            </div>
             {posts.length > 1 && (
               <>
-                <button
-                  type="button"
-                  onClick={showPrev}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-4xl text-white"
-                >
-                  ‹
+                <button type="button" onClick={prevMedia} aria-label="Previous"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                 </button>
-                <button
-                  type="button"
-                  onClick={showNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-4xl text-white"
-                >
-                  ›
+                <button type="button" onClick={nextMedia} aria-label="Next"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
                 </button>
               </>
             )}
@@ -1255,167 +522,40 @@ export default function PublicProfilePage() {
         </div>
       )}
 
-      {/* FOLLOWERS MODAL */}
-      {showFollowersModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-height-[80vh] max-h-[80vh] overflow-y-auto p-6 relative">
-            <button
-              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
-              onClick={() => setShowFollowersModal(false)}
-            >
-              ×
-            </button>
-
-            <h2 className="text-xl font-semibold mb-4 text-ink-strong">
-              Followers
-            </h2>
-
-            {followersList.length === 0 ? (
-              <p className="text-[13px] text-ink-subtle">No followers yet.</p>
-            ) : (
-              <ul className="space-y-4">
-                {followersList.map(user => (
-                  <li key={user.id}>
-                    <Link
-                      href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
+      <Modal
+        open={showFollowModal !== null}
+        onClose={() => setShowFollowModal(null)}
+        title={showFollowModal === 'followers' ? 'Followers' : 'Following'}
+      >
+        {(() => {
+          const list = showFollowModal === 'followers' ? followersList : followingList;
+          if (list.length === 0) return <p className="text-sm text-ink-subtle">No one here yet.</p>;
+          return (
+            <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {list.map((p) => (
+                <li key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-sunken">
+                  <Link href={`/profile/${p.handle ?? p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar src={p.avatar_url} alt={p.display_name ?? ''} size="md" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-strong truncate">{p.display_name}</p>
+                      <p className="text-xs text-ink-subtle truncate">@{p.handle}</p>
+                    </div>
+                  </Link>
+                  {viewerId !== p.id && (
+                    <Button
+                      size="sm"
+                      variant={myFollowingIds.includes(p.id) ? 'outline' : 'primary'}
+                      onClick={() => toggleFollowFromModal(p.id)}
                     >
-                      <img
-                        src={user.avatar_url ?? '/default-avatar.png'}
-                        className="w-12 h-12 rounded-full object-cover"
-                        alt=""
-                      />
-
-                      <div className="flex-1">
-                        <p className="font-medium text-ink-strong">
-                          {user.display_name}
-                        </p>
-                        <p className="text-xs text-ink-subtle">
-                          @{user.handle}
-                        </p>
-                      </div>
-
-                      {viewerId !== user.id && (
-                        <button
-                          onClick={e => {
-                            e.preventDefault();
-                            toggleFollowFromModal(user.id);
-                          }}
-                          className={`px-3 py-1 text-xs rounded-lg border ${
-                            myFollowingIds.includes(user.id)
-                              ? 'bg-line-strong text-ink-strong'
-                              : 'bg-ink-strong text-white'
-                          }`}
-                        >
-                          {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
-                        </button>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* FOLLOWING MODAL */}
-      {showFollowingModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-          <div className="bg-surface rounded-3xl w-full max-w-md mx-auto max-h-[80vh] overflow-y-auto p-6 relative">
-            <button
-              className="absolute top-3 right-4 text-3xl font-bold text-ink-strong"
-              onClick={() => setShowFollowingModal(false)}
-            >
-              ×
-            </button>
-
-            <h2 className="text-xl font-semibold mb-4 text-ink-strong">
-              Following
-            </h2>
-
-            {followingList.length === 0 ? (
-              <p className="text-[13px] text-ink-subtle">
-                Not following anyone yet.
-              </p>
-            ) : (
-              <ul className="space-y-4">
-                {followingList.map(user => (
-                  <li key={user.id}>
-                    <Link
-                      href={profilePath(user)}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface-sunken"
-                    >
-                      <img
-                        src={user.avatar_url ?? '/default-avatar.png'}
-                        className="w-12 h-12 rounded-full object-cover"
-                        alt=""
-                      />
-
-                      <div className="flex-1">
-                        <p className="font-medium text-ink-strong">
-                          {user.display_name}
-                        </p>
-                        <p className="text-xs text-ink-subtle">
-                          @{user.handle}
-                        </p>
-                      </div>
-
-                      {viewerId !== user.id && (
-                        <button
-                          onClick={e => {
-                            e.preventDefault();
-                            toggleFollowFromModal(user.id);
-                          }}
-                          className={`px-3 py-1 text-xs rounded-lg border ${
-                            myFollowingIds.includes(user.id)
-                              ? 'bg-line-strong text-ink-strong'
-                              : 'bg-ink-strong text-white'
-                          }`}
-                        >
-                          {myFollowingIds.includes(user.id) ? 'Unfollow' : 'Follow'}
-                        </button>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
+                      {myFollowingIds.includes(p.id) ? 'Unfollow' : 'Follow'}
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          );
+        })()}
+      </Modal>
     </main>
-  );
-}
-
-/* ---------------------------------------------------------
-    SMALL STAT COMPONENT
---------------------------------------------------------- */
-function StatPill({
-  label,
-  value,
-  inverse,
-}: {
-  label: string;
-  value: number;
-  inverse?: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center">
-      <div
-        className={`text-lg font-semibold ${
-          inverse ? 'text-white' : 'text-ink-strong'
-        }`}
-      >
-        {value}
-      </div>
-      <div
-        className={`text-[11px] ${
-          inverse ? 'text-ink-disabled' : 'text-ink-muted'
-        }`}
-      >
-        {label}
-      </div>
-    </div>
   );
 }
