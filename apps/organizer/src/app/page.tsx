@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
+import { toast } from '@arteve/ui/components';
 
 const PAGE_SIZE = 10;
 
@@ -226,22 +227,41 @@ export default function OrganizerHomePage() {
     if (!userId) return;
 
     const p = posts.find(x => x.id === postId);
-    const alreadyLiked = p?.post_likes?.some(l => l.user_id === userId);
+    const alreadyLiked = p?.post_likes?.some(l => l.user_id === userId) ?? false;
 
-    if (alreadyLiked) {
-      await supabase
-        .from('post_likes')
-        .delete()
-        .eq('post_id', postId)
-        .eq('user_id', userId);
-    } else {
-      await supabase.from('post_likes').insert({
-        post_id: postId,
-        user_id: userId,
-      });
+    // Optimistic flip
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id !== postId
+          ? post
+          : {
+              ...post,
+              post_likes: alreadyLiked
+                ? (post.post_likes ?? []).filter((l) => l.user_id !== userId)
+                : [...(post.post_likes ?? []), { user_id: userId }],
+            }
+      )
+    );
+
+    const { error } = alreadyLiked
+      ? await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', userId)
+      : await supabase.from('post_likes').insert({ post_id: postId, user_id: userId });
+
+    if (error) {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id !== postId
+            ? post
+            : {
+                ...post,
+                post_likes: alreadyLiked
+                  ? [...(post.post_likes ?? []), { user_id: userId }]
+                  : (post.post_likes ?? []).filter((l) => l.user_id !== userId),
+              }
+        )
+      );
+      toast.error(alreadyLiked ? "Couldn't unlike" : "Couldn't like");
     }
-
-    await refreshFeed();
   }
 
   // ---------------------------------------------------------

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
+import { toast } from '@arteve/ui/components';
 
 const PAGE_SIZE = 10;
 
@@ -262,22 +263,42 @@ export default function MusicianHomePage() {
     if (!userId) return;
 
     const post = posts.find(p => p.id === postId);
-    const alreadyLiked = post?.post_likes?.some(l => l.user_id === userId);
+    const alreadyLiked = post?.post_likes?.some(l => l.user_id === userId) ?? false;
 
-    if (alreadyLiked) {
-      await supabase
-        .from('post_likes')
-        .delete()
-        .eq('post_id', postId)
-        .eq('user_id', userId);
-    } else {
-      await supabase.from('post_likes').insert({
-        post_id: postId,
-        user_id: userId,
-      });
+    // Optimistic flip — patch the like array in place so the heart + count update instantly
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id !== postId
+          ? p
+          : {
+              ...p,
+              post_likes: alreadyLiked
+                ? (p.post_likes ?? []).filter((l) => l.user_id !== userId)
+                : [...(p.post_likes ?? []), { user_id: userId }],
+            }
+      )
+    );
+
+    const { error } = alreadyLiked
+      ? await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', userId)
+      : await supabase.from('post_likes').insert({ post_id: postId, user_id: userId });
+
+    if (error) {
+      // Roll back
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id !== postId
+            ? p
+            : {
+                ...p,
+                post_likes: alreadyLiked
+                  ? [...(p.post_likes ?? []), { user_id: userId }]
+                  : (p.post_likes ?? []).filter((l) => l.user_id !== userId),
+              }
+        )
+      );
+      toast.error(alreadyLiked ? "Couldn't unlike" : "Couldn't like");
     }
-
-    await refreshFeed();
   }
 
   // ----------------------------------------------------
