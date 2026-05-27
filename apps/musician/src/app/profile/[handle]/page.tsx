@@ -14,6 +14,7 @@ import {
   EmptyState,
   Tabs,
   Modal,
+  SafeImage,
   Spinner,
   SocialLink,
   toast,
@@ -325,7 +326,7 @@ export default function MusicianPublicProfilePage() {
                   aria-label={`Open media ${index + 1}`}
                 >
                   {item.media_type === 'image' && (
-                    <Image
+                    <SafeImage
                       src={item.media_url}
                       alt=""
                       fill

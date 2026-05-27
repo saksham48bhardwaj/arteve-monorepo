@@ -13,6 +13,7 @@ import {
   EmptyState,
   Tabs,
   Modal,
+  SafeImage,
   Skeleton,
   Spinner,
   SocialLink,
@@ -283,7 +284,7 @@ export default function OrganizerProfilePage() {
                   rel="noreferrer"
                   className="group relative w-full pb-[100%] overflow-hidden bg-surface-sunken"
                 >
-                  <Image
+                  <SafeImage
                     src={url}
                     alt="Venue"
                     fill

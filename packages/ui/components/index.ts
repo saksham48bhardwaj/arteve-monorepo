@@ -47,4 +47,7 @@ export type { PullToRefreshIndicatorProps } from './PullToRefresh';
 export { AvatarCropper } from './AvatarCropper';
 export type { AvatarCropperProps } from './AvatarCropper';
 
+export { SafeImage } from './SafeImage';
+export type { SafeImageProps } from './SafeImage';
+
 export { cn } from './cn';

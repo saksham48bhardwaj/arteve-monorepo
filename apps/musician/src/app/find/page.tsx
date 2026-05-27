@@ -20,7 +20,7 @@ import {
   type EventResult,
   PAGE_SIZE,
 } from '@/lib/find-queries';
-import { Avatar, Spinner } from '@arteve/ui/components';
+import { Avatar, SafeImage, Spinner } from '@arteve/ui/components';
 
 // ---- Tabs ----
 type Tab = 'people' | 'gigs' | 'venues' | 'posts' | 'events';
@@ -647,7 +647,7 @@ function SearchResults({
         <div className="grid grid-cols-3 gap-[2px]">
           {(results as PostResult[]).map((post) => (
             <div key={post.id} className="relative w-full pb-[100%] overflow-hidden bg-surface-sunken">
-              <Image
+              <SafeImage
                 src={post.media_url}
                 alt={post.caption ?? ''}
                 fill
