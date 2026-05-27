@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ApplicationsList from '@/components/gigs/ApplicationsList';
 import BookingsList from '@/components/gigs/BookingsList';
-import { Button, Spinner, Tabs } from '@arteve/ui/components';
+import { Button, Skeleton, Tabs } from '@arteve/ui/components';
 
 type TabValue = 'applications' | 'bookings';
 
@@ -59,9 +59,26 @@ function MyGigsContent() {
 
 function Loading() {
   return (
-    <main className="px-4 py-6">
-      <div className="flex items-center gap-2 text-sm text-ink-subtle">
-        <Spinner size={14} /> Loading…
+    <main className="w-full mx-auto px-4 py-4" style={{ maxWidth: 720 }}>
+      {/* Tab strip skeleton */}
+      <div className="flex gap-6 border-b border-line pb-2 mb-3">
+        <Skeleton width={80} height={14} />
+        <Skeleton width={64} height={14} />
+      </div>
+      {/* List item skeletons */}
+      <div className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="card card-padded space-y-2">
+            <div className="flex items-center gap-3">
+              <Skeleton shape="circle" width={36} height={36} />
+              <div className="flex-1 space-y-2">
+                <Skeleton width="55%" height={14} />
+                <Skeleton width="35%" height={12} />
+              </div>
+              <Skeleton width={64} height={20} />
+            </div>
+          </div>
+        ))}
       </div>
     </main>
   );

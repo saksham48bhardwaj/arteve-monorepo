@@ -466,6 +466,19 @@ a:focus-visible,
 @keyframes arteve-toast-out {
   to { opacity: 0; transform: translateY(8px) scale(0.98); }
 }
+
+/* Page-in: subtle fade + 4px rise on every route change.
+   Mounted by app/template.tsx. Respects prefers-reduced-motion. */
+@keyframes arteve-page-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-in {
+  animation: arteve-page-in 180ms var(--ease-out, ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-in { animation: none; }
+}
 @layer components {
   .toast-viewport {
     position: fixed; z-index: 60; bottom: calc(env(safe-area-inset-bottom) + 5.5rem);

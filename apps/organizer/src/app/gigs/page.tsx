@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
-import { Button, Badge, EmptyState, Spinner } from '@arteve/ui/components';
+import { Button, Badge, EmptyState, Skeleton } from '@arteve/ui/components';
 
 type GigStatus = 'open' | 'booked' | 'closed';
 type Gig = {
@@ -103,10 +103,39 @@ export default function ManageGigsPage() {
 
   if (loading) {
     return (
-      <main className="px-4 py-6">
-        <div className="card card-padded flex items-center gap-3">
-          <Spinner size={16} />
-          <span className="text-sm text-ink-muted">Loading your gigs…</span>
+      <main className="w-full mx-auto pb-8" style={{ maxWidth: 720 }}>
+        {/* Stats strip skeleton */}
+        <section className="px-4 md:px-6 pt-4">
+          <div className="grid grid-cols-3 rounded-xl border border-line bg-surface overflow-hidden">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-4 text-center space-y-2">
+                <Skeleton width="40%" height={22} className="mx-auto" />
+                <Skeleton width="60%" height={11} className="mx-auto" />
+              </div>
+            ))}
+          </div>
+        </section>
+        {/* Filter chips skeleton */}
+        <div className="px-4 md:px-6 mt-4 flex gap-2 overflow-x-auto">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} width={80} height={28} className="rounded-full shrink-0" />
+          ))}
+        </div>
+        {/* Gig cards */}
+        <div className="px-4 md:px-6 mt-3 space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card card-padded space-y-3">
+              <div className="flex items-start gap-3">
+                <Skeleton shape="circle" width={40} height={40} />
+                <div className="flex-1 space-y-2">
+                  <Skeleton width="65%" height={16} />
+                  <Skeleton width="40%" height={12} />
+                </div>
+                <Skeleton width={72} height={22} />
+              </div>
+              <Skeleton width="90%" height={12} />
+            </div>
+          ))}
         </div>
       </main>
     );

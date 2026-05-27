@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@arteve/supabase/client';
 import { useParams, useRouter } from 'next/navigation';
+import { Skeleton } from '@arteve/ui/components';
 import { sendNotification } from '@arteve/shared/notifications';
 import { ReviewPrompt } from '@arteve/shared/reviews';
 
@@ -181,8 +182,26 @@ export default function BookingDetailPage() {
   // RENDER
   // ----------------------------
   if (loading) return (
-    <main className="page page-narrow">
-      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading booking…</p></div>
+    <main className="page page-narrow space-y-3">
+      {/* Title + status badge */}
+      <div className="space-y-2">
+        <Skeleton width="55%" height={22} />
+        <Skeleton width="35%" height={14} />
+      </div>
+      {/* Detail card */}
+      <div className="card card-padded space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex justify-between gap-3">
+            <Skeleton width="30%" height={12} />
+            <Skeleton width="40%" height={12} />
+          </div>
+        ))}
+      </div>
+      {/* Action row */}
+      <div className="flex gap-2">
+        <Skeleton className="flex-1" height={40} />
+        <Skeleton className="flex-1" height={40} />
+      </div>
     </main>
   );
   if (!booking) return <div className="p-6">Booking not found.</div>;
