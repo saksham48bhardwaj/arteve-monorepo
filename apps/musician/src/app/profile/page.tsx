@@ -15,6 +15,7 @@ import {
   EmptyState,
   Tabs,
   Modal,
+  Skeleton,
   Spinner,
   SocialLink,
   toast,
@@ -233,10 +234,37 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <main className="page page-narrow">
-        <Card className="flex items-center gap-3">
-          <Spinner size={16} />
-          <span className="text-sm text-ink-muted">Loading your profile…</span>
-        </Card>
+        {/* Profile header skeleton */}
+        <div className="flex items-center gap-4 py-4">
+          <Skeleton shape="circle" width={88} height={88} />
+          <div className="flex-1 space-y-2">
+            <Skeleton width="60%" height={18} />
+            <Skeleton width="40%" height={14} />
+            <div className="flex gap-4 pt-1">
+              <Skeleton width={40} height={12} />
+              <Skeleton width={40} height={12} />
+              <Skeleton width={40} height={12} />
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-2">
+          <Skeleton className="flex-1" height={36} />
+          <Skeleton className="flex-1" height={36} />
+        </div>
+        {/* Tab strip skeleton */}
+        <div className="flex gap-6 border-b border-line mt-6 pb-2">
+          <Skeleton width={48} height={14} />
+          <Skeleton width={48} height={14} />
+          <Skeleton width={48} height={14} />
+        </div>
+        {/* IG grid skeleton */}
+        <div className="grid grid-cols-3 gap-[2px] mt-2">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="aspect-square">
+              <Skeleton className="h-full w-full rounded-none" />
+            </div>
+          ))}
+        </div>
       </main>
     );
   }

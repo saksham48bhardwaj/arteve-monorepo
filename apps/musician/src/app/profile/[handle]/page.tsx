@@ -151,30 +151,48 @@ export default function MusicianPublicProfilePage() {
     if (!auth.user) { toast.error('Login required.'); return; }
     if (!profile) return;
     if (auth.user.id === profile.id) return;
-    if (isFollowing) {
-      await supabase.from('followers').delete()
-        .eq('follower_id', auth.user.id).eq('following_id', profile.id);
-      setIsFollowing(false);
-      setCounts((c) => ({ ...c, followers: c.followers - 1 }));
-    } else {
-      await supabase.from('followers').insert({
-        follower_id: auth.user.id, following_id: profile.id,
-      });
-      setIsFollowing(true);
-      setCounts((c) => ({ ...c, followers: c.followers + 1 }));
+
+    // Optimistic flip first, then reconcile with the DB
+    const prevFollowing = isFollowing;
+    const prevCount = counts.followers;
+    setIsFollowing(!prevFollowing);
+    setCounts((c) => ({ ...c, followers: c.followers + (prevFollowing ? -1 : 1) }));
+
+    const { error } = prevFollowing
+      ? await supabase.from('followers').delete()
+          .eq('follower_id', auth.user.id).eq('following_id', profile.id)
+      : await supabase.from('followers').insert({
+          follower_id: auth.user.id, following_id: profile.id,
+        });
+
+    if (error) {
+      // Roll back on failure
+      setIsFollowing(prevFollowing);
+      setCounts((c) => ({ ...c, followers: prevCount }));
+      toast.error(prevFollowing ? "Couldn't unfollow" : "Couldn't follow");
     }
   }
 
   async function toggleFollowFromModal(targetId: string) {
     if (!viewerId || viewerId === targetId) return;
     const alreadyFollowing = myFollowingIds.includes(targetId);
-    if (alreadyFollowing) {
-      await supabase.from('followers').delete()
-        .eq('follower_id', viewerId).eq('following_id', targetId);
-      setMyFollowingIds((prev) => prev.filter((id) => id !== targetId));
-    } else {
-      await supabase.from('followers').insert({ follower_id: viewerId, following_id: targetId });
-      setMyFollowingIds((prev) => [...prev, targetId]);
+
+    // Optimistic update — flip UI immediately
+    setMyFollowingIds((prev) =>
+      alreadyFollowing ? prev.filter((id) => id !== targetId) : [...prev, targetId]
+    );
+
+    const { error } = alreadyFollowing
+      ? await supabase.from('followers').delete()
+          .eq('follower_id', viewerId).eq('following_id', targetId)
+      : await supabase.from('followers').insert({ follower_id: viewerId, following_id: targetId });
+
+    if (error) {
+      // Roll back
+      setMyFollowingIds((prev) =>
+        alreadyFollowing ? [...prev, targetId] : prev.filter((id) => id !== targetId)
+      );
+      toast.error(alreadyFollowing ? "Couldn't unfollow" : "Couldn't follow");
     }
   }
 

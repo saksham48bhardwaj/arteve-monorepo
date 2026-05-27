@@ -68,6 +68,9 @@ function BitsReelsPage() {
   const [commentOpenFor, setCommentOpenFor] = useState<number | null>(null);
   const [newComment, setNewComment] = useState('');
 
+  // Tap-to-pause: remember which bit the user manually paused so IO doesn't auto-resume it.
+  const [pausedBitId, setPausedBitId] = useState<number | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Load all bits + like state once
@@ -136,10 +139,14 @@ function BitsReelsPage() {
       (entries) => {
         entries.forEach((entry) => {
           const vid = entry.target as HTMLVideoElement;
+          const bitId = Number(vid.dataset.bitId);
           if (entry.isIntersecting) {
-            vid.play().catch(() => {});
+            // Don't auto-resume a video the user explicitly paused
+            if (pausedBitId !== bitId) vid.play().catch(() => {});
           } else {
             vid.pause();
+            // Scrolling away clears any manual-pause state for that bit
+            if (pausedBitId === bitId) setPausedBitId(null);
           }
         });
       },
@@ -147,7 +154,18 @@ function BitsReelsPage() {
     );
     videos.forEach((v) => io.observe(v));
     return () => io.disconnect();
-  }, [rows]);
+  }, [rows, pausedBitId]);
+
+  function toggleVideoPause(bit: Bit, e: React.MouseEvent<HTMLVideoElement>) {
+    const vid = e.currentTarget;
+    if (vid.paused) {
+      vid.play().catch(() => {});
+      setPausedBitId(null);
+    } else {
+      vid.pause();
+      setPausedBitId(bit.id);
+    }
+  }
 
   async function toggleLike(bit: Bit) {
     const { data: auth } = await supabase.auth.getUser();
@@ -266,13 +284,26 @@ function BitsReelsPage() {
             >
               {/* Media */}
               {b.media_type === 'video' ? (
-                <video
-                  src={b.media_url}
-                  muted
-                  loop
-                  playsInline
-                  className="h-full w-full object-contain bg-black"
-                />
+                <>
+                  <video
+                    src={b.media_url}
+                    data-bit-id={b.id}
+                    muted
+                    loop
+                    playsInline
+                    onClick={(e) => toggleVideoPause(b, e)}
+                    className="h-full w-full object-contain bg-black cursor-pointer"
+                  />
+                  {pausedBitId === b.id && (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <span className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white">
+                        <svg viewBox="0 0 24 24" className="h-9 w-9 ml-1" fill="currentColor">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </span>
+                    </div>
+                  )}
+                </>
               ) : b.media_type === 'audio' ? (
                 <div className="h-full w-full flex flex-col items-center justify-center bg-[linear-gradient(135deg,var(--brand-700),var(--brand-500),var(--accent-500))] text-white px-6">
                   <svg viewBox="0 0 24 24" className="h-16 w-16 opacity-90" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

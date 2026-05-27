@@ -214,28 +214,57 @@ export default function ChatPage() {
             No messages yet — say hello.
           </div>
         )}
-        {msgs.map((m) => {
-          const isMine = m.sender_id === userId;
-          const date = new Date(m.created_at);
-          const dateLabel = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-          const showDate = dateLabel !== lastDateLabel;
-          if (showDate) lastDateLabel = dateLabel;
-          return (
-            <Fragment key={m.id}>
-              {showDate && (
-                <div className="chat-day-divider"><span>{dateLabel}</span></div>
-              )}
-              <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`chat-bubble ${isMine ? 'chat-bubble-mine' : 'chat-bubble-theirs'}`}>
-                  {m.content}
-                  <div className={isMine ? 'chat-meta-mine' : 'chat-meta-theirs'}>
-                    {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {(() => {
+          let lastMineIdx = -1;
+          for (let i = msgs.length - 1; i >= 0; i--) {
+            if (msgs[i].sender_id === userId) { lastMineIdx = i; break; }
+          }
+          return msgs.map((m, idx) => {
+            const isMine = m.sender_id === userId;
+            const date = new Date(m.created_at);
+            const dateLabel = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+            const showDate = dateLabel !== lastDateLabel;
+            if (showDate) lastDateLabel = dateLabel;
+            const isLastMine = isMine && idx === lastMineIdx;
+            return (
+              <Fragment key={m.id}>
+                {showDate && (
+                  <div className="chat-day-divider"><span>{dateLabel}</span></div>
+                )}
+                <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`chat-bubble ${isMine ? 'chat-bubble-mine' : 'chat-bubble-theirs'}`}>
+                    {m.content}
+                    <div className={isMine ? 'chat-meta-mine' : 'chat-meta-theirs'}>
+                      {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Fragment>
-          );
-        })}
+                {isLastMine && (
+                  <div className="flex justify-end px-1 -mt-1 mb-1">
+                    <span className="text-[11px] text-ink-subtle flex items-center gap-1">
+                      {m.read_at ? (
+                        <>
+                          <svg viewBox="0 0 24 24" className="h-3 w-3 text-brand" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12l5 5L17 6" />
+                            <path d="M8 17l9-9" />
+                          </svg>
+                          Read
+                        </>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12l5 5L20 7" />
+                          </svg>
+                          Sent
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
+              </Fragment>
+            );
+          });
+        })()}
         {otherTyping && (
           <div className="chat-typing">
             <span className="chat-typing-dot animate-bounce [animation-delay:-0.3s]" />
