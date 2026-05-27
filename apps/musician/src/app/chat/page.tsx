@@ -3,7 +3,16 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
-import { Page, PageHeader, EmptyState, Button, Avatar, Skeleton } from '@arteve/ui/components';
+import {
+  Page,
+  PageHeader,
+  EmptyState,
+  Button,
+  Avatar,
+  Skeleton,
+  usePullToRefresh,
+  PullToRefreshIndicator,
+} from '@arteve/ui/components';
 
 type Booking = {
   id: string;
@@ -142,8 +151,11 @@ export default function MusicianChatListPage() {
     };
   }, [userId]);
 
+  const pull = usePullToRefresh({ onRefresh: load });
+
   return (
     <Page>
+      <PullToRefreshIndicator {...pull} />
       <PageHeader
         title="Messages"
         subtitle="Conversations with organizers about your bookings."

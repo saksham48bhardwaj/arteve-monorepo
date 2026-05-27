@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
-import { toast } from '@arteve/ui/components';
+import { toast, usePullToRefresh, PullToRefreshIndicator } from '@arteve/ui/components';
 
 const PAGE_SIZE = 10;
 
@@ -286,8 +286,11 @@ export default function OrganizerHomePage() {
     await refreshFeed();
   }
 
+  const pull = usePullToRefresh({ onRefresh: refreshFeed });
+
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
+      <PullToRefreshIndicator {...pull} />
       {/* Header */}
       <header className="flex items-end justify-between gap-4">
         <div>

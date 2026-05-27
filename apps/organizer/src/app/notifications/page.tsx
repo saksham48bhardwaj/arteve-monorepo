@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
-import { Avatar, Button, EmptyState, Spinner } from '@arteve/ui/components';
+import {
+  Avatar,
+  Button,
+  EmptyState,
+  Spinner,
+  usePullToRefresh,
+  PullToRefreshIndicator,
+} from '@arteve/ui/components';
 
 type Notification = {
   id: number;
@@ -179,36 +186,38 @@ export default function NotificationsPage() {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [marking, setMarking] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
+  async function loadNotifications() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
 
-      const { data } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(200);
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(200);
 
-      const list = (data ?? []) as Notification[];
-      setItems(list);
+    const list = (data ?? []) as Notification[];
+    setItems(list);
 
-      // Batch-fetch actor profiles
-      const actorIds = Array.from(new Set(list.map((n) => n.actor_id).filter((id): id is string => !!id)));
-      if (actorIds.length) {
-        const { data: profs } = await supabase
-          .from('profiles')
-          .select('id, display_name, handle, avatar_url')
-          .in('id', actorIds);
-        const map: Record<string, ActorProfile> = {};
-        (profs ?? []).forEach((p) => { map[(p as ActorProfile).id] = p as ActorProfile; });
-        setActors(map);
-      }
+    // Batch-fetch actor profiles
+    const actorIds = Array.from(new Set(list.map((n) => n.actor_id).filter((id): id is string => !!id)));
+    if (actorIds.length) {
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id, display_name, handle, avatar_url')
+        .in('id', actorIds);
+      const map: Record<string, ActorProfile> = {};
+      (profs ?? []).forEach((p) => { map[(p as ActorProfile).id] = p as ActorProfile; });
+      setActors(map);
+    }
 
-      setLoading(false);
-    })();
-  }, []);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadNotifications(); }, []);
+
+  const pull = usePullToRefresh({ onRefresh: loadNotifications });
 
   async function markAsRead(id: number) {
     const now = new Date().toISOString();
@@ -246,6 +255,7 @@ export default function NotificationsPage() {
 
   return (
     <main className="w-full mx-auto" style={{ maxWidth: 720 }}>
+      <PullToRefreshIndicator {...pull} />
       {/* Filters + Mark-all in a single row (Notifications heading lives in TopNav) */}
       <div className="px-4 md:px-6 pt-4 pb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
