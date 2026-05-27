@@ -1,486 +1,683 @@
 'use client';
 
-import { Suspense } from 'react';
+export const dynamic = 'force-dynamic';
 
-export const dynamic = "force-dynamic";
-
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
-
 import {
   searchPeople,
   searchGigs,
   searchVenues,
   searchPosts,
   searchEvents,
-  PersonResult,
-  GigResult,
-  VenueResult,
-  PostResult,
-  EventResult,
+  type PersonResult,
+  type GigResult,
+  type VenueResult,
+  type PostResult,
+  type EventResult,
   PAGE_SIZE,
 } from '@/lib/find-queries';
+import { Avatar, Spinner } from '@arteve/ui/components';
 
-// -------------------------------------------
-// Wrapper Component (Suspense)
-// -------------------------------------------
+// ---- Tabs ----
+type Tab = 'people' | 'gigs' | 'venues' | 'posts' | 'events';
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'people', label: 'People' },
+  { value: 'gigs', label: 'Gigs' },
+  { value: 'venues', label: 'Venues' },
+  { value: 'posts', label: 'Posts' },
+  { value: 'events', label: 'Events' },
+];
+
+type RecentItem =
+  | { kind: 'profile'; id: string; name: string; handle: string; avatar: string | null; verified?: boolean }
+  | { kind: 'query'; text: string };
+
+const RECENTS_KEY = 'arteve.musician.find.recents';
+const MAX_RECENTS = 10;
+
+function loadRecents(): RecentItem[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(RECENTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RecentItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecents(items: RecentItem[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(items.slice(0, MAX_RECENTS)));
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
+// Web Speech API — minimal types (browser-specific, not in lib.dom.d.ts globals)
+interface SRResult { 0: { transcript: string } }
+interface SREvent { results: ArrayLike<SRResult> }
+interface SRInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((e: SREvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+type SRCtor = new () => SRInstance;
+declare global {
+  interface Window {
+    SpeechRecognition?: SRCtor;
+    webkitSpeechRecognition?: SRCtor;
+  }
+}
+
 export default function FindPageWrapper() {
   return (
-    <Suspense fallback={(
-    <div className="page page-narrow">
-      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading…</p></div>
-    </div>
-  )}>
+    <Suspense
+      fallback={
+        <main className="px-4 py-6">
+          <div className="flex items-center gap-3 text-sm text-ink-subtle">
+            <Spinner size={14} /> Loading…
+          </div>
+        </main>
+      }
+    >
       <FindPageContent />
     </Suspense>
   );
 }
 
-// -------------------------------------------
-// Main Find Page Component
-// -------------------------------------------
 function FindPageContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  const initialTab = (searchParams.get('tab') as Tab) || 'people';
 
-  const currentTab = searchParams.get('tab') || 'people';
+  const [query, setQuery] = useState(initialQuery);
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<ResultType>([]);
-  const [loading, setLoading] = useState(false);
-  const [musicianId, setMusicianId] = useState<string | null>(null);
-
-  const [filters, setFilters] = useState<GigFilters>(DEFAULT_FILTERS);
-  const [showFilters, setShowFilters] = useState(false);
-
+  // Search results
+  const [results, setResults] = useState<unknown[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  /* -------------------- Load user (musician ID) -------------------- */
+  // Pre-search state
+  const [recents, setRecents] = useState<RecentItem[]>([]);
+  const [suggestions, setSuggestions] = useState<PersonResult[]>([]);
+
+  // Auth (needed for /gigs search)
+  const [musicianId, setMusicianId] = useState<string | null>(null);
+
+  // Voice input
+  const [voiceListening, setVoiceListening] = useState(false);
+  const recognitionRef = useRef<SRInstance | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Load auth + recents + suggestions
   useEffect(() => {
-    async function loadUser() {
+    (async () => {
       const { data } = await supabase.auth.getUser();
       setMusicianId(data.user?.id ?? null);
-    }
-    loadUser();
+    })();
+    setRecents(loadRecents());
+
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('handle, display_name, avatar_url, location, genres, role')
+        .in('role', ['musician', 'organizer'])
+        .not('handle', 'is', null)
+        .limit(8);
+      setSuggestions((data ?? []) as unknown as PersonResult[]);
+    })();
   }, []);
 
-  /* -------------------- Tab Change -------------------- */
-  const changeTab = (tab: string) => {
-    router.push(`/find?tab=${tab}`);
-    setResults([]);
-    setPage(1);
-    setHasMore(true);
-    setQuery('');
-  };
-
-  /* -------------------- Reset pagination when filters change -------------------- */
+  // Reset paging when search/tab/auth changes
   useEffect(() => {
     setResults([]);
     setPage(1);
     setHasMore(true);
-  }, [query, currentTab, filters, musicianId]);
+  }, [query, activeTab, musicianId]);
 
-  /* -------------------- Fetch Results -------------------- */
+  // Run search
   useEffect(() => {
-    async function run() {
-      const trimmed = query.trim();
-
-      // For non-gigs, avoid empty search fetch
-      if (currentTab !== 'gigs' && trimmed === '') {
-        setResults([]);
-        setHasMore(false);
-        return;
-      }
-
-      if (currentTab === 'gigs' && !musicianId) return;
-
-      setLoading(true);
-
-      try {
-        let data: ResultType = [];
-
-        if (currentTab === 'people') {
-          data = await searchPeople(trimmed, page);
-        } else if (currentTab === 'gigs' && musicianId) {
-          data = await searchGigs(trimmed, musicianId, filters, page);
-        } else if (currentTab === 'venues') {
-          data = await searchVenues(trimmed, page);
-        } else if (currentTab === 'posts') {
-          data = await searchPosts(trimmed, page);
-        } else if (currentTab === 'events') {
-          data = await searchEvents(trimmed, page);
-        }
-
-        const newResults: ResultType = (data || []);
-        setResults((prev) =>
-          page === 1 ? newResults : [...prev, ...newResults]
-        );
-        setHasMore(newResults.length === PAGE_SIZE);
-      } catch (err) {
-        console.error(err);
-      }
-
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setResults([]);
+      setHasMore(false);
       setLoading(false);
+      return;
     }
 
-    run();
-  }, [page, query, currentTab, musicianId, filters]);
+    let cancelled = false;
+    setLoading(true);
 
-  /* -------------------- Infinite Scroll -------------------- */
-  useEffect(() => {
-    if (!loadMoreRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first.isIntersecting && hasMore && !loading) {
-          setPage((prev) => prev + 1);
+    (async () => {
+      try {
+        let data: unknown[] = [];
+        switch (activeTab) {
+          case 'people':
+            data = await searchPeople(trimmed, page);
+            break;
+          case 'gigs':
+            if (!musicianId) { data = []; break; }
+            data = await searchGigs(trimmed, musicianId, {}, page);
+            break;
+          case 'venues':
+            data = await searchVenues(trimmed, page);
+            break;
+          case 'posts':
+            data = await searchPosts(trimmed, page);
+            break;
+          case 'events':
+            data = await searchEvents(trimmed, page);
+            break;
         }
-      },
-      { threshold: 1 }
-    );
-
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loading]);
-
-  /* -------------------- Filter Helper -------------------- */
-  const handleFilterChange = (field: keyof GigFilters, value: string) => {
-    setFilters((prev) => {
-      if (field === 'minBudget' || field === 'maxBudget') {
-        const num = value === '' ? null : Number(value);
-        return { ...prev, [field]: num === null || isNaN(num) ? null : num };
+        if (cancelled) return;
+        setResults((prev) => (page === 1 ? data : [...prev, ...data]));
+        setHasMore(data.length === PAGE_SIZE);
+      } catch (e) {
+        console.error('[find] search error', e);
+        if (!cancelled) {
+          setResults([]);
+          setHasMore(false);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      return { ...prev, [field]: value };
+    })();
+
+    return () => { cancelled = true; };
+  }, [query, activeTab, page, musicianId]);
+
+  // Recents helpers
+  const pushRecent = useCallback((item: RecentItem) => {
+    setRecents((prev) => {
+      const filtered = prev.filter((r) => {
+        if (item.kind === 'profile' && r.kind === 'profile') return r.id !== item.id;
+        if (item.kind === 'query' && r.kind === 'query') return r.text.toLowerCase() !== item.text.toLowerCase();
+        return true;
+      });
+      const next = [item, ...filtered].slice(0, MAX_RECENTS);
+      saveRecents(next);
+      return next;
     });
-  };
+  }, []);
 
-  /* -------------------- Render -------------------- */
+  function removeRecent(idx: number) {
+    setRecents((prev) => {
+      const next = prev.filter((_, i) => i !== idx);
+      saveRecents(next);
+      return next;
+    });
+  }
+  function clearAllRecents() {
+    setRecents([]);
+    saveRecents([]);
+  }
+
+  const commitQuery = useCallback((text: string) => {
+    const t = text.trim();
+    if (!t) return;
+    pushRecent({ kind: 'query', text: t });
+  }, [pushRecent]);
+
+  // Voice input
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const SR =
+      (window as unknown as { SpeechRecognition?: SRCtor; webkitSpeechRecognition?: SRCtor })
+        .SpeechRecognition ??
+      (window as unknown as { webkitSpeechRecognition?: SRCtor }).webkitSpeechRecognition;
+    if (!SR) return;
+    const rec = new SR();
+    rec.lang = 'en-US';
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.onresult = (e: SREvent) => {
+      const text = Array.from(e.results).map((r) => r[0]?.transcript ?? '').join(' ').trim();
+      setQuery(text);
+    };
+    rec.onend = () => setVoiceListening(false);
+    rec.onerror = () => setVoiceListening(false);
+    recognitionRef.current = rec;
+  }, []);
+
+  function toggleVoice() {
+    const rec = recognitionRef.current;
+    if (!rec) return;
+    if (voiceListening) {
+      rec.stop();
+      setVoiceListening(false);
+    } else {
+      try { rec.start(); setVoiceListening(true); }
+      catch { /* already started */ }
+    }
+  }
+
+  const isSearching = query.trim().length > 0;
+  const hasVoice =
+    typeof window !== 'undefined' &&
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+  function handleProfileClick(item: {
+    id?: string;
+    handle: string;
+    display_name?: string | null;
+    avatar_url?: string | null;
+  }) {
+    if (item.handle) {
+      pushRecent({
+        kind: 'profile',
+        id: item.id ?? item.handle,
+        name: item.display_name ?? item.handle,
+        handle: item.handle,
+        avatar: item.avatar_url ?? null,
+      });
+      router.push(`/profile/${item.handle}`);
+    }
+  }
+
   return (
-    <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
-      {/* -------------------- Search Bar -------------------- */}
-      <div className="flex items-center rounded-2xl border border-line bg-surface-sunken px-4 py-3 gap-3 shadow-sm">
-        <button
-          onClick={() => setShowFilters(true)}
-          className="text-ink-muted hover:text-black transition"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path
-              d="M4 7h16M7 12h10M10 17h4"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
-
-        <input
-          type="text"
-          placeholder="Search anything…"
-          className="flex-1 bg-transparent outline-none text-ink-strong placeholder:text-ink-subtle"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
-
-      {/* -------------------- Tabs -------------------- */}
-      <div className="flex gap-6 border-b border-line pb-2 overflow-x-auto scrollbar-hide">
-
-        {TABS.map((t) => (
+    <main className="w-full mx-auto" style={{ maxWidth: 720 }}>
+      {/* SEARCH BAR */}
+      <div className="sticky top-0 z-30 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/85 px-3 py-2.5 border-b border-line">
+        <div className="flex items-center gap-2">
           <button
-            key={t.key}
-            onClick={() => changeTab(t.key)}
-            className={`pb-2 text-base font-medium tracking-tight transition ${
-              currentTab === t.key
-                ? 'text-black border-b-2 border-black'
-                : 'text-ink-subtle hover:text-ink-strong'
-            }`}
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Back"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted hover:bg-surface-sunken hover:text-ink transition"
           >
-            {t.label}
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
           </button>
-        ))}
 
+          <form
+            onSubmit={(e) => { e.preventDefault(); commitQuery(query); inputRef.current?.blur(); }}
+            className="flex-1 relative"
+          >
+            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-ink-subtle">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" /><path d="m20 20-3-3" />
+              </svg>
+            </span>
+            <input
+              ref={inputRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search"
+              autoFocus
+              className="w-full rounded-full bg-surface-sunken pl-9 pr-11 py-2.5 text-sm text-ink-strong outline-none focus:ring-2 focus:ring-brand-200 focus:bg-surface transition"
+            />
+            <div className="absolute inset-y-0 right-2 flex items-center gap-1">
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-ink-subtle hover:bg-surface hover:text-ink transition"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              )}
+              {hasVoice && (
+                <button
+                  type="button"
+                  onClick={toggleVoice}
+                  aria-label={voiceListening ? 'Stop listening' : 'Voice search'}
+                  className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition ${
+                    voiceListening ? 'bg-danger text-white animate-pulse' : 'text-ink-subtle hover:bg-surface hover:text-ink'
+                  }`}
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="2" width="6" height="12" rx="3" />
+                    <path d="M5 11a7 7 0 0 0 14 0" />
+                    <path d="M12 18v4" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
 
-      {/* -------------------- Results -------------------- */}
-      <section className="space-y-4">
-
-        {loading && page === 1 && (
-          <p className="text-sm text-ink-subtle">Loading…</p>
-        )}
-
-        {!loading && results.length === 0 && (
-          <p className="text-sm text-ink-subtle pt-4 text-center">
-            No results found.
-          </p>
-        )}
-
-        {/* Each card type is now styled consistently */}
-        {results.map((item) => {
-          if (currentTab === 'people') {
-            const p = item as PersonResult;
-            return (
-              <div
-                key={p.handle}
-                className="rounded-2xl border border-line bg-surface shadow-sm p-4 flex items-center gap-4 cursor-pointer hover:bg-surface-sunken transition"
-                onClick={() => router.push(`/profile/${p.handle}`)}
-              >
-                <img
-                  src={p.avatar_url || '/default-avatar.png'}
-                  className="w-12 h-12 rounded-2xl object-cover border border-line"
-                />
-                <div>
-                  <p className="font-medium">{p.display_name}</p>
-                </div>
-              </div>
-            );
-          }
-
-          if (currentTab === 'gigs') {
-            const g = item as GigResult;
-            return (
-              <div
-                key={g.id}
-                className="rounded-2xl border border-line bg-surface shadow-sm p-4 cursor-pointer hover:bg-surface-sunken transition"
-                onClick={() => router.push(`/gigs/${g.id}`)}
-              >
-                <p className="font-semibold text-ink-strong">{g.title}</p>
-                <p className="text-sm text-ink-muted mt-1">
-                  {g.location ?? 'Unknown location'}
-                  {g.budget_min != null && g.budget_max != null && (
-                    <> · ${g.budget_min}–${g.budget_max}</>
-                  )}
-                </p>
-              </div>
-            );
-          }
-
-          if (currentTab === 'venues') {
-            const v = item as VenueResult;
-            return (
-              <div
-                key={v.id}
-                className="rounded-2xl border border-line bg-surface shadow-sm p-4 cursor-pointer hover:bg-surface-sunken transition"
-                onClick={() => router.push(`/profile/${v.handle}`)}  // FIXED
-              >
-                <div className="flex items-center gap-4">
-                  <img
-                    src={v.avatar_url || '/default-avatar.png'}
-                    className="w-12 h-12 rounded-xl object-cover border border-line"
-                    alt=""
-                  />
-                  <div>
-                    <p className="font-semibold">{v.display_name ?? 'Unknown Venue'}</p>
-                    <p className="text-sm text-ink-muted">{v.location ?? ''}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          if (currentTab === 'posts') {
-            const p = item as PostResult;
-            return (
-              <div
-                key={p.id}
-                className="rounded-2xl border border-line bg-surface shadow-sm p-4 hover:bg-surface-sunken transition"
-              >
-                <p className="text-ink-strong">{p.content || p.text}</p>
-              </div>
-            );
-          }
-
-          if (currentTab === 'events') {
-            const ev = item as EventResult;
-            return (
-              <div
-                key={ev.id}
-                className="rounded-2xl border border-line bg-surface shadow-sm p-4 hover:bg-surface-sunken transition"
-              >
-                <p className="font-semibold">{ev.title}</p>
-                <p className="text-sm text-ink-muted">{ev.location}</p>
-              </div>
-            );
-          }
-
-          return null;
-        })}
-
-        {hasMore && (
-          <div
-            ref={loadMoreRef}
-            className="py-6 text-center text-ink-subtle text-sm"
-          >
-            {loading ? 'Loading more...' : ''}
-          </div>
-        )}
-      </section>
-
-      {/* -------------------- Filter Sheet -------------------- */}
-      {showFilters && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
-          <div className="bg-surface w-full max-w-md rounded-t-3xl p-6 space-y-6 shadow-xl">
-
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Filters</h2>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="text-ink-subtle"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-ink mb-1">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  placeholder="City or area"
-                  className="w-full border border-line-strong rounded-xl px-3 py-2"
-                  value={filters.location}
-                  onChange={(e) =>
-                    handleFilterChange('location', e.target.value)
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ink mb-1">
-                  Genre
-                </label>
-                <input
-                  type="text"
-                  placeholder="Rock, Jazz, Pop…"
-                  className="w-full border border-line-strong rounded-xl px-3 py-2"
-                  value={filters.genre}
-                  onChange={(e) =>
-                    handleFilterChange('genre', e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-ink mb-1">
-                    Min Budget
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="100"
-                    className="w-full border border-line-strong rounded-xl px-3 py-2"
-                    value={filters.minBudget ?? ''}
-                    onChange={(e) =>
-                      handleFilterChange('minBudget', e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-ink mb-1">
-                    Max Budget
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="1000"
-                    className="w-full border border-line-strong rounded-xl px-3 py-2"
-                    value={filters.maxBudget ?? ''}
-                    onChange={(e) =>
-                      handleFilterChange('maxBudget', e.target.value)
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-ink mb-1">
-                    Date from
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full border border-line-strong rounded-xl px-3 py-2"
-                    value={filters.dateFrom}
-                    onChange={(e) =>
-                      handleFilterChange('dateFrom', e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-ink mb-1">
-                    Date to
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full border border-line-strong rounded-xl px-3 py-2"
-                    value={filters.dateTo}
-                    onChange={(e) =>
-                      handleFilterChange('dateTo', e.target.value)
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                className="flex-1 border border-line-strong rounded-xl py-2 text-sm"
-                onClick={() => setFilters(DEFAULT_FILTERS)}
-              >
-                Clear
-              </button>
-              <button
-                className="flex-1 bg-black text-white rounded-xl py-2 text-sm"
-                onClick={() => {
-                  setShowFilters(false);
-                  setPage(1);
-                  setResults([]);
-                }}
-              >
-                Apply Filters
-              </button>
-            </div>
-
+      {/* TABS (only when searching) */}
+      {isSearching && (
+        <div className="sticky top-[58px] z-20 bg-surface/95 backdrop-blur border-b border-line">
+          <div className="flex items-center gap-2 px-3 py-2.5 overflow-x-auto scroll-smooth">
+            <button
+              type="button"
+              aria-label="Filters"
+              className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted hover:bg-surface-sunken hover:text-ink transition"
+              title="Filters (coming soon)"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <circle cx="9" cy="6" r="2" fill="currentColor" stroke="none" />
+                <line x1="4" y1="12" x2="20" y2="12" />
+                <circle cx="15" cy="12" r="2" fill="currentColor" stroke="none" />
+                <line x1="4" y1="18" x2="20" y2="18" />
+                <circle cx="9" cy="18" r="2" fill="currentColor" stroke="none" />
+              </svg>
+            </button>
+            {TABS.map((t) => {
+              const active = t.value === activeTab;
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setActiveTab(t.value)}
+                  className={`shrink-0 inline-flex items-center rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                    active
+                      ? 'bg-brand text-white shadow-sm'
+                      : 'border border-line-strong text-ink-muted hover:bg-surface-sunken hover:text-ink'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
+
+      {/* CONTENT */}
+      <div className="px-4 md:px-6 pt-4 pb-8">
+        {!isSearching ? (
+          <PreSearch
+            recents={recents}
+            suggestions={suggestions}
+            onRecentRemove={removeRecent}
+            onClearAll={clearAllRecents}
+            onPickProfile={handleProfileClick}
+            onPickSuggestion={(text) => { setQuery(text); pushRecent({ kind: 'query', text }); }}
+          />
+        ) : (
+          <SearchResults
+            tab={activeTab}
+            loading={loading}
+            results={results}
+            onLoadMore={() => hasMore && !loading && setPage((p) => p + 1)}
+            hasMore={hasMore}
+            onProfileClick={handleProfileClick}
+          />
+        )}
+      </div>
     </main>
   );
 }
 
-/* -------------------- Tabs -------------------- */
-const TABS = [
-  { key: 'people', label: 'People' },
-  { key: 'gigs', label: 'Gigs' },
-  { key: 'venues', label: 'Venues' },
-  { key: 'posts', label: 'Posts' },
-  { key: 'events', label: 'Events' },
-];
+/* ============================================================
+   PRE-SEARCH (empty query state)
+   ============================================================ */
+function PreSearch({
+  recents,
+  suggestions,
+  onRecentRemove,
+  onClearAll,
+  onPickProfile,
+  onPickSuggestion,
+}: {
+  recents: RecentItem[];
+  suggestions: PersonResult[];
+  onRecentRemove: (idx: number) => void;
+  onClearAll: () => void;
+  onPickProfile: (item: { id?: string; handle: string; display_name?: string | null; avatar_url?: string | null }) => void;
+  onPickSuggestion: (text: string) => void;
+}) {
+  return (
+    <>
+      {recents.length > 0 && (
+        <section className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-base font-bold text-ink-strong">Recent</h2>
+            <button
+              type="button"
+              onClick={onClearAll}
+              className="text-sm font-medium text-brand-600 hover:text-brand-700 hover:underline"
+            >
+              Clear all
+            </button>
+          </div>
+          <ul className="space-y-0">
+            {recents.map((r, i) => (
+              <li key={`${r.kind}-${i}`} className="flex items-center gap-3 py-2">
+                {r.kind === 'profile' ? (
+                  <button
+                    type="button"
+                    onClick={() => onPickProfile({ handle: r.handle, display_name: r.name, avatar_url: r.avatar })}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                  >
+                    <Avatar src={r.avatar} alt={r.name} size="md" />
+                    <span className="text-sm font-semibold text-ink-strong truncate flex items-center gap-1.5">
+                      {r.name}
+                      {r.verified && <VerifiedBadge />}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onPickSuggestion(r.text)}
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                  >
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-sunken text-ink-muted">
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
+                      </svg>
+                    </span>
+                    <span className="text-sm text-ink-strong truncate">{r.text}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRecentRemove(i)}
+                  aria-label="Remove from recent"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-subtle hover:bg-surface-sunken hover:text-ink transition"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-/* -------------------- Types -------------------- */
-type ResultItem = PersonResult | GigResult | VenueResult | PostResult | EventResult;
-type ResultType = ResultItem[];
+      <section>
+        <h2 className="text-base font-bold text-ink-strong mb-3">Try searching for</h2>
+        {suggestions.length === 0 ? (
+          <p className="text-sm text-ink-subtle">Nothing to suggest yet — try a name or a city.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((s) => (
+              <button
+                key={s.handle}
+                type="button"
+                onClick={() => onPickProfile({ id: s.handle, handle: s.handle, display_name: s.display_name, avatar_url: s.avatar_url })}
+                className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface pl-1 pr-3.5 py-1 text-sm font-medium text-ink-strong hover:bg-surface-sunken hover:border-ink-disabled transition"
+              >
+                {s.avatar_url ? (
+                  <img src={s.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+                ) : (
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-sunken text-ink-subtle">
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="8" r="4" /><path d="M6 20a6 6 0 0 1 12 0" />
+                    </svg>
+                  </span>
+                )}
+                {s.display_name ?? s.handle}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
 
-type GigFilters = {
-  location: string;
-  genre: string;
-  minBudget: number | null;
-  maxBudget: number | null;
-  dateFrom: string;
-  dateTo: string;
-};
+/* ============================================================
+   SEARCH RESULTS
+   ============================================================ */
+function SearchResults({
+  tab,
+  results,
+  loading,
+  hasMore,
+  onLoadMore,
+  onProfileClick,
+}: {
+  tab: Tab;
+  results: unknown[];
+  loading: boolean;
+  hasMore: boolean;
+  onLoadMore: () => void;
+  onProfileClick: (item: { id?: string; handle: string; display_name?: string | null; avatar_url?: string | null }) => void;
+}) {
+  const sentinel = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver(
+      (entries) => { if (entries[0]?.isIntersecting) onLoadMore(); },
+      { threshold: 0.5 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, onLoadMore]);
 
-const DEFAULT_FILTERS: GigFilters = {
-  location: '',
-  genre: '',
-  minBudget: null,
-  maxBudget: null,
-  dateFrom: '',
-  dateTo: '',
-};
+  if (loading && results.length === 0) {
+    return (
+      <div className="space-y-3">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex items-center gap-3 py-2">
+            <div className="skeleton h-10 w-10 rounded-full" />
+            <div className="skeleton h-3 w-32" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (results.length === 0) {
+    return <p className="text-sm text-ink-subtle text-center py-12">No results.</p>;
+  }
+
+  return (
+    <>
+      {tab === 'people' && (
+        <ul className="space-y-0">
+          {(results as PersonResult[]).map((p) => (
+            <li key={p.handle}>
+              <button
+                type="button"
+                onClick={() => onProfileClick({ handle: p.handle, display_name: p.display_name, avatar_url: p.avatar_url })}
+                className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-surface-sunken/60 rounded-lg px-1 transition"
+              >
+                <Avatar src={p.avatar_url} alt={p.display_name ?? p.handle} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-strong truncate">
+                    {p.display_name ?? p.handle}
+                    <VerifiedBadge />
+                  </p>
+                  {p.location && <p className="text-xs text-ink-subtle truncate">{p.location}</p>}
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {tab === 'venues' && (
+        <ul className="space-y-0">
+          {(results as VenueResult[]).map((v) => (
+            <li key={v.handle}>
+              <button
+                type="button"
+                onClick={() => onProfileClick({ id: v.id, handle: v.handle, display_name: v.display_name, avatar_url: v.avatar_url })}
+                className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-surface-sunken/60 rounded-lg px-1 transition"
+              >
+                <Avatar src={v.avatar_url} alt={v.display_name ?? v.handle} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-ink-strong truncate">{v.display_name ?? v.handle}</p>
+                  {v.location && <p className="text-xs text-ink-subtle truncate">{v.location}</p>}
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {tab === 'gigs' && (
+        <ul className="space-y-2">
+          {(results as GigResult[]).map((g) => (
+            <li key={g.id}>
+              <Link href={`/gigs/${g.id}`} className="block card card-padded card-hover">
+                <p className="text-sm font-semibold text-ink-strong">{g.title}</p>
+                <div className="mt-1 text-xs text-ink-muted flex items-center gap-3 flex-wrap">
+                  {g.location && <span>{g.location}</span>}
+                  {g.event_date && <span>{new Date(g.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                  {(g.budget_min || g.budget_max) && (
+                    <span className="tabular">${g.budget_min ?? 0}{g.budget_max ? `–${g.budget_max}` : '+'}</span>
+                  )}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {tab === 'posts' && (
+        <div className="grid grid-cols-3 gap-[2px]">
+          {(results as PostResult[]).map((post) => (
+            <div key={post.id} className="relative w-full pb-[100%] overflow-hidden bg-surface-sunken">
+              <img src={post.media_url} alt={post.caption ?? ''} className="absolute inset-0 h-full w-full object-cover" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'events' && (
+        <ul className="space-y-2">
+          {(results as EventResult[]).map((ev) => (
+            <li key={ev.id} className="card card-padded card-hover flex items-center gap-3">
+              {ev.image_url && <img src={ev.image_url} alt="" className="h-12 w-12 rounded-lg object-cover" />}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-ink-strong truncate">{ev.title}</p>
+                {ev.location && <p className="text-xs text-ink-subtle truncate">{ev.location}</p>}
+              </div>
+              {ev.date && <p className="text-xs text-ink-subtle tabular shrink-0">{new Date(ev.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div ref={sentinel} className="py-6 flex items-center justify-center text-xs text-ink-subtle">
+        {loading && results.length > 0 ? <Spinner size={14} /> : !hasMore ? '— end —' : null}
+      </div>
+    </>
+  );
+}
+
+function VerifiedBadge() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 text-brand shrink-0" fill="currentColor" aria-label="Verified">
+      <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1.06 14.54L6.4 12l1.41-1.41 3.13 3.12 6.25-6.25L18.6 8.87l-7.66 7.67z" />
+    </svg>
+  );
+}
