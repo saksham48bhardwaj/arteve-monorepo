@@ -73,6 +73,13 @@ const withPWA = require('next-pwa')({
 
 const nextConfig = {
   reactStrictMode: true,
+  images: {
+    // Allow next/image to optimize user-uploaded media from Supabase storage.
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.supabase.co' },
+      { protocol: 'https', hostname: '**.supabase.in' },
+    ],
+  },
 };
 
 module.exports = withPWA(nextConfig);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import {
@@ -282,7 +283,13 @@ export default function OrganizerProfilePage() {
                   rel="noreferrer"
                   className="group relative w-full pb-[100%] overflow-hidden bg-surface-sunken"
                 >
-                  <img src={url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="Venue" />
+                  <Image
+                    src={url}
+                    alt="Venue"
+                    fill
+                    sizes="(max-width: 640px) 33vw, 240px"
+                    className="object-cover transition-transform group-hover:scale-105"
+                  />
                 </a>
               ))}
             </div>
@@ -299,7 +306,7 @@ export default function OrganizerProfilePage() {
               {(() => {
                 const bgPhoto = venuePhotos[0];
                 return bgPhoto ? (
-                  <img src={bgPhoto} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <Image src={bgPhoto} alt="" fill sizes="100vw" className="object-cover" />
                 ) : (
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--brand-700),var(--brand-500),var(--accent-500))]" />
                 );
@@ -349,7 +356,13 @@ export default function OrganizerProfilePage() {
                     rel="noreferrer"
                     className="relative shrink-0 w-56 md:w-64 h-40 rounded-2xl overflow-hidden border border-line snap-start bg-surface-sunken"
                   >
-                    <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform hover:scale-105" />
+                    <Image
+                      src={url}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 50vw, 360px"
+                      className="object-cover transition-transform hover:scale-105"
+                    />
                   </a>
                 ))}
               </div>

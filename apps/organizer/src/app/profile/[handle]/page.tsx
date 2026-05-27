@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
@@ -340,7 +341,13 @@ export default function OrganizerPublicProfilePage() {
                   aria-label={`Open media ${index + 1}`}
                 >
                   {item.media_type === 'image' && (
-                    <img src={item.media_url} className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105" alt="" />
+                    <Image
+                      src={item.media_url}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 33vw, 240px"
+                      className="object-cover transition-transform group-hover:scale-105"
+                    />
                   )}
                   {item.media_type === 'video' && (
                     <>
@@ -374,7 +381,7 @@ export default function OrganizerPublicProfilePage() {
               {(() => {
                 const bgMedia = posts.find((m) => m.media_type === 'image');
                 return bgMedia ? (
-                  <img src={bgMedia.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <Image src={bgMedia.media_url} alt="" fill sizes="100vw" className="object-cover" />
                 ) : (
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--brand-700),var(--brand-500),var(--accent-500))]" />
                 );
@@ -425,7 +432,7 @@ export default function OrganizerPublicProfilePage() {
                       className="relative shrink-0 w-56 md:w-64 h-44 rounded-2xl overflow-hidden border border-line bg-ink-strong snap-start"
                     >
                       {bgMedia ? (
-                        <img src={bgMedia.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        <Image src={bgMedia.media_url} alt="" fill sizes="100vw" className="object-cover" />
                       ) : (
                         <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--brand-700),var(--brand-500))]" />
                       )}

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { supabase } from '@arteve/supabase/client';
 import { searchPeople, type PersonResult, type PersonFilters, PAGE_SIZE } from '@/lib/find-queries';
 import { Avatar, Spinner } from '@arteve/ui/components';
@@ -389,7 +390,7 @@ function PreSearch({
                 onClick={() => onPickProfile({ id: s.handle, handle: s.handle, display_name: s.display_name, avatar_url: s.avatar_url })}
                 className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface pl-1 pr-3.5 py-1 text-sm font-medium text-ink-strong hover:bg-surface-sunken hover:border-ink-disabled transition">
                 {s.avatar_url ? (
-                  <img src={s.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+                  <Image src={s.avatar_url} alt="" width={28} height={28} className="h-7 w-7 rounded-full object-cover" />
                 ) : (
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-sunken text-ink-subtle">
                     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

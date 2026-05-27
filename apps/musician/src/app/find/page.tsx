@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import {
@@ -513,7 +514,7 @@ function PreSearch({
                 className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface pl-1 pr-3.5 py-1 text-sm font-medium text-ink-strong hover:bg-surface-sunken hover:border-ink-disabled transition"
               >
                 {s.avatar_url ? (
-                  <img src={s.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+                  <Image src={s.avatar_url} alt="" width={28} height={28} className="h-7 w-7 rounded-full object-cover" />
                 ) : (
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-surface-sunken text-ink-subtle">
                     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -646,7 +647,13 @@ function SearchResults({
         <div className="grid grid-cols-3 gap-[2px]">
           {(results as PostResult[]).map((post) => (
             <div key={post.id} className="relative w-full pb-[100%] overflow-hidden bg-surface-sunken">
-              <img src={post.media_url} alt={post.caption ?? ''} className="absolute inset-0 h-full w-full object-cover" />
+              <Image
+                src={post.media_url}
+                alt={post.caption ?? ''}
+                fill
+                sizes="(max-width: 640px) 33vw, 240px"
+                className="object-cover"
+              />
             </div>
           ))}
         </div>
@@ -656,7 +663,15 @@ function SearchResults({
         <ul className="space-y-2">
           {(results as EventResult[]).map((ev) => (
             <li key={ev.id} className="card card-padded card-hover flex items-center gap-3">
-              {ev.image_url && <img src={ev.image_url} alt="" className="h-12 w-12 rounded-lg object-cover" />}
+              {ev.image_url && (
+                <Image
+                  src={ev.image_url}
+                  alt=""
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 rounded-lg object-cover"
+                />
+              )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-ink-strong truncate">{ev.title}</p>
                 {ev.location && <p className="text-xs text-ink-subtle truncate">{ev.location}</p>}
