@@ -89,6 +89,7 @@ export default function OrganizerLoginPage() {
       email,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { role: 'organizer' },
       },
     });
     setLoading(false);
@@ -127,7 +128,10 @@ export default function OrganizerLoginPage() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            data: { role: 'organizer' },
+          },
         });
         if (signUpError) throw signUpError;
 
@@ -144,13 +148,20 @@ export default function OrganizerLoginPage() {
           return;
         }
 
-        // Session exists — create profile and route into the app
+        // Session exists (email confirmation off). The handle_new_user trigger
+        // already created the profile with role='organizer' from our metadata, so
+        // no client-side upsert is needed. Backstop: if the row somehow isn't
+        // there yet, create it.
         if (data.user) {
-          await supabase.from('profiles').upsert({
-            id: data.user.id,
-            role: 'organizer',
-            handle: generateRandomHandle('venue'),
-          });
+          const { data: prof } = await supabase
+            .from('profiles').select('id').eq('id', data.user.id).maybeSingle();
+          if (!prof) {
+            await supabase.from('profiles').upsert({
+              id: data.user.id,
+              role: 'organizer',
+              handle: generateRandomHandle('venue'),
+            });
+          }
         }
         toast.success('Welcome to Arteve.');
         router.push('/profile');
