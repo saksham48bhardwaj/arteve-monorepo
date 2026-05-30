@@ -80,9 +80,10 @@ function CallbackContent() {
         // Make sure the user has a profile row. OAuth users skip our signup
         // form so they wouldn't have one without this.
         const { data: { user } } = await supabase.auth.getUser();
+        let needsOnboarding = false;
         if (user) {
           const { data: existing } = await supabase
-            .from('profiles').select('id').eq('id', user.id).maybeSingle();
+            .from('profiles').select('id, onboarded_at').eq('id', user.id).maybeSingle();
           if (!existing) {
             await supabase.from('profiles').upsert({
               id: user.id,
@@ -91,11 +92,14 @@ function CallbackContent() {
               display_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
               avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
             });
+            needsOnboarding = true;
+          } else if (!existing.onboarded_at) {
+            needsOnboarding = true;
           }
         }
 
         if (cancelled) return;
-        router.replace(next);
+        router.replace(needsOnboarding ? '/onboarding' : next);
       } catch (err) {
         if (cancelled) return;
         setError(authErrorMessage(err));

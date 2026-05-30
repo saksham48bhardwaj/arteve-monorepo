@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
+import { sendNotification } from '@arteve/shared/notifications';
 import {
   Button,
   Avatar,
@@ -179,6 +180,19 @@ export default function OrganizerPublicProfilePage() {
       setIsFollowing(prevFollowing);
       setCounts((c) => ({ ...c, followers: prevCount }));
       toast.error(prevFollowing ? "Couldn't unfollow" : "Couldn't follow");
+      return;
+    }
+
+    // On a successful *follow* (not unfollow), notify the person.
+    if (!prevFollowing) {
+      const { data: me } = await supabase
+        .from('profiles').select('handle, display_name').eq('id', auth.user.id).maybeSingle();
+      await sendNotification({
+        userId: profile.id,
+        type: 'follow',
+        body: `${me?.display_name || 'Someone'} started following you`,
+        data: { actor_handle: me?.handle ?? null },
+      });
     }
   }
 

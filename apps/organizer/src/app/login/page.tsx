@@ -164,7 +164,7 @@ export default function OrganizerLoginPage() {
           }
         }
         toast.success('Welcome to Arteve.');
-        router.push('/profile');
+        router.push('/onboarding');
       } else {
         // Sign in
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
