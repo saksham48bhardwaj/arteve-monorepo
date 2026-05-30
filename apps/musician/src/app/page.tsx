@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
@@ -38,6 +39,20 @@ type Post = {
 type FeedTab = 'for-you' | 'following';
 
 export default function MusicianHomePage() {
+  const router = useRouter();
+
+  // Safety net: Supabase auth emails (signup confirmation / magic link) can
+  // land on '/?code=...' when the project's Site URL points at the root.
+  // Forward those to the dedicated callback handler so the session actually
+  // gets exchanged instead of silently dropping the code.
+  useEffect(() => {
+    const search = window.location.search;
+    const params = new URLSearchParams(search);
+    if (params.get('code') || params.get('token_hash')) {
+      router.replace(`/auth/callback${search}`);
+    }
+  }, [router]);
+
   const [bits, setBits] = useState<Post[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [feedTab, setFeedTab] = useState<FeedTab>('for-you');

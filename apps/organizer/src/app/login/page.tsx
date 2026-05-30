@@ -38,6 +38,11 @@ function GoogleGlyph() {
   );
 }
 
+// Google sign-in is hidden until the Google provider is enabled in Supabase
+// (Auth > Providers > Google) and a Google Cloud OAuth client is configured.
+// Flip NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true in the Vercel env to show it.
+const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true';
+
 type Mode = 'signin' | 'signup' | 'forgot';
 
 export default function OrganizerLoginPage() {
@@ -122,7 +127,7 @@ export default function OrganizerLoginPage() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/` },
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
         });
         if (signUpError) throw signUpError;
 
@@ -253,8 +258,8 @@ export default function OrganizerLoginPage() {
               </div>
             )}
 
-            {/* OAuth + magic link section (hidden in forgot mode) */}
-            {!isForgot && (
+            {/* OAuth section — only shown when Google is enabled + not in forgot mode */}
+            {GOOGLE_ENABLED && !isForgot && (
               <div className="space-y-2.5">
                 <button
                   type="button"
