@@ -61,6 +61,13 @@ function getRange(page: number) {
   return { from, to };
 }
 
+// PostgREST .or() builds a filter string where ',' '(' ')' are grammar and
+// '%' '_' are ilike wildcards. Strip them from raw user input so a query like
+// "a,b)" can't inject conditions or run away with wildcards.
+function sanitizeForOr(s: string): string {
+  return s.replace(/[,()*%_\\]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 /* ============================================================
    PEOPLE SEARCH
    ============================================================ */
@@ -121,9 +128,8 @@ export async function searchGigs(
 
   // Text search
   if (query) {
-    q = q.or(
-      `title.ilike.%${query}%,location.ilike.%${query}%`
-    );
+    const safe = sanitizeForOr(query);
+    if (safe) q = q.or(`title.ilike.%${safe}%,location.ilike.%${safe}%`);
   }
 
   // Filters
@@ -201,10 +207,13 @@ export async function searchEvents(
 ): Promise<EventResult[]> {
   const { from, to } = getRange(page);
 
-  const { data, error } = await supabase
+  const safe = sanitizeForOr(query);
+  let q = supabase
     .from('events')
-    .select('id, title, location, date, image_url')
-    .or(`title.ilike.%${query}%,location.ilike.%${query}%`)
+    .select('id, title, location, date, image_url');
+  if (safe) q = q.or(`title.ilike.%${safe}%,location.ilike.%${safe}%`);
+
+  const { data, error } = await q
     .order('date', { ascending: true })
     .range(from, to);
 

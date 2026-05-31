@@ -104,7 +104,14 @@ function FindPageContent() {
   const initialTab = (searchParams.get('tab') as Tab) || 'people';
 
   const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  // Debounce the text query so we don't fire a PostgREST round-trip per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 280);
+    return () => clearTimeout(t);
+  }, [query]);
 
   // Search results
   const [results, setResults] = useState<unknown[]>([]);
@@ -154,11 +161,11 @@ function FindPageContent() {
     setResults([]);
     setPage(1);
     setHasMore(true);
-  }, [query, activeTab, musicianId, filterLocation, filterGenre]);
+  }, [debouncedQuery, activeTab, musicianId, filterLocation, filterGenre]);
 
   // Run search
   useEffect(() => {
-    const trimmed = query.trim();
+    const trimmed = debouncedQuery.trim();
     const filters = { location: filterLocation.trim() || undefined, genre: filterGenre.trim() || undefined };
     const filtersActive = Boolean(filters.location || filters.genre);
 
@@ -209,7 +216,7 @@ function FindPageContent() {
     })();
 
     return () => { cancelled = true; };
-  }, [query, activeTab, page, musicianId, filterLocation, filterGenre]);
+  }, [debouncedQuery, activeTab, page, musicianId, filterLocation, filterGenre]);
 
   // Recents helpers
   const pushRecent = useCallback((item: RecentItem) => {
