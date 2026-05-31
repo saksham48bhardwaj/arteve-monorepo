@@ -349,13 +349,14 @@ export default function ApplyToGigPage() {
             <h3 className="text-sm font-semibold text-ink">Links</h3>
             <div className="flex flex-wrap gap-3 text-xs mt-1">
               {Object.entries(profile.links)
-                .filter(([, v]) => !!v)
+                .filter(([, v]) => typeof v === 'string' && /^https?:\/\//i.test(v))
                 .map(([key, value]) => (
                   <a
                     key={key}
                     href={value as string}
                     target="_blank"
-                    className="underline text-blue-600"
+                    rel="noreferrer nofollow"
+                    className="underline text-brand-600"
                   >
                     {key}
                   </a>

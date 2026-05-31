@@ -5,6 +5,13 @@ import { useParams } from 'next/navigation';
 import { supabase } from '@arteve/supabase';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
 
+// Only allow http(s) links to render — blocks javascript:/data: stored-XSS
+// vectors from any pre-existing bad profile data.
+function safeHref(v: string | null | undefined): string | null {
+  if (!v) return null;
+  return /^https?:\/\//i.test(v.trim()) ? v.trim() : null;
+}
+
 type MediaItem = { id: string; url: string; type: 'image' | 'video' };
 
 type Achievement = {
@@ -396,19 +403,19 @@ export default function PublicProfilePage() {
           {/* Social Links */}
           <section>
             <h2 className="text-xl font-semibold mb-3">Social Links</h2>
-            <div className="flex flex-wrap gap-4 text-blue-600 underline">
-              {links.instagram && (
-                <a href={links.instagram} target="_blank" rel="noreferrer">
+            <div className="flex flex-wrap gap-4 text-brand-600 underline">
+              {safeHref(links.instagram) && (
+                <a href={safeHref(links.instagram)!} target="_blank" rel="noreferrer nofollow">
                   Instagram
                 </a>
               )}
-              {links.youtube && (
-                <a href={links.youtube} target="_blank" rel="noreferrer">
+              {safeHref(links.youtube) && (
+                <a href={safeHref(links.youtube)!} target="_blank" rel="noreferrer nofollow">
                   YouTube
                 </a>
               )}
-              {links.website && (
-                <a href={links.website} target="_blank" rel="noreferrer">
+              {safeHref(links.website) && (
+                <a href={safeHref(links.website)!} target="_blank" rel="noreferrer nofollow">
                   Website
                 </a>
               )}

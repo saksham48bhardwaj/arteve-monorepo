@@ -230,8 +230,23 @@ export default function EditProfilePage() {
     setErr(null);
     setSuccess(null);
 
-    if (!handle.trim()) {
-      setErr('User handle cannot be empty.');
+    // Handle: normalize + validate format + reserved + collision
+    const normalizedHandle = handle.trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,30}$/.test(normalizedHandle)) {
+      setErr('Handle must be 3–30 characters: lowercase letters, numbers, or underscores only.');
+      setSaving(false);
+      return;
+    }
+    const RESERVED = ['edit', 'new', 'login', 'signup', 'profile', 'settings', 'account', 'admin', 'api', 'chat', 'find', 'gigs', 'bits', 'post', 'notifications', 'onboarding', 'auth', 'terms', 'privacy'];
+    if (RESERVED.includes(normalizedHandle)) {
+      setErr('That handle is reserved. Please choose another.');
+      setSaving(false);
+      return;
+    }
+    const { data: taken } = await supabase
+      .from('profiles').select('id').eq('handle', normalizedHandle).neq('id', userId).maybeSingle();
+    if (taken) {
+      setErr('That handle is already taken. Please choose another.');
       setSaving(false);
       return;
     }
@@ -242,16 +257,30 @@ export default function EditProfilePage() {
         .map((g) => g.trim())
         .filter(Boolean);
 
+      // Sanitize external links: block javascript:/data: schemes and normalize
+      // bare handles/domains into full https URLs.
+      const blocked = (s: string) => /^\s*(javascript|data|vbscript):/i.test(s);
+      const toUrl = (v: string, base?: string): string | null => {
+        const s = v.trim();
+        if (!s || blocked(s)) return null;
+        if (/^https?:\/\//i.test(s)) return s;
+        if (base) return `${base}/${s.replace(/^@/, '').replace(/^\/+/, '')}`;
+        return `https://${s.replace(/^\/+/, '')}`;
+      };
+
       const links: Record<string, string> = {};
-      if (instagram) links.instagram = instagram;
-      if (youtube) links.youtube = youtube;
-      if (website) links.website = website;
+      const ig = toUrl(instagram, 'https://instagram.com');
+      const yt = toUrl(youtube, 'https://youtube.com');
+      const web = toUrl(website);
+      if (ig) links.instagram = ig;
+      if (yt) links.youtube = yt;
+      if (web) links.website = web;
 
       const { error } = await supabase.from('profiles').upsert(
         {
           id: userId,
           display_name: displayName || null,
-          handle: handle || null,
+          handle: normalizedHandle,
           avatar_url: avatarUrl ?? null,
           bio: bio || null,
           quote: quote || null,

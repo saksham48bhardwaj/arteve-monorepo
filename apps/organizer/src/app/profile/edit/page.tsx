@@ -172,10 +172,20 @@ export default function OrganizerProfileEditPage() {
         finalHandle = candidate;
         setHandle(finalHandle);
       }
+      // Sanitize links: block javascript:/data: schemes, normalize bare
+      // handles/domains into full https URLs.
+      const blocked = (s: string) => /^\s*(javascript|data|vbscript):/i.test(s);
+      const toUrl = (v: string, base?: string): string | undefined => {
+        const s = v.trim();
+        if (!s || blocked(s)) return undefined;
+        if (/^https?:\/\//i.test(s)) return s;
+        if (base) return `${base}/${s.replace(/^@/, '').replace(/^\/+/, '')}`;
+        return `https://${s.replace(/^\/+/, '')}`;
+      };
       const links = {
-        instagram: instagram || undefined,
-        youtube: youtube || undefined,
-        website: website || undefined,
+        instagram: toUrl(instagram, 'https://instagram.com'),
+        youtube: toUrl(youtube, 'https://youtube.com'),
+        website: toUrl(website),
       };
       const { error } = await supabase.from('profiles').upsert(
         {
