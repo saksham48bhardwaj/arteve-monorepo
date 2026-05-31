@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
+import { sendNotification } from '@arteve/shared/notifications';
 import { toast, usePullToRefresh, PullToRefreshIndicator } from '@arteve/ui/components';
 
 const PAGE_SIZE = 10;
@@ -69,6 +70,7 @@ export default function MusicianHomePage() {
 
   const [commentModalPost, setCommentModalPost] = useState<Post | null>(null);
   const [newComment, setNewComment] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [viewCommentsPost, setViewCommentsPost] = useState<Post | null>(null);
 
   // ----------------------------------------------------
@@ -313,6 +315,17 @@ export default function MusicianHomePage() {
         )
       );
       toast.error(alreadyLiked ? "Couldn't unlike" : "Couldn't like");
+      return;
+    }
+
+    // Notify the post author on a new like (not on unlike, not on self-like).
+    if (!alreadyLiked && post?.profiles?.id && post.profiles.id !== userId) {
+      sendNotification({
+        userId: post.profiles.id,
+        type: 'like',
+        body: 'liked your post',
+        data: { post_id: postId },
+      });
     }
   }
 
@@ -320,18 +333,37 @@ export default function MusicianHomePage() {
   // ADD COMMENT
   // ----------------------------------------------------
   async function addComment() {
-    if (!commentModalPost) return;
+    if (!commentModalPost || commentSubmitting) return;
 
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     if (!userId) return;
-    if (!newComment.trim()) return;
+    const text = newComment.trim();
+    if (!text) return;
 
-    await supabase.from('post_comments').insert({
+    setCommentSubmitting(true);
+    const author = commentModalPost.profiles?.id;
+    const { error } = await supabase.from('post_comments').insert({
       post_id: commentModalPost.id,
       user_id: userId,
-      comment: newComment.trim(),
+      comment: text,
     });
+    setCommentSubmitting(false);
+
+    if (error) {
+      toast.error("Couldn't post your comment. Try again.");
+      return;
+    }
+
+    // Notify the post author (skip self-comments).
+    if (author && author !== userId) {
+      sendNotification({
+        userId: author,
+        type: 'comment',
+        body: text.length > 80 ? `commented: ${text.slice(0, 80)}…` : `commented: ${text}`,
+        data: { post_id: commentModalPost.id },
+      });
+    }
 
     setNewComment('');
     setCommentModalPost(null);

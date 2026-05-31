@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams,useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
+import { sendNotification } from '@arteve/shared/notifications';
 
 type Gig = {
   id: string;
@@ -150,17 +151,26 @@ export default function ApplyToGigPage() {
       musician_id: userId,
       organizer_id: gig.organizer_id,
       message: message.trim(),
-      status: 'pending',
+      status: 'applied', // must match applications_status_check (applied|shortlisted|accepted|rejected)
       profile_snapshot: snapshot,
     });
 
     if (error) {
       console.error(error);
       setFeedback('Failed to submit application.');
-    } else {
-      router.push('/gigs');
+      setSubmitting(false);
+      return;
     }
 
+    // Notify the organizer that a new musician applied.
+    await sendNotification({
+      userId: gig.organizer_id,
+      type: 'gig_application',
+      body: `${profile?.display_name || 'A musician'} applied to "${gig.title ?? 'your gig'}"`,
+      data: { gig_id: gig.id },
+    });
+
+    router.push('/gigs');
     setSubmitting(false);
   }
 

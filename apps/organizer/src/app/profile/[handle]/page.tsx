@@ -214,6 +214,18 @@ export default function OrganizerPublicProfilePage() {
         alreadyFollowing ? [...prev, targetId] : prev.filter((id) => id !== targetId)
       );
       toast.error(alreadyFollowing ? "Couldn't unfollow" : "Couldn't follow");
+      return;
+    }
+
+    if (!alreadyFollowing) {
+      const { data: me } = await supabase
+        .from('profiles').select('handle, display_name').eq('id', viewerId).maybeSingle();
+      await sendNotification({
+        userId: targetId,
+        type: 'follow',
+        body: `${me?.display_name || 'Someone'} started following you`,
+        data: { actor_handle: me?.handle ?? null },
+      });
     }
   }
 
