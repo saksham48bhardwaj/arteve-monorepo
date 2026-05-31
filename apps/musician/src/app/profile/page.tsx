@@ -678,7 +678,7 @@ export default function ProfilePage() {
         {followersList.length === 0 ? (
           <p className="text-sm text-ink-subtle">No followers yet.</p>
         ) : (
-          <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
+          <ul className="space-y-2">
             {followersList.map((user) => (
               <li key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-sunken">
                 <Link href={profilePath(user)} className="flex items-center gap-3 flex-1 min-w-0">
@@ -701,7 +701,7 @@ export default function ProfilePage() {
         {followingList.length === 0 ? (
           <p className="text-sm text-ink-subtle">Not following anyone yet.</p>
         ) : (
-          <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
+          <ul className="space-y-2">
             {followingList.map((user) => (
               <li key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-sunken">
                 <Link href={profilePath(user)} className="flex items-center gap-3 flex-1 min-w-0">

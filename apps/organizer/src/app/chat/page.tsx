@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import {
@@ -14,34 +14,33 @@ import {
   PullToRefreshIndicator,
 } from '@arteve/ui/components';
 
-type Booking = {
+type OtherProfile = {
   id: string;
-  musician_id: string;
-  organizer_id: string;
-  organizer_name: string | null;
-  organizer_email: string | null;
-  event_title: string | null;
-  event_date: string | null;
-  location: string | null;
-  musician_name: string | null;
-  musician_avatar_url: string | null;
+  display_name: string | null;
+  handle: string | null;
+  avatar_url: string | null;
 };
 
-type BookingMessage = {
+type LastMsg = {
   id: string;
-  booking_id: string;
+  conversation_id: string;
   sender_id: string;
-  recipient_id: string;
-  content: string;
+  content: string | null;
   created_at: string;
   read_at: string | null;
+};
+
+type ConvoItem = {
+  conversationId: string;
+  other: OtherProfile | null;
+  last: LastMsg | null;
+  unread: number;
 };
 
 function formatTime(dateStr: string) {
   const d = new Date(dateStr);
   const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  const diffDays = (now.getTime() - d.getTime()) / 86400000;
   if (diffDays < 1 && d.getDate() === now.getDate()) {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
@@ -49,133 +48,87 @@ function formatTime(dateStr: string) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-export default function OrganizerBookingChatListPage() {
+export default function OrganizerChatListPage() {
   const [userId, setUserId] = useState<string | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [lastMsgs, setLastMsgs] = useState<Record<string, BookingMessage | null>>({});
-  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [items, setItems] = useState<ConvoItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setUserId(null);
-      setBookings([]);
-      setLastMsgs({});
-      setUnreadCounts({});
-      setLoading(false);
-      return;
-    }
-    const uid = user.id;
-    setUserId(uid);
+  const load = useCallback(async () => {
+    const { data: auth } = await supabase.auth.getUser();
+    const user = auth?.user;
+    if (!user) { setLoading(false); return; }
+    setUserId(user.id);
 
-    const { data: bookingData, error: bookingErr } = await supabase
-      .from('bookings')
-      .select(`
-        id, musician_id, organizer_id, organizer_name, organizer_email,
-        event_title, event_date, location,
-        profiles:profiles!bookings_musician_id_fkey ( id, display_name, avatar_url )
-      `)
-      .or(`musician_id.eq.${uid},organizer_id.eq.${uid}`)
-      .order('id', { ascending: false });
+    // 1. Conversations I'm part of
+    const { data: myParts } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id')
+      .eq('user_id', user.id);
+    const convoIds = Array.from(new Set((myParts ?? []).map((p) => p.conversation_id)));
+    if (convoIds.length === 0) { setItems([]); setLoading(false); return; }
 
-    if (bookingErr || !bookingData) {
-      setBookings([]); setLastMsgs({}); setUnreadCounts({}); setLoading(false);
-      return;
-    }
+    // 2. The other participant in each conversation
+    const { data: otherParts } = await supabase
+      .from('conversation_participants')
+      .select('conversation_id, user_id')
+      .in('conversation_id', convoIds)
+      .neq('user_id', user.id);
 
-    const mappedBookings: Booking[] = bookingData.map((row) => {
-      const musicianProfile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-      return {
-        id: row.id,
-        musician_id: row.musician_id,
-        organizer_id: row.organizer_id,
-        organizer_name: row.organizer_name,
-        organizer_email: row.organizer_email,
-        event_title: row.event_title ?? null,
-        event_date: row.event_date ?? null,
-        location: row.location ?? null,
-        musician_name: musicianProfile?.display_name ?? 'Musician',
-        musician_avatar_url: musicianProfile?.avatar_url ?? null,
-      };
-    });
-    setBookings(mappedBookings);
+    const otherIds = Array.from(new Set((otherParts ?? []).map((p) => p.user_id)));
+    const { data: profs } = otherIds.length
+      ? await supabase
+          .from('profiles')
+          .select('id, display_name, handle, avatar_url')
+          .in('id', otherIds)
+      : { data: [] as OtherProfile[] };
+    const profMap = new Map((profs ?? []).map((p) => [p.id, p as OtherProfile]));
 
-    const ids = mappedBookings.map((b) => b.id);
-    if (!ids.length) { setLastMsgs({}); setUnreadCounts({}); setLoading(false); return; }
-
-    const { data: msgData } = await supabase
-      .from('booking_messages')
-      .select('*')
-      .in('booking_id', ids)
+    // 3. Messages across those conversations (newest first)
+    const { data: msgs } = await supabase
+      .from('messages')
+      .select('id, conversation_id, sender_id, content, created_at, read_at')
+      .in('conversation_id', convoIds)
       .order('created_at', { ascending: false });
 
-    const lastMap: Record<string, BookingMessage | null> = {};
-    const unreadMap: Record<string, number> = {};
-    ids.forEach((id) => {
-      const ms = (msgData ?? []).filter((m) => m.booking_id === id) as BookingMessage[];
-      lastMap[id] = ms[0] ?? null;
-      unreadMap[id] = ms.filter((m) => m.recipient_id === uid && m.read_at === null).length ?? 0;
-    });
-    setLastMsgs(lastMap);
-    setUnreadCounts(unreadMap);
+    const list: ConvoItem[] = convoIds
+      .map((cid) => {
+        const other = (otherParts ?? []).find((p) => p.conversation_id === cid);
+        const convoMsgs = (msgs ?? []).filter((m) => m.conversation_id === cid);
+        const unread = convoMsgs.filter((m) => m.sender_id !== user.id && !m.read_at).length;
+        return {
+          conversationId: cid,
+          other: other ? profMap.get(other.user_id) ?? null : null,
+          last: (convoMsgs[0] as LastMsg) ?? null,
+          unread,
+        };
+      })
+      // Only surface conversations that have actually been used, newest first
+      .filter((c) => c.last !== null)
+      .sort((a, b) => new Date(b.last!.created_at).getTime() - new Date(a.last!.created_at).getTime());
+
+    setItems(list);
     setLoading(false);
-  }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
+  // Realtime: any new/updated message refreshes the inbox ordering + unread.
   useEffect(() => {
     if (!userId) return;
-
-    const insertChannel = supabase
-      .channel('booking-messages-insert-organizer')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'booking_messages' }, (payload) => {
-        const msg = payload.new as BookingMessage;
-        setLastMsgs((prev) => ({ ...prev, [msg.booking_id]: msg }));
-        if (msg.recipient_id === userId) {
-          setUnreadCounts((prev) => ({ ...prev, [msg.booking_id]: (prev[msg.booking_id] ?? 0) + 1 }));
-        }
-      }).subscribe();
-
-    const updateChannel = supabase
-      .channel('booking-messages-update-organizer')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'booking_messages' }, (payload) => {
-        const msg = payload.new as BookingMessage;
-        if (msg.recipient_id === userId && msg.read_at) {
-          setUnreadCounts((prev) => ({ ...prev, [msg.booking_id]: Math.max((prev[msg.booking_id] ?? 1) - 1, 0) }));
-        }
-        setLastMsgs((prev) => {
-          const cur = prev[msg.booking_id];
-          if (!cur || new Date(msg.created_at).getTime() > new Date(cur.created_at).getTime()) {
-            return { ...prev, [msg.booking_id]: msg };
-          }
-          return prev;
-        });
-      }).subscribe();
-
-    const bookingChannel = supabase
-      .channel('booking-insert-organizer')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings' }, (payload) => {
-        const booking = payload.new as Booking;
-        if (booking.musician_id === userId || booking.organizer_id === userId) load();
-      }).subscribe();
-
-    return () => {
-      supabase.removeChannel(insertChannel);
-      supabase.removeChannel(updateChannel);
-      supabase.removeChannel(bookingChannel);
-    };
-  }, [userId]);
+    const channel = supabase
+      .channel(`chat-list-${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => load())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, load]);
 
   const pull = usePullToRefresh({ onRefresh: load });
 
   return (
     <Page>
       <PullToRefreshIndicator {...pull} />
-      <PageHeader
-        title="Messages"
-        subtitle="Conversations with musicians about your bookings."
-      />
+      <PageHeader title="Messages" subtitle="Your conversations with artists, venues and organizers." />
 
       {loading ? (
         <div className="space-y-2">
@@ -189,75 +142,48 @@ export default function OrganizerBookingChatListPage() {
             </div>
           ))}
         </div>
-      ) : bookings.length === 0 ? (
+      ) : items.length === 0 ? (
         <EmptyState
           icon={
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8z" />
             </svg>
           }
-          title="No chats yet"
-          description="Post a gig or send a booking request, and conversations show up here."
+          title="No conversations yet"
+          description="Message someone from their profile, or apply to a gig — your chats will show up here."
           action={
-            <Link href="/gigs/create">
-              <Button>Create a gig</Button>
+            <Link href="/find">
+              <Button>Find people</Button>
             </Link>
           }
         />
       ) : (
         <ul className="card divide-y divide-line p-0 overflow-hidden">
-          {bookings.map((b) => {
-            const last = lastMsgs[b.id];
-            const unread = unreadCounts[b.id] ?? 0;
-            const isMusician = userId === b.musician_id;
-            const otherName = isMusician
-              ? b.organizer_name || b.organizer_email || 'Organizer'
-              : b.musician_name || 'Musician';
-            const subtitle = b.event_title
-              ? b.event_title
-              : b.event_date
-              ? new Date(b.event_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
-              : null;
-
+          {items.map((c) => {
+            const name = c.other?.display_name || (c.other?.handle ? `@${c.other.handle}` : 'Conversation');
             return (
-              <li key={b.id}>
+              <li key={c.conversationId}>
                 <Link
-                  href={`/bookings/${b.id}/chat`}
+                  href={`/chat/${c.conversationId}`}
                   className="flex items-center gap-3 px-4 py-3.5 hover:bg-surface-sunken transition"
                 >
-                  {b.musician_avatar_url ? (
-                    <Avatar src={b.musician_avatar_url} alt={otherName} size="md" />
-                  ) : (
-                    <div className="avatar avatar-md inline-flex items-center justify-center bg-brand-100 text-brand-700 text-sm font-semibold">
-                      {otherName.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-
+                  <Avatar src={c.other?.avatar_url} alt={name} size="md" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className={`truncate text-sm ${unread > 0 ? 'font-semibold text-ink-strong' : 'font-medium text-ink-strong'}`}>
-                        {otherName}
+                      <p className={`truncate text-sm text-ink-strong ${c.unread > 0 ? 'font-semibold' : 'font-medium'}`}>
+                        {name}
                       </p>
-                      {last && (
-                        <span className="text-[11px] text-ink-subtle shrink-0">
-                          {formatTime(last.created_at)}
-                        </span>
+                      {c.last && (
+                        <span className="text-[11px] text-ink-subtle shrink-0">{formatTime(c.last.created_at)}</span>
                       )}
                     </div>
-                    {subtitle && (
-                      <p className="text-[11px] text-ink-subtle truncate mt-0.5">{subtitle}</p>
-                    )}
                     <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <p
-                        className={`truncate text-xs ${
-                          unread > 0 ? 'text-ink font-medium' : 'text-ink-subtle'
-                        }`}
-                      >
-                        {last ? last.content : 'No messages yet'}
+                      <p className={`truncate text-xs ${c.unread > 0 ? 'text-ink font-medium' : 'text-ink-subtle'}`}>
+                        {c.last?.content ?? 'No messages yet'}
                       </p>
-                      {unread > 0 && (
+                      {c.unread > 0 && (
                         <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-semibold text-white shrink-0">
-                          {unread > 9 ? '9+' : unread}
+                          {c.unread > 9 ? '9+' : c.unread}
                         </span>
                       )}
                     </div>

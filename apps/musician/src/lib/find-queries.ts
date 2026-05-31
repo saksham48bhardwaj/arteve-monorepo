@@ -65,30 +65,30 @@ function getRange(page: number) {
    PEOPLE SEARCH
    ============================================================ */
 
+export type PeopleFilters = {
+  location?: string;
+  genre?: string;
+};
+
 export async function searchPeople(
   query: string,
-  page = 1
+  page = 1,
+  filters: PeopleFilters = {}
 ): Promise<PersonResult[]> {
   const { from, to } = getRange(page);
 
-  const { data, error } = await supabase
+  let q = supabase
     .from('profiles')
-    .select(
-      `
-      handle,
-      display_name,
-      avatar_url,
-      location,
-      genres
-    `
-    )
+    .select(`handle, display_name, avatar_url, location, genres`)
     .eq('role', 'musician')
-    .is('deleted_at', null)
-    .ilike('display_name', `%${query}%`)
-    .range(from, to);
+    .is('deleted_at', null);
 
+  if (query) q = q.ilike('display_name', `%${query}%`);
+  if (filters.location) q = q.ilike('location', `%${filters.location}%`);
+  if (filters.genre) q = q.contains('genres', [filters.genre]);
+
+  const { data, error } = await q.range(from, to);
   if (error) throw error;
-
   return (data ?? []) as PersonResult[];
 }
 
@@ -149,20 +149,22 @@ export async function searchGigs(
 
 export async function searchVenues(
   query: string,
-  page = 1
+  page = 1,
+  filters: PeopleFilters = {}
 ): Promise<VenueResult[]> {
   const { from, to } = getRange(page);
 
-  const { data, error } = await supabase
+  let q = supabase
     .from('profiles')
     .select('id, handle, display_name, avatar_url, location')
     .eq('role', 'organizer')
-    .is('deleted_at', null)
-    .ilike('display_name', `%${query}%`)
-    .range(from, to);
+    .is('deleted_at', null);
 
+  if (query) q = q.ilike('display_name', `%${query}%`);
+  if (filters.location) q = q.ilike('location', `%${filters.location}%`);
+
+  const { data, error } = await q.range(from, to);
   if (error) throw error;
-
   return (data ?? []) as VenueResult[];
 }
 

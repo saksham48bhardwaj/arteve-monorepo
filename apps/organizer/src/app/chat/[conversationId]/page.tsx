@@ -13,6 +13,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import { PresenceContext } from '@arteve/shared/presence/provider';
 import { useMarkNotificationAsRead } from '@arteve/shared/notifications/auto-read';
+import { sendNotification } from '@arteve/shared/notifications';
 import { Avatar, Button } from '@arteve/ui/components';
 
 type Message = {
@@ -159,6 +160,15 @@ export default function ChatPage() {
       return;
     }
     setMsgs((prev) => (prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted]));
+
+    if (otherUserId) {
+      sendNotification({
+        userId: otherUserId,
+        type: 'new_message',
+        body: text.length > 80 ? `${text.slice(0, 80)}…` : text,
+        data: { conversation_id: conversationId },
+      });
+    }
   }
 
   function handleTyping(e: ChangeEvent<HTMLInputElement>) {

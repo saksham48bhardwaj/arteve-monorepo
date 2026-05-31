@@ -116,6 +116,12 @@ function FindPageContent() {
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [suggestions, setSuggestions] = useState<PersonResult[]>([]);
 
+  // Filters
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterGenre, setFilterGenre] = useState('');
+  const hasActiveFilters = Boolean(filterLocation.trim() || filterGenre.trim());
+
   // Auth (needed for /gigs search)
   const [musicianId, setMusicianId] = useState<string | null>(null);
 
@@ -143,17 +149,21 @@ function FindPageContent() {
     })();
   }, []);
 
-  // Reset paging when search/tab/auth changes
+  // Reset paging when search/tab/auth/filters change
   useEffect(() => {
     setResults([]);
     setPage(1);
     setHasMore(true);
-  }, [query, activeTab, musicianId]);
+  }, [query, activeTab, musicianId, filterLocation, filterGenre]);
 
   // Run search
   useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed) {
+    const filters = { location: filterLocation.trim() || undefined, genre: filterGenre.trim() || undefined };
+    const filtersActive = Boolean(filters.location || filters.genre);
+
+    // Nothing to do when there's neither a query nor an active filter
+    if (!trimmed && !filtersActive) {
       setResults([]);
       setHasMore(false);
       setLoading(false);
@@ -168,14 +178,14 @@ function FindPageContent() {
         let data: unknown[] = [];
         switch (activeTab) {
           case 'people':
-            data = await searchPeople(trimmed, page);
+            data = await searchPeople(trimmed, page, filters);
             break;
           case 'gigs':
             if (!musicianId) { data = []; break; }
-            data = await searchGigs(trimmed, musicianId, {}, page);
+            data = await searchGigs(trimmed, musicianId, { location: filters.location, genre: filters.genre }, page);
             break;
           case 'venues':
-            data = await searchVenues(trimmed, page);
+            data = await searchVenues(trimmed, page, { location: filters.location });
             break;
           case 'posts':
             data = await searchPosts(trimmed, page);
@@ -199,7 +209,7 @@ function FindPageContent() {
     })();
 
     return () => { cancelled = true; };
-  }, [query, activeTab, page, musicianId]);
+  }, [query, activeTab, page, musicianId, filterLocation, filterGenre]);
 
   // Recents helpers
   const pushRecent = useCallback((item: RecentItem) => {
@@ -266,7 +276,7 @@ function FindPageContent() {
     }
   }
 
-  const isSearching = query.trim().length > 0;
+  const isSearching = query.trim().length > 0 || hasActiveFilters;
   const hasVoice =
     typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
@@ -364,8 +374,14 @@ function FindPageContent() {
             <button
               type="button"
               aria-label="Filters"
-              className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted hover:bg-surface-sunken hover:text-ink transition"
-              title="Filters (coming soon)"
+              onClick={() => setShowFilters((v) => !v)}
+              aria-expanded={showFilters}
+              className={`relative shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
+                showFilters || hasActiveFilters
+                  ? 'bg-ink-strong text-white'
+                  : 'text-ink-muted hover:bg-surface-sunken hover:text-ink'
+              }`}
+              title="Filters"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="4" y1="6" x2="20" y2="6" />
@@ -375,6 +391,9 @@ function FindPageContent() {
                 <line x1="4" y1="18" x2="20" y2="18" />
                 <circle cx="9" cy="18" r="2" fill="currentColor" stroke="none" />
               </svg>
+              {hasActiveFilters && !showFilters && (
+                <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-accent-500 ring-2 ring-surface" />
+              )}
             </button>
             {TABS.map((t) => {
               const active = t.value === activeTab;
@@ -394,6 +413,54 @@ function FindPageContent() {
               );
             })}
           </div>
+
+          {/* Filter panel */}
+          {showFilters && (
+            <div className="px-3 pb-3 pt-1 space-y-3 border-t border-line">
+              <div>
+                <label className="block text-xs font-medium text-ink-muted mb-1">Location</label>
+                <input
+                  value={filterLocation}
+                  onChange={(e) => setFilterLocation(e.target.value)}
+                  placeholder="e.g. Mumbai"
+                  className="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300 transition"
+                />
+              </div>
+
+              {(activeTab === 'people' || activeTab === 'gigs') && (
+                <div>
+                  <label className="block text-xs font-medium text-ink-muted mb-1.5">Genre</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['Pop', 'Rock', 'Hip-Hop', 'Jazz', 'Classical', 'Electronic', 'Folk', 'R&B', 'Indie', 'Acoustic'].map((g) => {
+                      const on = filterGenre === g;
+                      return (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setFilterGenre(on ? '' : g)}
+                          className={`rounded-full px-3 py-1 text-xs font-medium border transition ${
+                            on ? 'bg-ink-strong text-white border-ink-strong' : 'bg-surface text-ink-muted border-line hover:border-line-strong'
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={() => { setFilterLocation(''); setFilterGenre(''); }}
+                  className="text-xs font-medium text-brand-700 hover:underline"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

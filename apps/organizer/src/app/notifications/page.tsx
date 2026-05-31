@@ -127,7 +127,7 @@ function resolveLink(n: Notification): string {
     case 'application_status': return d.gig_id ? `/gigs/${d.gig_id}` : '/gigs?tab=applications';
     case 'gig_closed':         return d.gig_id ? `/gigs/${d.gig_id}` : '/notifications';
     case 'booking_created':    return d.booking_id ? `/bookings/${d.booking_id}` : '/gigs?tab=bookings';
-    case 'new_message':        return d.booking_id ? `/bookings/${d.booking_id}/chat` : '/chat';
+    case 'new_message':        return d.conversation_id ? `/chat/${d.conversation_id}` : (d.booking_id ? `/bookings/${d.booking_id}/chat` : '/chat');
     case 'follow':             return d.actor_handle ? `/profile/${d.actor_handle}` : '/profile';
     case 'like':
     case 'comment':            return d.post_id ? `/?post=${d.post_id}` : '/';

@@ -572,7 +572,7 @@ export default function MusicianPublicProfilePage() {
           const list = showFollowModal === 'followers' ? followersList : followingList;
           if (list.length === 0) return <p className="text-sm text-ink-subtle">No one here yet.</p>;
           return (
-            <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
+            <ul className="space-y-2">
               {list.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-sunken">
                   <Link href={`/profile/${p.handle ?? p.id}`} className="flex items-center gap-3 flex-1 min-w-0">
