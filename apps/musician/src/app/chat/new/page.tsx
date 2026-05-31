@@ -67,7 +67,7 @@ function NewChatContent() {
           .limit(1);
 
         if (shared?.length) {
-          router.push(`/chat/${shared[0].conversation_id}`);
+          router.replace(`/chat/${shared[0].conversation_id}`);
           return;
         }
       }
@@ -112,7 +112,7 @@ function NewChatContent() {
       }
 
       // 5️⃣ Redirect
-      router.push(`/chat/${convo.id}`);
+      router.replace(`/chat/${convo.id}`);
     })();
   }, [handle, router]);
 

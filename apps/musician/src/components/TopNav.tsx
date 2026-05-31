@@ -140,6 +140,15 @@ export default function TopNav() {
           {config.rightSlot === 'home' && (
             <>
               <Link
+                href="/gigs"
+                aria-label="Gigs"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted hover:bg-surface-sunken hover:text-ink transition"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 10h18M9 3v4M15 3v4" />
+                </svg>
+              </Link>
+              <Link
                 href="/notifications"
                 aria-label="Notifications"
                 className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-muted hover:bg-surface-sunken hover:text-ink transition"
@@ -189,13 +198,29 @@ export default function TopNav() {
                   />
                   <div className="absolute right-0 mt-2 w-48 rounded-xl border border-line bg-surface shadow-lg p-1.5 z-40">
                     {pathname === '/profile' && (
-                      <Link
-                        href="/profile/edit"
-                        onClick={() => setOpen(false)}
-                        className="block w-full rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-surface-sunken"
-                      >
-                        Edit profile
-                      </Link>
+                      <>
+                        <Link
+                          href="/gigs"
+                          onClick={() => setOpen(false)}
+                          className="block w-full rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-surface-sunken"
+                        >
+                          My gigs
+                        </Link>
+                        <Link
+                          href="/profile/edit"
+                          onClick={() => setOpen(false)}
+                          className="block w-full rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-surface-sunken"
+                        >
+                          Edit profile
+                        </Link>
+                        <Link
+                          href="/account"
+                          onClick={() => setOpen(false)}
+                          className="block w-full rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-surface-sunken"
+                        >
+                          Account settings
+                        </Link>
+                      </>
                     )}
                     <LogoutButton fullWidth variant="ghost" />
                   </div>

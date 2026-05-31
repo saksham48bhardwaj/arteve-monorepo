@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import TopNav from './TopNav';
 import BottomNav from './BottomNav';
 import SideNav from './SideNav';
+import RoleGuard from './RoleGuard';
 import { ToastViewport } from '@arteve/ui/components';
 
 function isHeaderlessRoute(pathname: string): boolean {
@@ -23,6 +24,9 @@ export default function ClientShell({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen w-full flex bg-surface-muted">
+      {/* Enforce single-role accounts (organizer app) */}
+      <RoleGuard />
+
       {!isAuthPage && <SideNav />}
 
       <div className={`flex-1 min-w-0 w-full ${!isAuthPage ? 'md:ml-64' : ''}`}>
