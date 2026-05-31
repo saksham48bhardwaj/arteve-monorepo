@@ -25,6 +25,21 @@ const secondaryNav: { href: string; label: string; icon: IconName; badge?: boole
   { href: '/account', label: 'Account', icon: 'settings' },
 ];
 
+// Decide which nav item is "active". /profile lights up ONLY for the user's
+// own profile (and edit), NOT for /profile/<other-handle>. Other entries use
+// the standard prefix match.
+function isActive(href: string, pathname: string): boolean {
+  const path = pathname.split('?')[0];
+  const base = href.split('?')[0];
+  if (base === '/profile') {
+    return path === '/profile' || path === '/profile/edit';
+  }
+  if (base === '/') {
+    return path === '/';
+  }
+  return path === base || path.startsWith(base + '/');
+}
+
 function Icon({ name }: { name: IconName }) {
   switch (name) {
     case 'home':     return <path d="M3 10.5 12 3l9 7.5V21H4V10.5z" />;
@@ -98,7 +113,7 @@ export default function SideNav() {
           <NavLink
             key={item.href}
             {...item}
-            active={pathname === item.href || pathname.startsWith(item.href + '/')}
+            active={isActive(item.href, pathname)}
           />
         ))}
 
@@ -108,7 +123,7 @@ export default function SideNav() {
           <NavLink
             key={item.href}
             {...item}
-            active={pathname === item.href || pathname.startsWith(item.href + '/')}
+            active={isActive(item.href, pathname)}
             badgeCount={item.badge ? unread : undefined}
           />
         ))}

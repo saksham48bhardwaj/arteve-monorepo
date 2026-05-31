@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
 import { sendNotification } from '@arteve/shared/notifications';
-import { toast, usePullToRefresh, PullToRefreshIndicator } from '@arteve/ui/components';
+import { toast, usePullToRefresh, PullToRefreshIndicator, Modal, Button } from '@arteve/ui/components';
 
 const PAGE_SIZE = 10;
 
@@ -305,30 +305,58 @@ export default function OrganizerHomePage() {
 
     setCommentSubmitting(true);
     const author = commentModalPost.profiles?.id;
-    const { error } = await supabase.from('post_comments').insert({
-      post_id: commentModalPost.id,
-      user_id: userId,
-      comment: text,
-    });
+    const postId = commentModalPost.id;
+
+    const { data: meProf } = await supabase
+      .from('profiles').select('display_name, handle, avatar_url').eq('id', userId).maybeSingle();
+
+    const { data: inserted, error } = await supabase
+      .from('post_comments')
+      .insert({ post_id: postId, user_id: userId, comment: text })
+      .select('id, comment, created_at')
+      .single();
     setCommentSubmitting(false);
 
-    if (error) {
+    if (error || !inserted) {
       toast.error("Couldn't post your comment. Try again.");
       return;
     }
+
+    // Patch the affected post in place (preserves scroll position).
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const newComment = {
+          id: inserted.id as number,
+          comment: inserted.comment as string,
+          created_at: inserted.created_at as string,
+          profiles: {
+            display_name: meProf?.display_name ?? null,
+            avatar_url: meProf?.avatar_url ?? null,
+            handle: meProf?.handle ?? null,
+          },
+        };
+        const existing = p.post_comments ?? [];
+        const existingCount = p.post_comments_count?.[0]?.count ?? existing.length;
+        return {
+          ...p,
+          post_comments: [...existing, newComment],
+          post_comments_count: [{ count: existingCount + 1 }],
+        };
+      })
+    );
 
     if (author && author !== userId) {
       sendNotification({
         userId: author,
         type: 'comment',
         body: text.length > 80 ? `commented: ${text.slice(0, 80)}…` : `commented: ${text}`,
-        data: { post_id: commentModalPost.id },
+        data: { post_id: postId },
       });
     }
 
     setNewComment('');
     setCommentModalPost(null);
-    await refreshFeed();
   }
 
   const pull = usePullToRefresh({ onRefresh: refreshFeed });
@@ -490,22 +518,23 @@ export default function OrganizerHomePage() {
                   )}
                 </div>
 
-                {/* Media */}
-                {post.media_type === 'video' ? (
-                  <video
-                    className="w-full max-h-[650px] bg-black object-contain"
-                    src={post.media_url}
-                    controls
-                  />
-                ) : (
-                  <div className="flex items-center justify-center bg-black/5">
+                {/* Media — IG-style 4:5 cap so tall posts don't push the
+                    actions row past the fold. */}
+                <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: '4 / 5', maxHeight: '80vh' }}>
+                  {post.media_type === 'video' ? (
+                    <video
+                      src={post.media_url}
+                      controls
+                      className="absolute inset-0 h-full w-full object-contain bg-black"
+                    />
+                  ) : (
                     <img
-                      className="w-full max-h-[650px] object-contain bg-black"
                       src={post.media_url}
                       alt={post.caption ?? ''}
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 px-4 md:px-6 py-3 border-t border-line">
@@ -594,19 +623,15 @@ export default function OrganizerHomePage() {
         )}
       </section>
 
-      {/* VIEW ALL COMMENTS MODAL */}
-      {viewCommentsPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="max-h-[80vh] w-full max-w-md space-y-4 overflow-y-auto rounded-2xl bg-surface p-6 shadow-xl">
-            <h2 className="text-lg font-semibold">
-              All comments on {viewCommentsPost.profiles?.display_name}
-            </h2>
-
-            {viewCommentsPost.post_comments?.map(c => (
-              <div
-                key={c.id}
-                className="flex items-start gap-3 text-sm"
-              >
+      <Modal
+        open={!!viewCommentsPost}
+        onClose={() => setViewCommentsPost(null)}
+        title={viewCommentsPost ? `Comments on ${viewCommentsPost.profiles?.display_name ?? 'post'}` : ''}
+      >
+        {viewCommentsPost?.post_comments?.length ? (
+          <ul className="space-y-3">
+            {viewCommentsPost.post_comments.map((c) => (
+              <li key={c.id} className="flex items-start gap-3 text-sm">
                 <Link
                   href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                   className="flex-shrink-0"
@@ -614,67 +639,48 @@ export default function OrganizerHomePage() {
                   <img
                     src={c.profiles?.avatar_url ?? '/default-avatar.png'}
                     className="h-8 w-8 rounded-full object-cover"
-                    alt="avatar"
+                    alt=""
                   />
                 </Link>
-
-                <div>
+                <div className="min-w-0">
                   <Link
                     href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
-                    className="font-medium text-ink-strong"
+                    className="font-medium text-ink-strong hover:underline"
                   >
                     {c.profiles?.display_name ?? 'User'}
                   </Link>
-                  <p className="text-ink">{c.comment}</p>
+                  <p className="text-ink mt-0.5 whitespace-pre-wrap break-words">{c.comment}</p>
                 </div>
-              </div>
+              </li>
             ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-ink-subtle">No comments yet.</p>
+        )}
+      </Modal>
 
-            <div className="flex justify-end">
-              <button
-                onClick={() => setViewCommentsPost(null)}
-                className="rounded-lg bg-line-strong px-4 py-2 text-sm"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADD COMMENT MODAL */}
-      {commentModalPost && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-md space-y-4 rounded-2xl bg-surface p-6 shadow-xl">
-            <h2 className="text-lg font-semibold">
-              Comment on {commentModalPost.profiles?.display_name}
-            </h2>
-
-            <textarea
-              value={newComment}
-              onChange={e => setNewComment(e.target.value)}
-              placeholder="Write your comment..."
-              className="h-28 w-full rounded-lg border border-line p-3 text-sm"
-            />
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setCommentModalPost(null)}
-                className="rounded-lg bg-line-strong px-4 py-2 text-sm"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={addComment}
-                className="rounded-lg bg-brand px-4 py-2 text-sm text-white"
-              >
-                Post
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={!!commentModalPost}
+        onClose={() => { if (!commentSubmitting) setCommentModalPost(null); }}
+        title="Add a comment"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCommentModalPost(null)} disabled={commentSubmitting}>
+              Cancel
+            </Button>
+            <Button onClick={addComment} loading={commentSubmitting} disabled={!newComment.trim()}>
+              Post
+            </Button>
+          </>
+        }
+      >
+        <textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Write your comment…"
+          className="h-28 w-full rounded-xl border border-line bg-surface p-3 text-sm outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300 transition"
+        />
+      </Modal>
     </main>
   );
 }

@@ -413,7 +413,7 @@ export default function ProfilePage() {
                     className="group relative w-full pb-[100%] overflow-hidden bg-surface-sunken focus-visible:outline-none"
                     aria-label={`Open media ${index + 1}`}
                   >
-                    {item.media_type === 'image' && (
+                    {item.media_url && item.media_type === 'image' && (
                       <SafeImage
                         src={item.media_url}
                         alt=""
@@ -422,7 +422,7 @@ export default function ProfilePage() {
                         className="object-cover transition-transform group-hover:scale-105"
                       />
                     )}
-                    {item.media_type === 'video' && (
+                    {item.media_url && item.media_type === 'video' && (
                       <>
                         <video src={item.media_url} muted className="absolute inset-0 w-full h-full object-cover" />
                         <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
@@ -430,13 +430,24 @@ export default function ProfilePage() {
                         </span>
                       </>
                     )}
-                    {item.media_type === 'audio' && (
+                    {item.media_url && item.media_type === 'audio' && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center bg-[linear-gradient(135deg,var(--brand-50),var(--accent-50))] text-brand-700">
                         <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" />
                         </svg>
                         <span className="mt-1 text-[10px] font-medium uppercase tracking-wider">Audio</span>
                       </div>
+                    )}
+                    {(!item.media_url || !['image', 'video', 'audio'].includes(item.media_type ?? '')) && (
+                      item.media_url ? (
+                        <SafeImage src={item.media_url} alt="" fill sizes="(max-width: 640px) 33vw, 240px" className="object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-surface-sunken text-ink-disabled">
+                          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-5-5L5 21" />
+                          </svg>
+                        </div>
+                      )
                     )}
                   </button>
                 ))}

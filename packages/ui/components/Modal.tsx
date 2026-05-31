@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from './cn';
 
 export interface ModalProps {
@@ -44,9 +45,16 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  // Portal to document.body so `position: fixed` is computed against the
+  // viewport, not any ancestor with `transform` / `filter` / `perspective`
+  // (e.g. the .page-in page-transition animation, which has `transform`).
+  // Without portaling, modals render mid-document instead of centered.
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => { setMounted(true); }, []);
 
-  return (
+  if (!open || !mounted || typeof document === 'undefined') return null;
+
+  const node = (
     <div
       className="modal-backdrop"
       onClick={(e) => {
@@ -76,4 +84,6 @@ export function Modal({
       </div>
     </div>
   );
+
+  return createPortal(node, document.body);
 }
