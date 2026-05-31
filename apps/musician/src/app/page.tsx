@@ -546,7 +546,7 @@ export default function MusicianHomePage() {
                 {/* Header */}
                 <div className="px-6 pt-6 pb-4">
                   <Link
-                    href={`/profile/${post.profiles?.handle ?? ''}`}
+                    href={post.profiles?.handle ? `/profile/${post.profiles.handle}` : '#'}
                     className="mb-3 flex items-center gap-3"
                   >
                     <img
@@ -628,7 +628,7 @@ export default function MusicianHomePage() {
                         className="flex items-start gap-3 text-sm"
                       >
                         <Link
-                          href={`/profile/${c.profiles?.handle ?? ''}`}
+                          href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                           className="flex-shrink-0"
                         >
                           <img
@@ -642,7 +642,7 @@ export default function MusicianHomePage() {
 
                         <div>
                           <Link
-                            href={`/profile/${c.profiles?.handle ?? ''}`}
+                            href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                             className="font-medium text-ink-strong"
                           >
                             {c.profiles?.display_name ?? 'User'}
@@ -691,7 +691,7 @@ export default function MusicianHomePage() {
                 className="flex items-start gap-3 text-sm"
               >
                 <Link
-                  href={`/profile/${c.profiles?.handle ?? ''}`}
+                  href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                   className="flex-shrink-0"
                 >
                   <img
@@ -703,7 +703,7 @@ export default function MusicianHomePage() {
 
                 <div>
                   <Link
-                    href={`/profile/${c.profiles?.handle ?? ''}`}
+                    href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                     className="font-medium text-ink-strong"
                   >
                     {c.profiles?.display_name ?? 'User'}

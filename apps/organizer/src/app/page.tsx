@@ -362,7 +362,7 @@ export default function OrganizerHomePage() {
             {bits.slice(0, 10).map(post => (
               <Link
                 key={post.id}
-                href={`/profile/${post.profiles?.handle ?? ''}`}
+                href={post.profiles?.handle ? `/profile/${post.profiles.handle}` : '#'}
                 aria-label={post.caption ?? 'Open bit'}
                 className="group relative h-56 w-40 shrink-0 overflow-hidden rounded-2xl bg-ink-strong sm:h-64 sm:w-48 snap-start shadow-sm hover:shadow-md transition"
               >
@@ -464,7 +464,7 @@ export default function OrganizerHomePage() {
                 {/* Card header */}
                 <div className="px-6 pt-6 pb-4">
                   <Link
-                    href={`/profile/${post.profiles?.handle ?? ''}`}
+                    href={post.profiles?.handle ? `/profile/${post.profiles.handle}` : '#'}
                     className="flex items-center gap-3"
                   >
                     <img
@@ -545,7 +545,7 @@ export default function OrganizerHomePage() {
                         className="flex items-start gap-3 text-sm"
                       >
                         <Link
-                          href={`/profile/${c.profiles?.handle ?? ''}`}
+                          href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                           className="flex-shrink-0"
                         >
                           <img
@@ -559,7 +559,7 @@ export default function OrganizerHomePage() {
 
                         <div>
                           <Link
-                            href={`/profile/${c.profiles?.handle ?? ''}`}
+                            href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                             className="font-medium text-ink-strong"
                           >
                             {c.profiles?.display_name ?? 'User'}
@@ -608,7 +608,7 @@ export default function OrganizerHomePage() {
                 className="flex items-start gap-3 text-sm"
               >
                 <Link
-                  href={`/profile/${c.profiles?.handle ?? ''}`}
+                  href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                   className="flex-shrink-0"
                 >
                   <img
@@ -620,7 +620,7 @@ export default function OrganizerHomePage() {
 
                 <div>
                   <Link
-                    href={`/profile/${c.profiles?.handle ?? ''}`}
+                    href={c.profiles?.handle ? `/profile/${c.profiles.handle}` : '#'}
                     className="font-medium text-ink-strong"
                   >
                     {c.profiles?.display_name ?? 'User'}

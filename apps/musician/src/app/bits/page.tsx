@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
+import { sendNotification } from '@arteve/shared/notifications';
 import { Avatar, Spinner, toast } from '@arteve/ui/components';
 
 type ProfileInfo = {
@@ -67,6 +68,7 @@ function BitsReelsPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentOpenFor, setCommentOpenFor] = useState<number | null>(null);
   const [newComment, setNewComment] = useState('');
+  const [commentSending, setCommentSending] = useState(false);
 
   // Tap-to-pause: remember which bit the user manually paused so IO doesn't auto-resume it.
   const [pausedBitId, setPausedBitId] = useState<number | null>(null);
@@ -171,12 +173,34 @@ function BitsReelsPage() {
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) return;
-    if (bit.has_liked) {
-      await supabase.from('post_likes').delete().eq('post_id', bit.id).eq('user_id', uid);
-      setRows((prev) => prev.map((b) => (b.id === bit.id ? { ...b, has_liked: false, likes: b.likes - 1 } : b)));
-    } else {
-      await supabase.from('post_likes').insert({ post_id: bit.id, user_id: uid });
-      setRows((prev) => prev.map((b) => (b.id === bit.id ? { ...b, has_liked: true, likes: b.likes + 1 } : b)));
+
+    const wasLiked = bit.has_liked;
+    // Optimistic flip
+    setRows((prev) => prev.map((b) =>
+      b.id === bit.id ? { ...b, has_liked: !wasLiked, likes: b.likes + (wasLiked ? -1 : 1) } : b
+    ));
+
+    const { error } = wasLiked
+      ? await supabase.from('post_likes').delete().eq('post_id', bit.id).eq('user_id', uid)
+      : await supabase.from('post_likes').insert({ post_id: bit.id, user_id: uid });
+
+    if (error) {
+      // Roll back
+      setRows((prev) => prev.map((b) =>
+        b.id === bit.id ? { ...b, has_liked: wasLiked, likes: b.likes + (wasLiked ? 1 : -1) } : b
+      ));
+      toast.error(wasLiked ? "Couldn't unlike" : "Couldn't like");
+      return;
+    }
+
+    // Notify the bit's author on a new like (skip self).
+    if (!wasLiked && bit.profile_id && bit.profile_id !== uid) {
+      sendNotification({
+        userId: bit.profile_id,
+        type: 'like',
+        body: 'liked your bit',
+        data: { post_id: bit.id },
+      });
     }
   }
 
@@ -206,15 +230,35 @@ function BitsReelsPage() {
   }
 
   async function sendComment() {
-    if (!newComment.trim() || !commentOpenFor) return;
+    const text = newComment.trim();
+    if (!text || !commentOpenFor || commentSending) return;
     const { data: auth } = await supabase.auth.getUser();
     const uid = auth.user?.id;
     if (!uid) return;
-    await supabase.from('post_comments').insert({
+
+    setCommentSending(true);
+    const bit = rows.find((b) => b.id === commentOpenFor);
+    const { error } = await supabase.from('post_comments').insert({
       post_id: commentOpenFor,
       user_id: uid,
-      comment: newComment.trim(),
+      comment: text,
     });
+    setCommentSending(false);
+
+    if (error) {
+      toast.error("Couldn't post your comment. Try again.");
+      return;
+    }
+
+    if (bit?.profile_id && bit.profile_id !== uid) {
+      sendNotification({
+        userId: bit.profile_id,
+        type: 'comment',
+        body: text.length > 80 ? `commented: ${text.slice(0, 80)}…` : `commented: ${text}`,
+        data: { post_id: commentOpenFor },
+      });
+    }
+
     setNewComment('');
     openComments(commentOpenFor);
   }
@@ -411,10 +455,17 @@ function BitsReelsPage() {
               ) : (
                 comments.map((c) => (
                   <div key={c.id} className="flex gap-3">
-                    <Avatar src={c.profile.avatar_url} alt={c.profile.display_name ?? ''} size="sm" />
+                    <Link href={c.profile.handle ? `/profile/${c.profile.handle}` : '#'} className="shrink-0">
+                      <Avatar src={c.profile.avatar_url} alt={c.profile.display_name ?? ''} size="sm" />
+                    </Link>
                     <div className="min-w-0">
                       <p className="text-sm">
-                        <span className="font-semibold text-ink-strong">{c.profile.display_name ?? 'User'}</span>
+                        <Link
+                          href={c.profile.handle ? `/profile/${c.profile.handle}` : '#'}
+                          className="font-semibold text-ink-strong hover:underline"
+                        >
+                          {c.profile.display_name ?? 'User'}
+                        </Link>
                         <span className="text-ink ml-2">{c.comment}</span>
                       </p>
                       <p className="text-[11px] text-ink-subtle mt-0.5">
