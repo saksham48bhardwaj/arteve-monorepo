@@ -134,7 +134,7 @@ export default function GigDetailPage() {
       {organizer && (
         <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-6 flex gap-4 items-center">
           <img
-            src={organizer.avatar_url ?? '/placeholder-avatar.png'}
+            src={organizer.avatar_url ?? '/default-avatar.png'}
             alt="Organizer"
             className="w-16 h-16 rounded-2xl object-cover border border-line"
           />

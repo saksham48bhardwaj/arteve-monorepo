@@ -175,6 +175,13 @@ export default function OrganizerBookingsPage() {
 
   const filtered = filter === 'all'
     ? bookings
+    : filter === 'cancelled'
+    // Real cancellations are stored as canceled_by_organizer / canceled_by_musician
+    // (and a legacy 'cancelled'); treat all three as "Cancelled".
+    ? bookings.filter((b) =>
+        b.status === 'cancelled' ||
+        b.status === 'canceled_by_organizer' ||
+        b.status === 'canceled_by_musician')
     : bookings.filter((b) => b.status === filter);
 
   /* ------------------------------------

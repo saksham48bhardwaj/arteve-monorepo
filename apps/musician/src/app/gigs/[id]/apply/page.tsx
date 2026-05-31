@@ -202,7 +202,7 @@ export default function ApplyToGigPage() {
         {/* Top — Avatar + Name */}
         <div className="flex gap-4">
           <img
-            src={profile.avatar_url ?? '/placeholder-avatar.png'}
+            src={profile.avatar_url ?? '/default-avatar.png'}
             className="w-20 h-20 rounded-2xl object-cover border border-line"
           />
           <div className="flex-1 space-y-1">

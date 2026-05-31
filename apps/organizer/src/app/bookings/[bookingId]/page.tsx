@@ -195,7 +195,7 @@ export default function OrganizerBookingDetailPage() {
       <section className="border rounded-xl p-4 bg-surface-sunken border-line">
         <div className="flex gap-3">
           <img
-            src={musician?.avatar_url ?? '/placeholder-avatar.png'}
+            src={musician?.avatar_url ?? '/default-avatar.png'}
             alt={musician?.display_name ?? 'Musician'}
             className="w-14 h-14 rounded-full object-cover border border-line"
           />

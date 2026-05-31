@@ -591,7 +591,7 @@ export default function EditProfilePage() {
           {/* Avatar + button */}
           <div className="flex flex-col items-center md:items-start gap-3">
             <img
-              src={avatarUrl ?? '/placeholder-avatar.png'}
+              src={avatarUrl ?? '/default-avatar.png'}
               alt="Avatar"
               className="w-24 h-24 md:w-28 md:h-28 rounded-2xl object-cover border border-line shadow-sm"
             />

@@ -194,6 +194,7 @@ export default function ApplicationDetailPage() {
     } = await supabase
       .from('bookings')
       .insert({
+        gig_id: app.gig_id,
         musician_id: app.musician_id,
         organizer_id: organizerUser.id,
         organizer_name: organizerProfile?.display_name ?? null,
@@ -375,7 +376,7 @@ export default function ApplicationDetailPage() {
       <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-5 flex gap-4">
         <div className="flex-shrink-0">
           <img
-            src={p?.avatar_url ?? '/placeholder-avatar.png'}
+            src={p?.avatar_url ?? '/default-avatar.png'}
             alt={p?.display_name ?? 'Musician'}
             className="w-16 h-16 md:w-20 md:h-20 rounded-2xl object-cover border border-line"
           />

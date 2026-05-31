@@ -228,7 +228,7 @@ export default function BookingDetailPage() {
       <section className="border rounded-xl p-4 bg-surface-sunken border-line">
         <div className="flex gap-3">
           <img
-            src={organizer?.avatar_url ?? '/placeholder-avatar.png'}
+            src={organizer?.avatar_url ?? '/default-avatar.png'}
             alt={organizer?.display_name ?? 'Organizer'}
             className="w-14 h-14 rounded-full object-cover border border-line"
           />

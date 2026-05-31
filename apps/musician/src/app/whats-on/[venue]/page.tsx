@@ -94,7 +94,7 @@ export default function WhatsOnVenuePage() {
         <div className="p-6 space-y-3">
           <div className="flex items-start gap-4">
             <img
-              src={profile.avatar_url ?? '/placeholder-avatar.png'}
+              src={profile.avatar_url ?? '/default-avatar.png'}
               alt=""
               className="h-16 w-16 rounded-full border border-line object-cover"
             />

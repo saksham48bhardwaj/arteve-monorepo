@@ -157,25 +157,27 @@ function StatusPill({ status }: { status: Application['status'] }) {
   const base =
     'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border';
 
-  const map = {
+  // DB values (applications_status_check): applied | shortlisted | accepted | rejected.
+  const map: Record<string, string> = {
+    applied: `${base} bg-warning/5 text-warning border-warning/30`,
     pending: `${base} bg-warning/5 text-warning border-warning/30`,
+    shortlisted: `${base} bg-brand-50 text-brand-700 border-brand-200`,
     accepted: `${base} bg-success/5 text-success border-success/30`,
-    declined: `${base} bg-danger/5 text-danger border-danger/30`
+    rejected: `${base} bg-danger/5 text-danger border-danger/30`,
+    declined: `${base} bg-danger/5 text-danger border-danger/30`,
   };
 
-  const label =
-    status === 'pending'
-      ? 'Pending'
-      : status === 'accepted'
-      ? 'Accepted'
-      : status === 'declined'
-      ? 'Declined'
-      : status;
+  const labels: Record<string, string> = {
+    applied: 'Applied',
+    pending: 'Pending',
+    shortlisted: 'Shortlisted',
+    accepted: 'Accepted',
+    rejected: 'Rejected',
+    declined: 'Declined',
+  };
 
-  const classes =
-    status in map
-      ? map[status as keyof typeof map]
-      : `${base} bg-surface-sunken text-ink border-line`;
+  const classes = map[status] ?? `${base} bg-surface-sunken text-ink border-line`;
+  const label = labels[status] ?? status;
 
   return <span className={classes}>{label}</span>;
 }
