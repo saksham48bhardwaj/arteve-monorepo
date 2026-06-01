@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams,useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import { sendNotification } from '@arteve/shared/notifications';
+import { track, Events } from '@arteve/shared/analytics/posthog';
 
 type Gig = {
   id: string;
@@ -169,6 +170,8 @@ export default function ApplyToGigPage() {
       body: `${profile?.display_name || 'A musician'} applied to "${gig.title ?? 'your gig'}"`,
       data: { gig_id: gig.id },
     });
+
+    track(Events.GigApplied, { gig_id: gig.id });
 
     router.push('/gigs');
     setSubmitting(false);

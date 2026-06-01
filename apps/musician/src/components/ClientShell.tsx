@@ -5,6 +5,7 @@ import TopNav from './TopNav';
 import BottomNav from './BottomNav';
 import SideNav from './SideNav';
 import RoleGuard from './RoleGuard';
+import { AnalyticsProvider } from '@arteve/shared/analytics/provider';
 import { ToastViewport } from '@arteve/ui/components';
 
 // Routes that render their own page-level chrome and skip the mobile TopNav.
@@ -32,6 +33,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   const bottomPad = !isAuthPage && !isChatPage ? 'pb-24 md:pb-8' : '';
 
   return (
+    <AnalyticsProvider>
     <div className="min-h-screen w-full flex bg-surface-muted">
       {/* Enforce single-role accounts (musician app) */}
       <RoleGuard />
@@ -52,5 +54,6 @@ export default function ClientShell({ children }: { children: React.ReactNode })
       {/* Global toast surface */}
       <ToastViewport />
     </div>
+    </AnalyticsProvider>
   );
 }

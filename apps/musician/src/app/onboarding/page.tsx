@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@arteve/supabase/client';
 import { Button, Input, Textarea, toast } from '@arteve/ui/components';
+import { track, Events } from '@arteve/shared/analytics/posthog';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,13 @@ export default function OnboardingPage() {
       .eq('id', userId);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    track(Events.OnboardingCompleted, {
+      role: 'musician',
+      has_location: !!location.trim(),
+      has_bio: !!bio.trim(),
+      genres_count: genres.length,
+      skipped: false,
+    });
     toast.success('Profile set up. Welcome to Arteve!');
     router.replace('/profile');
   }

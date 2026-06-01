@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { Button, Input, Textarea, Badge, Spinner } from '@arteve/ui/components';
+import { track, Events } from '@arteve/shared/analytics/posthog';
 
 const MAX_DESC = 1500;
 
@@ -78,6 +79,12 @@ export default function CreateGigPage() {
       setLoading(false);
       return;
     }
+
+    track(Events.GigCreated, {
+      has_date: !!eventDate,
+      has_budget: !!(minN || maxN),
+      genres_count: genres.length,
+    });
 
     router.push('/gigs');
   }

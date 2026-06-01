@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { Button, Input, toast } from '@arteve/ui/components';
 import { authErrorMessage, passwordStrength } from '@/lib/auth-errors';
+import { track, Events } from '@arteve/shared/analytics/posthog';
 
 function generateRandomHandle(prefix = 'venue') {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
@@ -163,12 +164,14 @@ export default function OrganizerLoginPage() {
             });
           }
         }
+        track(Events.SignedUp, { role: 'organizer', method: 'email' });
         toast.success('Welcome to Arteve.');
         router.push('/onboarding');
       } else {
         // Sign in
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
+        track(Events.SignedIn, { role: 'organizer', method: 'email' });
         router.push('/profile');
       }
     } catch (err) {

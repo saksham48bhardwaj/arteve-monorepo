@@ -14,6 +14,7 @@ import { supabase } from '@arteve/supabase/client';
 import { PresenceContext } from '@arteve/shared/presence/provider';
 import { useMarkNotificationAsRead } from '@arteve/shared/notifications/auto-read';
 import { sendNotification } from '@arteve/shared/notifications';
+import { track, Events } from '@arteve/shared/analytics/posthog';
 import { Avatar, Button } from '@arteve/ui/components';
 
 type Message = {
@@ -171,6 +172,11 @@ export default function ChatPage() {
         data: { conversation_id: conversationId },
       });
     }
+
+    track(Events.MessageSent, {
+      conversation_id: conversationId,
+      length: text.length,
+    });
   }
 
   function handleTyping(e: ChangeEvent<HTMLInputElement>) {

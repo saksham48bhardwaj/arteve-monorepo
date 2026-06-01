@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import { sendNotification } from '@arteve/shared/notifications';
+import { track, Events } from '@arteve/shared/analytics/posthog';
 
 type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | string;
 
@@ -252,6 +253,12 @@ export default function ApplicationDetailPage() {
         gig_id: app.gig_id,
         application_id: app.id,
       },
+    });
+
+    track(Events.ApplicationAccepted, {
+      gig_id: app.gig_id,
+      application_id: app.id,
+      booking_id: bookingId,
     });
 
     // 7) go to booking chat

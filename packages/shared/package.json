@@ -19,6 +19,8 @@
     "./utils/date": "./utils/date.ts",
     "./legal/content": "./legal/content.ts",
     "./legal/LegalPage": "./legal/LegalPage.tsx",
-    "./auth/errors": "./auth/errors.ts"
+    "./auth/errors": "./auth/errors.ts",
+    "./analytics/posthog": "./analytics/posthog.ts",
+    "./analytics/provider": "./analytics/provider.tsx"
   }
 }
