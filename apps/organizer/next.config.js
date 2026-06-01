@@ -76,21 +76,33 @@ const nextConfig = {
   },
 };
 
-// Wrap with Sentry only when an org + project are configured.
+// Wrap with Sentry only on real (production) builds where an org + project are
+// configured — e.g. Vercel. We deliberately skip it in local dev: importing
+// @sentry/nextjs's build plugin pulls in `rollup`, whose native binary can trip
+// the npm optional-dependencies bug (@rollup/rollup-*) on local machines, and
+// Sentry isn't needed for local development anyway.
 let exported = withPWA(nextConfig);
-try {
-  const { withSentryConfig } = require('@sentry/nextjs');
-  exported = withSentryConfig(exported, {
-    org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT,
-    silent: true,
-    widenClientFileUpload: true,
-    hideSourceMaps: true,
-    disableLogger: true,
-    automaticVercelMonitors: true,
-  });
-} catch (_) {
-  // @sentry/nextjs not installed yet — skip wrapping.
+
+const SENTRY_ENABLED =
+  process.env.NODE_ENV !== 'development' &&
+  !!process.env.SENTRY_ORG &&
+  !!process.env.SENTRY_PROJECT;
+
+if (SENTRY_ENABLED) {
+  try {
+    const { withSentryConfig } = require('@sentry/nextjs');
+    exported = withSentryConfig(exported, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      silent: true,
+      widenClientFileUpload: true,
+      hideSourceMaps: true,
+      disableLogger: true,
+      automaticVercelMonitors: true,
+    });
+  } catch (_) {
+    // @sentry/nextjs not installed — skip wrapping.
+  }
 }
 
 module.exports = exported;
