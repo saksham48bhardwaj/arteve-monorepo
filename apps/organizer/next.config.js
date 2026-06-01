@@ -76,4 +76,21 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+// Wrap with Sentry only when an org + project are configured.
+let exported = withPWA(nextConfig);
+try {
+  const { withSentryConfig } = require('@sentry/nextjs');
+  exported = withSentryConfig(exported, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    silent: true,
+    widenClientFileUpload: true,
+    hideSourceMaps: true,
+    disableLogger: true,
+    automaticVercelMonitors: true,
+  });
+} catch (_) {
+  // @sentry/nextjs not installed yet — skip wrapping.
+}
+
+module.exports = exported;

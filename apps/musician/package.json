@@ -12,6 +12,7 @@
   "dependencies": {
     "@arteve/shared": "*",
     "@arteve/supabase": "^0.1.0",
+    "@sentry/nextjs": "^10.55.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.75.0",
     "next": "^15.5.7",

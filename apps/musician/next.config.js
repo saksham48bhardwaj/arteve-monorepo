@@ -83,4 +83,27 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+// Wrap with Sentry only when an org + project are configured (e.g. on Vercel
+// builds). Locally / before Sentry is set up, withSentryConfig becomes a no-op
+// wrapper that does not require an auth token.
+let exported = withPWA(nextConfig);
+try {
+  const { withSentryConfig } = require('@sentry/nextjs');
+  exported = withSentryConfig(exported, {
+    // These come from your Sentry project settings.
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    // Silence the build banner.
+    silent: true,
+    // Uploads source maps only when SENTRY_AUTH_TOKEN is present; otherwise
+    // Sentry just skips that step.
+    widenClientFileUpload: true,
+    hideSourceMaps: true,
+    disableLogger: true,
+    automaticVercelMonitors: true,
+  });
+} catch (_) {
+  // @sentry/nextjs not installed yet — skip wrapping.
+}
+
+module.exports = exported;
