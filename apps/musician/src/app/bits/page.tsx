@@ -210,7 +210,7 @@ function BitsReelsPage() {
       .from('post_comments')
       .select(
         `id, user_id, comment, created_at,
-         profiles!post_comments_user_id_fkey ( display_name, avatar_url, handle )`,
+         profiles!user_id ( display_name, avatar_url, handle )`,
       )
       .eq('post_id', bitId)
       .order('created_at', { ascending: true });

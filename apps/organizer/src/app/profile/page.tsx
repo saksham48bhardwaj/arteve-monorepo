@@ -19,6 +19,7 @@ import {
   SocialLink,
   toast,
 } from '@arteve/ui/components';
+import { PostViewerModal } from '@arteve/ui/profile/PostViewerModal';
 
 type Profile = {
   id: string;
@@ -52,6 +53,7 @@ export default function OrganizerProfilePage() {
   const [showFollowModal, setShowFollowModal] = useState<'followers' | 'following' | null>(null);
   const [myFollowingIds, setMyFollowingIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'photos' | 'about'>('photos');
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -277,12 +279,12 @@ export default function OrganizerProfilePage() {
           ) : (
             <div className="grid grid-cols-3 gap-[2px] md:gap-1">
               {venuePhotos.map((url, i) => (
-                <a
+                <button
                   key={`${url}-${i}`}
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group relative w-full pb-[100%] overflow-hidden bg-surface-sunken"
+                  type="button"
+                  onClick={() => setGalleryIndex(i)}
+                  className="group relative w-full pb-[100%] overflow-hidden bg-surface-sunken focus-visible:outline-none"
+                  aria-label={`Open photo ${i + 1}`}
                 >
                   <SafeImage
                     src={url}
@@ -291,7 +293,7 @@ export default function OrganizerProfilePage() {
                     sizes="(max-width: 640px) 33vw, 240px"
                     className="object-cover transition-transform group-hover:scale-105"
                   />
-                </a>
+                </button>
               ))}
             </div>
           )}
@@ -350,12 +352,12 @@ export default function OrganizerProfilePage() {
               <h3 className="text-base font-bold text-ink-strong mb-3 px-4 md:px-6">Venue gallery</h3>
               <div className="flex gap-3 overflow-x-auto px-4 md:px-6 pb-2 scroll-smooth snap-x snap-mandatory">
                 {venuePhotos.map((url, i) => (
-                  <a
+                  <button
                     key={`${url}-${i}`}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="relative shrink-0 w-56 md:w-64 h-40 rounded-2xl overflow-hidden border border-line snap-start bg-surface-sunken"
+                    type="button"
+                    onClick={() => setGalleryIndex(i)}
+                    className="relative shrink-0 w-56 md:w-64 h-40 rounded-2xl overflow-hidden border border-line snap-start bg-surface-sunken focus-visible:outline-none"
+                    aria-label={`Open photo ${i + 1}`}
                   >
                     <Image
                       src={url}
@@ -364,7 +366,7 @@ export default function OrganizerProfilePage() {
                       sizes="(max-width: 640px) 50vw, 360px"
                       className="object-cover transition-transform hover:scale-105"
                     />
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
@@ -433,6 +435,15 @@ export default function OrganizerProfilePage() {
           );
         })()}
       </Modal>
+
+      <PostViewerModal
+        social={false}
+        items={venuePhotos.map((url, i) => ({ id: `${i}`, media_url: url, media_type: 'image' }))}
+        index={galleryIndex}
+        onIndexChange={setGalleryIndex}
+        onClose={() => setGalleryIndex(null)}
+        author={{ id: profile.id, display_name: profile.display_name, handle: profile.handle, avatar_url: profile.avatar_url }}
+      />
     </main>
   );
 }

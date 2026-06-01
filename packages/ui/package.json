@@ -6,7 +6,8 @@
   "exports": {
     ".": "./components/index.ts",
     "./components": "./components/index.ts",
-    "./profile/PublicProfile": "./profile/PublicProfile.tsx"
+    "./profile/PublicProfile": "./profile/PublicProfile.tsx",
+    "./profile/PostViewerModal": "./profile/PostViewerModal.tsx"
   },
   "dependencies": {
     "react-easy-crop": "^5.5.7"

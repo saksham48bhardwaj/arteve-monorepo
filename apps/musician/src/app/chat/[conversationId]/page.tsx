@@ -104,6 +104,16 @@ export default function ChatPage() {
         .neq('sender_id', user.id)
         .is('read_at', null);
 
+      // Clear the "new message" notifications for this conversation so the
+      // bell counter comes down once the messages have actually been opened.
+      await supabase
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('type', 'new_message')
+        .is('read_at', null)
+        .eq('data->>conversation_id', conversationId);
+
       setLoading(false);
     })();
   }, [conversationId]);
@@ -121,11 +131,25 @@ export default function ChatPage() {
       async (payload) => {
         const msg = payload.new as Message;
         setMsgs((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
-        if (msg.sender_id !== userId && !msg.read_at) {
-          await supabase
-            .from('messages')
-            .update({ read_at: new Date().toISOString() })
-            .eq('id', msg.id);
+        if (msg.sender_id !== userId) {
+          if (!msg.read_at) {
+            await supabase
+              .from('messages')
+              .update({ read_at: new Date().toISOString() })
+              .eq('id', msg.id);
+          }
+          // The matching new_message notification lands a beat after the
+          // message row, so clear it shortly after to keep the bell in sync
+          // while the conversation is open.
+          setTimeout(() => {
+            void supabase
+              .from('notifications')
+              .update({ read_at: new Date().toISOString() })
+              .eq('user_id', userId)
+              .eq('type', 'new_message')
+              .is('read_at', null)
+              .eq('data->>conversation_id', conversationId);
+          }, 1500);
         }
       },
     );

@@ -7,7 +7,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
-import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
 import {
   Card,
   Button,
@@ -22,6 +21,7 @@ import {
   SocialLink,
   toast,
 } from '@arteve/ui/components';
+import { PostViewerModal } from '@arteve/ui/profile/PostViewerModal';
 
 type Achievement = { id: string; title: string | null; description: string | null; year: number | null };
 type Show = { id: string; title: string | null; venue: string | null; location: string | null; event_date: string | null };
@@ -222,16 +222,6 @@ export default function ProfilePage() {
     setSelectedIndex(i);
     setSelectedMedia(media[i]);
   }
-  function nextMedia() {
-    const next = (selectedIndex + 1) % media.length;
-    setSelectedIndex(next);
-    setSelectedMedia(media[next]);
-  }
-  function prevMedia() {
-    const prev = (selectedIndex - 1 + media.length) % media.length;
-    setSelectedIndex(prev);
-    setSelectedMedia(media[prev]);
-  }
 
   if (loading) {
     return (
@@ -424,7 +414,7 @@ export default function ProfilePage() {
                     )}
                     {item.media_url && item.media_type === 'video' && (
                       <>
-                        <video src={item.media_url} muted className="absolute inset-0 w-full h-full object-cover" />
+                        <video src={item.media_url} muted className="pointer-events-none absolute inset-0 w-full h-full object-cover" />
                         <span className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
                           <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
                         </span>
@@ -629,60 +619,17 @@ export default function ProfilePage() {
         </section>
       )}
 
-      {/* ============ MEDIA LIGHTBOX ============ */}
-      {selectedMedia && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
-          <button
-            type="button"
-            aria-label="Close"
-            className="absolute inset-0 cursor-default"
-            onClick={() => setSelectedMedia(null)}
-          />
-
-          <div className="relative z-10 w-full max-w-3xl">
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <Button variant="danger" size="sm" onClick={() => deleteMedia(selectedMedia)}>
-                Delete
-              </Button>
-              <button
-                type="button"
-                onClick={() => setSelectedMedia(null)}
-                aria-label="Close"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="rounded-2xl overflow-hidden bg-black">
-              {selectedMedia.media_type === 'image' && (
-                <img src={selectedMedia.media_url} className="w-full max-h-[80vh] object-contain" alt="" />
-              )}
-              {selectedMedia.media_type === 'video' && (
-                <video src={selectedMedia.media_url} controls className="w-full max-h-[80vh]" />
-              )}
-              {selectedMedia.media_type === 'audio' && (
-                <div className="p-6 bg-surface">
-                  <AudioPlayer src={selectedMedia.media_url} title={selectedMedia.caption ?? 'Audio'} />
-                </div>
-              )}
-            </div>
-
-            {media.length > 1 && (
-              <>
-                <button type="button" onClick={prevMedia} aria-label="Previous" className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                </button>
-                <button type="button" onClick={nextMedia} aria-label="Next" className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* ============ POST VIEWER ============ */}
+      <PostViewerModal
+        items={media}
+        index={selectedMedia ? selectedIndex : null}
+        onIndexChange={(i) => { setSelectedIndex(i); setSelectedMedia(media[i]); }}
+        onClose={() => setSelectedMedia(null)}
+        author={profile ? { id: profile.id, display_name: profile.display_name, handle: profile.handle, avatar_url: profile.avatar_url } : null}
+        viewerId={profile?.id ?? null}
+        canDelete
+        onDelete={(it) => deleteMedia(it as PostMedia)}
+      />
 
       {/* ============ FOLLOWERS / FOLLOWING MODAL ============ */}
       <Modal open={showFollowersModal} onClose={() => setShowFollowersModal(false)} title="Followers">

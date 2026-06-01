@@ -6,7 +6,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
-import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
 import { sendNotification } from '@arteve/shared/notifications';
 import {
   Button,
@@ -21,6 +20,7 @@ import {
   VerifiedBadge,
   toast,
 } from '@arteve/ui/components';
+import { PostViewerModal } from '@arteve/ui/profile/PostViewerModal';
 
 type PostMedia = {
   id: string;
@@ -46,6 +46,7 @@ type BaseProfile = {
   location: string | null;
   quote: string | null;
   verified: boolean | null;
+  venue_photos: string[] | null;
 };
 type FollowProfile = { id: string; display_name: string | null; handle: string | null; avatar_url: string | null };
 
@@ -111,13 +112,18 @@ export default function OrganizerPublicProfilePage() {
         const prof = p as BaseProfile;
         setProfile(prof);
 
+        // Venues (organizers) store their images in profile.venue_photos, not
+        // the posts table — surface those so a venue profile isn't empty.
+        const isVenue = prof.role === 'organizer';
+        const venuePhotos = (prof.venue_photos ?? []).filter(Boolean);
+
         const [postsCntRes, followersRes, followingRes] = await Promise.all([
           supabase.from('posts').select('id', { count: 'exact', head: true }).eq('profile_id', prof.id),
           supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('following_id', prof.id),
           supabase.from('followers').select('follower_id', { count: 'exact', head: true }).eq('follower_id', prof.id),
         ]);
         setCounts({
-          posts: postsCntRes.count || 0,
+          posts: isVenue ? venuePhotos.length : (postsCntRes.count || 0),
           followers: followersRes.count || 0,
           following: followingRes.count || 0,
         });
@@ -147,7 +153,11 @@ export default function OrganizerPublicProfilePage() {
           supabase.from('skills').select('*').eq('profile_id', prof.id).order('created_at', { ascending: false }),
           supabase.from('recommendations').select('*').eq('profile_id', prof.id).order('created_at', { ascending: false }),
         ]);
-        setPosts((postData ?? []) as PostMedia[]);
+        setPosts(
+          isVenue
+            ? venuePhotos.map((url, i) => ({ id: `v${i}`, media_url: url, media_type: 'image' as const, caption: null, kind: 'post' as const, created_at: '' }))
+            : ((postData ?? []) as PostMedia[]),
+        );
         setAchievements((a ?? []) as Achievement[]);
         setShows((s ?? []) as Show[]);
         setSkills((sk ?? []) as Skill[]);
@@ -251,21 +261,6 @@ export default function OrganizerPublicProfilePage() {
   }
 
   function openMedia(i: number) { setSelectedIndex(i); setSelectedMedia(posts[i]); }
-  function nextMedia() { const next = (selectedIndex + 1) % posts.length; setSelectedIndex(next); setSelectedMedia(posts[next]); }
-  function prevMedia() { const prev = (selectedIndex - 1 + posts.length) % posts.length; setSelectedIndex(prev); setSelectedMedia(posts[prev]); }
-
-  // Keyboard navigation for the media lightbox (Esc to close, ←/→ to move).
-  useEffect(() => {
-    if (!selectedMedia) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setSelectedMedia(null);
-      else if (e.key === 'ArrowRight' && posts.length > 1) nextMedia();
-      else if (e.key === 'ArrowLeft' && posts.length > 1) prevMedia();
-    }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMedia, selectedIndex, posts.length]);
 
   if (loading) {
     return (
@@ -290,6 +285,7 @@ export default function OrganizerPublicProfilePage() {
   const validLinks = profile.links ? Object.entries(profile.links).filter(([, v]) => !!v) : [];
   const isOwn = viewerId === profile.id;
   const isMusician = profile.role === 'musician';
+  const isVenue = profile.role === 'organizer';
 
   return (
     <main className="w-full mx-auto" style={{ maxWidth: 720 }}>
@@ -396,7 +392,7 @@ export default function OrganizerPublicProfilePage() {
                   )}
                   {item.media_type === 'video' && (
                     <>
-                      <video src={item.media_url} muted className="absolute inset-0 w-full h-full object-cover" />
+                      <video src={item.media_url} muted className="pointer-events-none absolute inset-0 w-full h-full object-cover" />
                       <span className="absolute top-1.5 right-1.5 inline-flex items-center rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
                         <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
                       </span>
@@ -580,56 +576,15 @@ export default function OrganizerPublicProfilePage() {
         </section>
       )}
 
-      {/* MEDIA LIGHTBOX */}
-      {selectedMedia && (
-        <div role="dialog" aria-modal="true" aria-label="Media viewer" className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
-          <button
-            type="button"
-            aria-label="Close"
-            className="absolute inset-0 cursor-default"
-            onClick={() => setSelectedMedia(null)}
-          />
-          <div className="relative z-10 w-full max-w-3xl">
-            <div className="flex items-center justify-end mb-3">
-              <button
-                type="button"
-                onClick={() => setSelectedMedia(null)}
-                aria-label="Close"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
-            </div>
-            <div className="rounded-2xl overflow-hidden bg-black">
-              {selectedMedia.media_type === 'image' && (
-                <img src={selectedMedia.media_url} className="w-full max-h-[80vh] object-contain" alt={selectedMedia.caption ?? `Photo by ${profile.display_name ?? 'this profile'}`} />
-              )}
-              {selectedMedia.media_type === 'video' && (
-                <video src={selectedMedia.media_url} controls className="w-full max-h-[80vh]" />
-              )}
-              {selectedMedia.media_type === 'audio' && (
-                <div className="p-6 bg-surface">
-                  <AudioPlayer src={selectedMedia.media_url} title={selectedMedia.caption ?? 'Audio'} />
-                </div>
-              )}
-            </div>
-            {posts.length > 1 && (
-              <>
-                <button type="button" onClick={prevMedia} aria-label="Previous"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                </button>
-                <button type="button" onClick={nextMedia} aria-label="Next"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <PostViewerModal
+        items={posts}
+        index={selectedMedia ? selectedIndex : null}
+        onIndexChange={(i) => { setSelectedIndex(i); setSelectedMedia(posts[i]); }}
+        onClose={() => setSelectedMedia(null)}
+        author={{ id: profile.id, display_name: profile.display_name, handle: profile.handle, avatar_url: profile.avatar_url }}
+        viewerId={viewerId}
+        social={!isVenue}
+      />
 
       {/* FOLLOWERS / FOLLOWING MODAL */}
       <Modal

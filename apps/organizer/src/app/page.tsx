@@ -559,7 +559,7 @@ export default function OrganizerHomePage() {
 
                   <Link
                     href={`/book/${post.profiles?.id ?? ''}`}
-                    className="ml-auto btn btn-primary btn-sm"
+                    className="ml-auto btn btn-brand btn-sm"
                   >
                     Book
                   </Link>

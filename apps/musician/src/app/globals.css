@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:wght@500;600;700&display=swap');
 
+/* Scan shared workspace packages so utility classes used in @arteve/ui and
+   @arteve/shared get generated. These resolve via node_modules symlinks, which
+   Tailwind v4's automatic content detection excludes — without this, classes
+   used only in shared components (e.g. the post viewer modal) are silently
+   dropped and those components render unstyled. */
+@source "../../../../packages/ui";
+@source "../../../../packages/shared";
+
 /* =========================================================================
    ARTEVE — Unified Design Tokens (Light)
    Brand:   #4E7FA2 (slate blue)
@@ -191,7 +199,13 @@ h3, h4 { font-weight: 600; }
   color: var(--brand-900);
 }
 
-a { color: inherit; }
+/* Anchors inherit text colour by default — but this MUST live in @layer base
+   so that component classes (.btn-primary, .badge-solid, …) applied to an <a>
+   still win. An unlayered `a { color: inherit }` beats @layer components and
+   silently turns anchor-styled buttons into dark-text-on-dark-bg. */
+@layer base {
+  a { color: inherit; }
+}
 
 /* Focus ring — consistent, brand-coloured, snug */
 *:focus-visible {
