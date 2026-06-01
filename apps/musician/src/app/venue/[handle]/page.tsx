@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@arteve/supabase/client';
+import { safeHref } from '@arteve/ui/components';
 
 type VenueProfile = {
   id: string;
@@ -120,39 +121,42 @@ export default function PublicVenuePage() {
       )}
 
       {/* LINKS */}
-      {(links.instagram || links.youtube || links.website) && (
+      {(safeHref(links.instagram) || safeHref(links.youtube) || safeHref(links.website)) && (
         <section className="bg-surface border rounded-2xl p-6 shadow-sm space-y-3 border-line">
           <h2 className="text-lg font-semibold">Online Presence</h2>
 
           <ul className="space-y-2 text-sm">
-            {links.instagram && (
+            {safeHref(links.instagram) && (
               <li>
                 <a
-                  href={links.instagram}
+                  href={safeHref(links.instagram)!}
                   target="_blank"
-                  className="text-blue-600 hover:underline"
+                  rel="noreferrer nofollow"
+                  className="text-brand hover:underline"
                 >
                   Instagram →
                 </a>
               </li>
             )}
-            {links.youtube && (
+            {safeHref(links.youtube) && (
               <li>
                 <a
-                  href={links.youtube}
+                  href={safeHref(links.youtube)!}
                   target="_blank"
-                  className="text-blue-600 hover:underline"
+                  rel="noreferrer nofollow"
+                  className="text-brand hover:underline"
                 >
                   YouTube →
                 </a>
               </li>
             )}
-            {links.website && (
+            {safeHref(links.website) && (
               <li>
                 <a
-                  href={links.website}
+                  href={safeHref(links.website)!}
                   target="_blank"
-                  className="text-blue-600 hover:underline"
+                  rel="noreferrer nofollow"
+                  className="text-brand hover:underline"
                 >
                   Website →
                 </a>

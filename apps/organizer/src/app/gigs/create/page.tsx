@@ -36,6 +36,13 @@ export default function CreateGigPage() {
     .map((g) => g.trim())
     .filter(Boolean);
 
+  // Local "today" (YYYY-MM-DD) for the date picker min + past-date guard.
+  const todayStr = (() => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 10);
+  })();
+
   const canSubmit = title.trim().length > 0 && !loading;
 
   async function handleSubmit(e: FormEvent) {
@@ -51,10 +58,23 @@ export default function CreateGigPage() {
       return;
     }
 
-    const minN = budgetMin ? Number(budgetMin) : null;
-    const maxN = budgetMax ? Number(budgetMax) : null;
-    if (minN && maxN && minN > maxN) {
+    const minN = budgetMin.trim() ? Number(budgetMin) : null;
+    const maxN = budgetMax.trim() ? Number(budgetMax) : null;
+    if (
+      (minN !== null && (!Number.isFinite(minN) || minN < 0)) ||
+      (maxN !== null && (!Number.isFinite(maxN) || maxN < 0))
+    ) {
+      setErrorMsg('Budget must be a positive number.');
+      setLoading(false);
+      return;
+    }
+    if (minN !== null && maxN !== null && minN > maxN) {
       setErrorMsg('Min budget cannot exceed max budget.');
+      setLoading(false);
+      return;
+    }
+    if (eventDate && eventDate < todayStr) {
+      setErrorMsg('Event date can’t be in the past.');
       setLoading(false);
       return;
     }
@@ -155,6 +175,7 @@ export default function CreateGigPage() {
             <Input
               label="Event date"
               type="date"
+              min={todayStr}
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
             />

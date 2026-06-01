@@ -90,7 +90,17 @@ export async function searchPeople(
     .eq('role', 'musician')
     .is('deleted_at', null);
 
-  if (query) q = q.ilike('display_name', `%${query}%`);
+  if (query) {
+    const safe = sanitizeForOr(query);
+    if (safe) {
+      // Match name, bio, location, or an exact genre tag — so a search for
+      // "jazz" surfaces jazz artists, not only people whose display name
+      // literally contains "jazz".
+      q = q.or(
+        `display_name.ilike.%${safe}%,bio.ilike.%${safe}%,location.ilike.%${safe}%,genres.cs.{${safe}}`
+      );
+    }
+  }
   if (filters.location) q = q.ilike('location', `%${filters.location}%`);
   if (filters.genre) q = q.contains('genres', [filters.genre]);
 
@@ -166,7 +176,10 @@ export async function searchVenues(
     .eq('role', 'organizer')
     .is('deleted_at', null);
 
-  if (query) q = q.ilike('display_name', `%${query}%`);
+  if (query) {
+    const safe = sanitizeForOr(query);
+    if (safe) q = q.or(`display_name.ilike.%${safe}%,location.ilike.%${safe}%`);
+  }
   if (filters.location) q = q.ilike('location', `%${filters.location}%`);
 
   const { data, error } = await q.range(from, to);

@@ -71,13 +71,13 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-yellow-100 text-warning',
+  pending: 'bg-warning/10 text-warning',
   accepted: 'bg-success/10 text-success',
   declined: 'bg-danger/10 text-danger',
   cancelled: 'bg-line-strong text-ink-strong',
   canceled_by_organizer: 'bg-line-strong text-ink-strong',
   canceled_by_musician: 'bg-line-strong text-ink-strong',
-  completed: 'bg-blue-100 text-blue-800',
+  completed: 'bg-info/10 text-info',
 };
 
 function getStatusLabel(status: string): string {

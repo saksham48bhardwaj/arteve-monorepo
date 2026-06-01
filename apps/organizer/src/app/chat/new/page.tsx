@@ -3,6 +3,7 @@
 import { Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
+import { toast } from '@arteve/ui/components';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,35 +24,48 @@ function NewChatContent() {
     if (!handle) return;
 
     async function startChat() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        router.push('/login');
+        return;
+      }
+      const me = auth.user.id;
 
-      if (!user) return;
-
-      const { data: other } = await supabase
+      // Target profile
+      const { data: target, error: targetErr } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, role')
         .eq('handle', handle)
         .single();
 
-      if (!other) return;
+      if (targetErr || !target) {
+        toast.error('User not found');
+        router.replace('/chat');
+        return;
+      }
 
-      // Find existing conversation
+      // Prevent self-chat
+      if (me === target.id) {
+        router.replace('/chat');
+        return;
+      }
+
+      // Find existing 1:1 conversation
       const { data: existing } = await supabase
         .from('conversation_participants')
         .select('conversation_id')
-        .eq('user_id', user.id);
+        .eq('user_id', me);
 
       if (existing?.length) {
         const { data: shared } = await supabase
           .from('conversation_participants')
           .select('conversation_id')
-          .eq('user_id', other.id)
+          .eq('user_id', target.id)
           .in(
             'conversation_id',
             existing.map((c) => c.conversation_id)
-          );
+          )
+          .limit(1);
 
         if (shared?.length) {
           router.replace(`/chat/${shared[0].conversation_id}`);
@@ -60,16 +74,35 @@ function NewChatContent() {
       }
 
       // Create new conversation
-      const { data: convo } = await supabase
+      const { data: convo, error: convoErr } = await supabase
         .from('conversations')
-        .insert({ created_by: user.id })
-        .select()
+        .insert({ created_by: me, booking_id: null })
+        .select('id')
         .single();
 
-      await supabase.from('conversation_participants').insert([
-        { conversation_id: convo.id, user_id: user.id },
-        { conversation_id: convo.id, user_id: other.id },
-      ]);
+      if (convoErr || !convo) {
+        toast.error(convoErr?.message || 'Failed to start chat');
+        router.replace('/chat');
+        return;
+      }
+
+      const { data: myProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', me)
+        .single();
+
+      const { error: partError } = await supabase
+        .from('conversation_participants')
+        .insert([
+          { conversation_id: convo.id, user_id: me, role: myProfile?.role ?? 'organizer' },
+          { conversation_id: convo.id, user_id: target.id, role: target.role },
+        ]);
+
+      if (partError) {
+        toast.error(partError.message || 'Failed to start chat');
+        return;
+      }
 
       router.replace(`/chat/${convo.id}`);
     }

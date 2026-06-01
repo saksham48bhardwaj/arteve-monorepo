@@ -18,6 +18,7 @@ import {
   SafeImage,
   Spinner,
   SocialLink,
+  VerifiedBadge,
   toast,
 } from '@arteve/ui/components';
 
@@ -44,6 +45,7 @@ type BaseProfile = {
   links: Record<string, string> | null;
   location: string | null;
   quote: string | null;
+  verified: boolean | null;
 };
 type FollowProfile = { id: string; display_name: string | null; handle: string | null; avatar_url: string | null };
 
@@ -306,7 +308,10 @@ export default function OrganizerPublicProfilePage() {
 
         {/* NAME + BIO */}
         <div className="mt-4 space-y-1">
-          <h2 className="text-base font-bold text-ink-strong">{profile.display_name ?? 'Unnamed'}</h2>
+          <h2 className="text-base font-bold text-ink-strong inline-flex items-center gap-1">
+            {profile.display_name ?? 'Unnamed'}
+            {profile.verified && <VerifiedBadge size={16} />}
+          </h2>
           {profile.location && <p className="text-xs text-ink-muted">{profile.location}</p>}
           {profile.bio && <p className="text-sm text-ink whitespace-pre-line mt-2 leading-relaxed">{profile.bio}</p>}
           {genres.length > 0 && (

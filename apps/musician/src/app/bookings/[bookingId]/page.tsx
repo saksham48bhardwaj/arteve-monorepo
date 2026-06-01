@@ -299,7 +299,7 @@ export default function BookingDetailPage() {
             <button
               onClick={() => updateStatus('accepted')}
               disabled={actionLoading}
-              className="w-full py-2 bg-green-600 text-white rounded-lg disabled:opacity-60"
+              className="w-full py-2 bg-success text-white rounded-lg disabled:opacity-60"
             >
               {actionLoading ? 'Updating…' : 'Accept'}
             </button>
@@ -326,7 +326,7 @@ export default function BookingDetailPage() {
             <button
               onClick={markCompleted}
               disabled={actionLoading}
-              className="w-full py-2 bg-blue-700 text-white rounded-lg disabled:opacity-60"
+              className="w-full py-2 bg-success text-white rounded-lg disabled:opacity-60"
             >
               Mark as completed
             </button>

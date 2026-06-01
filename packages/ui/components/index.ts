@@ -51,3 +51,8 @@ export { SafeImage } from './SafeImage';
 export type { SafeImageProps } from './SafeImage';
 
 export { cn } from './cn';
+
+export { safeHref } from './safeHref';
+
+export { VerifiedBadge } from './VerifiedBadge';
+export type { VerifiedBadgeProps } from './VerifiedBadge';

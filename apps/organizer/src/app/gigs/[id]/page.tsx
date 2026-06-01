@@ -126,7 +126,7 @@ export default function OrganizerGigDetailPage() {
 
         {/* EVENT INFO CARD */}
         <section className="overflow-hidden rounded-3xl border border-line bg-surface shadow-sm">
-          <div className="h-2 w-full bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900" />
+          <div className="h-2 w-full bg-gradient-to-r from-brand-700 via-brand-500 to-brand-700" />
 
           <div className="p-6 sm:p-8 space-y-6">
             {/* DATE / LOCATION / BUDGET */}
@@ -194,7 +194,7 @@ export default function OrganizerGigDetailPage() {
             </p>
 
             {bookingId && (
-              <p className="text-emerald-700 text-sm">
+              <p className="text-success text-sm">
                 Booking created —{' '}
                 <a
                   href={`/bookings/${bookingId}/chat`}
@@ -232,7 +232,7 @@ export default function OrganizerGigDetailPage() {
             ) : (
               <button
                 onClick={reopenGig}
-                className="px-4 py-2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm border-line"
+                className="px-4 py-2 rounded-full bg-success/10 text-success border border-success/30 text-sm"
               >
                 Reopen gig
               </button>
@@ -257,10 +257,10 @@ function GigStatusBadge({ status }: { status: string }) {
   if (status === 'open') {
     label = 'Open for applications';
     classes =
-      'bg-emerald-100 text-emerald-800 border border-emerald-200';
+      'bg-success/10 text-success border border-success/30';
   } else if (status === 'booked') {
     label = 'Booked';
-    classes = 'bg-amber-100 text-warning border border-warning/30';
+    classes = 'bg-warning/10 text-warning border border-warning/30';
   } else if (status === 'closed') {
     label = 'Closed';
     classes = 'bg-line-strong text-ink border border-line-strong';

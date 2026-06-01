@@ -224,7 +224,7 @@ export default function OrganizerBookingDetailPage() {
 
             <Link
               href={`/profile/${musician?.handle ?? musician?.id}`}
-              className="text-xs underline text-blue-600 mt-2 inline-block"
+              className="text-xs underline text-brand mt-2 inline-block"
             >
               View full profile →
             </Link>
@@ -280,7 +280,7 @@ export default function OrganizerBookingDetailPage() {
           <>
             <button
               onClick={markCompleted}
-              className="w-full px-4 py-2 rounded-xl bg-green-600 text-white text-sm"
+              className="w-full px-4 py-2 rounded-xl bg-success text-white text-sm"
             >
               Mark as completed
             </button>

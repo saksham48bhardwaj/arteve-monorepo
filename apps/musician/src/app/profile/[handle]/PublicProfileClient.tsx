@@ -18,6 +18,7 @@ import {
   SafeImage,
   Spinner,
   SocialLink,
+  VerifiedBadge,
   toast,
 } from '@arteve/ui/components';
 
@@ -44,6 +45,7 @@ type BaseProfile = {
   links: Record<string, string> | null;
   location: string | null;
   quote: string | null;
+  verified: boolean | null;
 };
 type FollowProfile = { id: string; display_name: string | null; handle: string | null; avatar_url: string | null };
 
@@ -248,6 +250,19 @@ export default function MusicianPublicProfilePage() {
   function nextMedia() { const next = (selectedIndex + 1) % posts.length; setSelectedIndex(next); setSelectedMedia(posts[next]); }
   function prevMedia() { const prev = (selectedIndex - 1 + posts.length) % posts.length; setSelectedIndex(prev); setSelectedMedia(posts[prev]); }
 
+  // Keyboard navigation for the media lightbox (Esc to close, ←/→ to move).
+  useEffect(() => {
+    if (!selectedMedia) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSelectedMedia(null);
+      else if (e.key === 'ArrowRight' && posts.length > 1) nextMedia();
+      else if (e.key === 'ArrowLeft' && posts.length > 1) prevMedia();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMedia, selectedIndex, posts.length]);
+
   if (loading) {
     return (
       <main className="px-4 py-6">
@@ -298,7 +313,10 @@ export default function MusicianPublicProfilePage() {
         </div>
 
         <div className="mt-4 space-y-1">
-          <h2 className="text-base font-bold text-ink-strong">{profile.display_name ?? 'Unnamed'}</h2>
+          <h2 className="text-base font-bold text-ink-strong inline-flex items-center gap-1">
+            {profile.display_name ?? 'Unnamed'}
+            {profile.verified && <VerifiedBadge size={16} />}
+          </h2>
           {profile.location && <p className="text-xs text-ink-muted">{profile.location}</p>}
           {profile.bio && <p className="text-sm text-ink whitespace-pre-line mt-2 leading-relaxed">{profile.bio}</p>}
           {genres.length > 0 && (
@@ -558,7 +576,7 @@ export default function MusicianPublicProfilePage() {
       )}
 
       {selectedMedia && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
+        <div role="dialog" aria-modal="true" aria-label="Media viewer" className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
           <button type="button" aria-label="Close" className="absolute inset-0 cursor-default" onClick={() => setSelectedMedia(null)} />
           <div className="relative z-10 w-full max-w-3xl">
             <div className="flex items-center justify-end mb-3">
@@ -571,7 +589,7 @@ export default function MusicianPublicProfilePage() {
             </div>
             <div className="rounded-2xl overflow-hidden bg-black">
               {selectedMedia.media_type === 'image' && (
-                <img src={selectedMedia.media_url} className="w-full max-h-[80vh] object-contain" alt="" />
+                <img src={selectedMedia.media_url} className="w-full max-h-[80vh] object-contain" alt={selectedMedia.caption ?? `Photo by ${profile.display_name ?? 'this artist'}`} />
               )}
               {selectedMedia.media_type === 'video' && (
                 <video src={selectedMedia.media_url} controls className="w-full max-h-[80vh]" />

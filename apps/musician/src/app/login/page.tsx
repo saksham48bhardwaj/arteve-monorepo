@@ -172,7 +172,16 @@ export default function LoginPage() {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
         track(Events.SignedIn, { role: 'musician', method: 'email' });
-        router.push('/profile');
+        // Route users who never finished onboarding back into it, so the app
+        // never operates with display_name = email.
+        const { data: { user } } = await supabase.auth.getUser();
+        let dest = '/profile';
+        if (user) {
+          const { data: prof } = await supabase
+            .from('profiles').select('onboarded_at').eq('id', user.id).maybeSingle();
+          if (!prof?.onboarded_at) dest = '/onboarding';
+        }
+        router.push(dest);
       }
     } catch (err) {
       setErrMsg(authErrorMessage(err));

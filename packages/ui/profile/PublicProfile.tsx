@@ -4,13 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@arteve/supabase';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
-
-// Only allow http(s) links to render — blocks javascript:/data: stored-XSS
-// vectors from any pre-existing bad profile data.
-function safeHref(v: string | null | undefined): string | null {
-  if (!v) return null;
-  return /^https?:\/\//i.test(v.trim()) ? v.trim() : null;
-}
+import { safeHref } from '../components/safeHref';
 
 type MediaItem = { id: string; url: string; type: 'image' | 'video' };
 

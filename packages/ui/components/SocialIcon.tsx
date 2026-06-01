@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { safeHref } from './safeHref';
 
 /** Brand background color for each known social platform. */
 export function socialColor(key: string): string {
@@ -117,11 +118,15 @@ export interface SocialLinkProps {
 
 /** Pre-styled colored circular link button for a social profile. */
 export function SocialLink({ name, href, size = 40, className = '' }: SocialLinkProps) {
+  // Never render an unsafe scheme (javascript:/data:/…). Drop the link entirely
+  // if the stored value can't be trusted, rather than emitting a live XSS vector.
+  const safe = safeHref(href);
+  if (!safe) return null;
   return (
     <a
-      href={href}
+      href={safe}
       target="_blank"
-      rel="noreferrer"
+      rel="noreferrer nofollow"
       aria-label={name}
       title={name}
       className={`inline-flex items-center justify-center rounded-full text-white shadow-sm hover:scale-105 transition ${className}`}

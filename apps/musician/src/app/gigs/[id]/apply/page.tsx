@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams,useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import { sendNotification } from '@arteve/shared/notifications';
 import { track, Events } from '@arteve/shared/analytics/posthog';
@@ -15,6 +16,7 @@ type Gig = {
 
 type Profile = {
   id: string;
+  handle: string | null;
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
@@ -66,6 +68,9 @@ export default function ApplyToGigPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
 
   // Load gig + profile snapshot data
   useEffect(() => {
@@ -74,7 +79,10 @@ export default function ApplyToGigPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (!user) {
+        router.replace('/login');
+        return;
+      }
 
       setUserId(user.id);
 
@@ -84,7 +92,21 @@ export default function ApplyToGigPage() {
         .eq('id', id)
         .maybeSingle();
 
-      if (g) setGig(g as Gig);
+      if (!g) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+      setGig(g as Gig);
+
+      // Block re-applying: surface an existing application if there is one.
+      const { data: existing } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('gig_id', id)
+        .eq('musician_id', user.id)
+        .maybeSingle();
+      if (existing) setAlreadyApplied(true);
 
       // Profile + sections
       const { data: p } = await supabase
@@ -122,17 +144,26 @@ export default function ApplyToGigPage() {
         .eq('profile_id', user.id);
 
       setRecommendations(r ?? []);
+      setLoading(false);
     }
 
     load();
-  }, [id]);
+  }, [id, router]);
 
   async function submitApplication() {
+    if (!userId || !gig) return;
+    if (alreadyApplied) {
+      setFeedback('You’ve already applied to this gig.');
+      return;
+    }
+    if (gig.status !== 'open') {
+      setFeedback('This gig is no longer accepting applications.');
+      return;
+    }
     if (!message.trim()) {
       setFeedback('Please write a message before submitting.');
       return;
     }
-    if (!userId || !gig) return;
 
     setSubmitting(true);
     setFeedback(null);
@@ -158,7 +189,13 @@ export default function ApplyToGigPage() {
 
     if (error) {
       console.error(error);
-      setFeedback('Failed to submit application.');
+      // Unique violation (gig_id, musician_id) = applied already, possibly via a race.
+      if ((error as { code?: string }).code === '23505') {
+        setAlreadyApplied(true);
+        setFeedback('You’ve already applied to this gig.');
+      } else {
+        setFeedback('Failed to submit application. Please try again.');
+      }
       setSubmitting(false);
       return;
     }
@@ -177,16 +214,33 @@ export default function ApplyToGigPage() {
     setSubmitting(false);
   }
 
-  if (!gig || !profile)
+  if (loading)
     return (
-    <main className="page page-narrow">
-      <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading application…</p></div>
-    </main>
-  );
+      <main className="page page-narrow">
+        <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading application…</p></div>
+      </main>
+    );
 
-  const username =
-    profile.display_name?.toLowerCase().replace(/\s+/g, '') ??
-    profile.id.slice(0, 8);
+  if (notFound || !gig)
+    return (
+      <main className="page page-narrow">
+        <div className="card card-padded text-center space-y-3">
+          <h1 className="text-lg font-semibold text-ink-strong">Gig not found</h1>
+          <p className="text-sm text-ink-muted">This gig may have been removed, or the link is incorrect.</p>
+          <Link href="/gigs" className="btn btn-primary btn-sm inline-flex">Browse gigs</Link>
+        </div>
+      </main>
+    );
+
+  if (!profile)
+    return (
+      <main className="page page-narrow">
+        <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading your profile…</p></div>
+      </main>
+    );
+
+  const username = profile.handle ?? profile.id.slice(0, 8);
+  const gigOpen = gig.status === 'open';
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
@@ -206,6 +260,7 @@ export default function ApplyToGigPage() {
         <div className="flex gap-4">
           <img
             src={profile.avatar_url ?? '/default-avatar.png'}
+            alt={profile.display_name ?? 'Your profile photo'}
             className="w-20 h-20 rounded-2xl object-cover border border-line"
           />
           <div className="flex-1 space-y-1">
@@ -375,23 +430,36 @@ export default function ApplyToGigPage() {
       <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-8 space-y-4">
         <h2 className="text-lg font-semibold">Write your application</h2>
 
+        {!gigOpen && (
+          <div className="rounded-xl border border-warning/30 bg-warning/10 px-3.5 py-2.5 text-sm font-medium text-ink-strong">
+            This gig is no longer accepting applications.
+          </div>
+        )}
+        {gigOpen && alreadyApplied && (
+          <div className="rounded-xl border border-info/30 bg-info/10 px-3.5 py-2.5 text-sm font-medium text-ink-strong flex items-center justify-between gap-3">
+            <span>You’ve already applied to this gig.</span>
+            <Link href="/gigs?tab=applications" className="underline shrink-0">View application</Link>
+          </div>
+        )}
+
         {feedback && (
           <p className="text-sm text-ink-muted">{feedback}</p>
         )}
 
         <textarea
-          className="w-full border rounded-2xl p-4 text-sm min-h-[140px] bg-surface-sunken border-line"
+          className="w-full border rounded-2xl p-4 text-sm min-h-[140px] bg-surface-sunken border-line disabled:opacity-60"
           placeholder="Write a short message to the organizer…"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+          disabled={!gigOpen || alreadyApplied}
         />
 
         <button
           onClick={submitApplication}
-          disabled={submitting}
-          className="px-6 py-2 rounded-full bg-black text-white text-sm disabled:opacity-50"
+          disabled={submitting || !gigOpen || alreadyApplied}
+          className="px-6 py-2 rounded-full bg-black text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? 'Submitting…' : 'Submit Application'}
+          {submitting ? 'Submitting…' : alreadyApplied ? 'Already applied' : 'Submit Application'}
         </button>
       </section>
     </main>

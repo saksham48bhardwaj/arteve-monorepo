@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import { sendNotification } from '@arteve/shared/notifications';
 import { track, Events } from '@arteve/shared/analytics/posthog';
+import { safeHref } from '@arteve/ui/components';
 
 type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | string;
 
@@ -226,12 +227,13 @@ export default function ApplicationDetailPage() {
       .update({ status: 'booked' })
       .eq('id', gig.id);
 
-    // 4) reject all other pending apps
+    // 4) reject all other still-open apps for this gig
     await supabase
       .from('applications')
       .update({ status: 'rejected' })
       .eq('gig_id', gig.id)
-      .eq('status', 'pending');
+      .neq('id', app.id)
+      .in('status', ['applied', 'pending', 'shortlisted']);
 
     // 5) update local UI
     setApp((prev) =>
@@ -316,6 +318,49 @@ export default function ApplicationDetailPage() {
     setSaving(false);
   }
 
+  async function shortlistApplication() {
+    if (!app || saving) return;
+    setSaving(true);
+
+    const { error: e1 } = await supabase
+      .from('applications')
+      .update({ status: 'shortlisted' })
+      .eq('id', app.id);
+
+    if (e1) {
+      console.error('Error shortlisting application:', e1);
+      setError('Could not shortlist this application. Please try again.');
+      setSaving(false);
+      return;
+    }
+
+    setApp((prev) =>
+      prev ? { ...prev, status: 'shortlisted' as ApplicationStatus } : prev
+    );
+
+    let currentGig = gig;
+    if (!currentGig) {
+      const { data: gigRow } = await supabase
+        .from('gigs').select('id, title').eq('id', app.gig_id).maybeSingle<Gig>();
+      currentGig = gigRow ?? null;
+      setGig(currentGig);
+    }
+
+    await sendNotification({
+      userId: app.musician_id,
+      type: 'application_status',
+      title: 'You were shortlisted',
+      body: currentGig?.title
+        ? `You were shortlisted for "${currentGig.title}".`
+        : 'You were shortlisted for a gig.',
+      entityType: 'application',
+      entityId: app.id,
+      data: { gig_id: app.gig_id, application_id: app.id },
+    });
+
+    setSaving(false);
+  }
+
   if (loading) return (
     <main className="page page-narrow">
       <div className="card card-padded flex items-center gap-3"><span className="inline-block h-4 w-4 rounded-full border-2 border-brand border-r-transparent animate-spin" /><p className="text-sm text-ink-muted">Loading…</p></div>
@@ -337,26 +382,32 @@ export default function ApplicationDetailPage() {
   const recommendations = snap?.recommendations ?? [];
   const media = snap?.media ?? [];
 
-  const canAct = app.status === 'pending';
+  // New applications are inserted with status 'applied'; older ones may be
+  // 'pending'. Both — and 'shortlisted' — are still actionable.
+  const canAct = ['applied', 'pending', 'shortlisted'].includes(app.status);
 
   const appliedDate = new Date(app.created_at).toLocaleString();
 
   const statusLabel =
-    app.status === 'pending'
+    app.status === 'applied' || app.status === 'pending'
       ? 'Pending'
+      : app.status === 'shortlisted'
+      ? 'Shortlisted'
       : app.status === 'accepted'
       ? 'Accepted'
       : app.status === 'rejected'
-      ? 'Rejected'
+      ? 'Declined'
       : app.status;
 
   const statusClasses =
-    app.status === 'pending'
-      ? 'bg-warning/5 text-warning border-warning/30'
+    app.status === 'applied' || app.status === 'pending'
+      ? 'bg-warning/10 text-warning border-warning/30'
+      : app.status === 'shortlisted'
+      ? 'bg-info/10 text-info border-info/30'
       : app.status === 'accepted'
-      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+      ? 'bg-success/10 text-success border-success/30'
       : app.status === 'rejected'
-      ? 'bg-rose-50 text-rose-800 border-rose-200'
+      ? 'bg-danger/10 text-danger border-danger/30'
       : 'bg-surface-sunken text-ink-strong border-line';
 
   return (
@@ -626,13 +677,14 @@ export default function ApplicationDetailPage() {
           <h2 className="text-sm font-semibold text-ink">Links</h2>
           <div className="flex flex-wrap gap-2 text-xs">
             {Object.entries(p.links)
-              .filter(([, v]) => !!v)
-              .map(([key, value]) => (
+              .map(([key, value]) => [key, safeHref(value as string)] as const)
+              .filter(([, href]) => !!href)
+              .map(([key, href]) => (
                 <a
                   key={key}
-                  href={value as string}
+                  href={href!}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noreferrer nofollow"
                   className="px-3 py-1 rounded-full border border-line-strong text-ink hover:bg-surface-sunken"
                 >
                   {key}
@@ -655,14 +707,23 @@ export default function ApplicationDetailPage() {
             <button
               onClick={acceptApplication}
               disabled={saving}
-              className="flex-1 rounded-full bg-black text-white py-2.5 text-sm font-medium disabled:opacity-60"
+              className="btn btn-primary flex-1 disabled:opacity-60"
             >
               {saving ? 'Processing…' : 'Accept & create booking'}
             </button>
+            {app.status !== 'shortlisted' && (
+              <button
+                onClick={shortlistApplication}
+                disabled={saving}
+                className="btn btn-secondary flex-1 disabled:opacity-60"
+              >
+                {saving ? 'Processing…' : 'Shortlist'}
+              </button>
+            )}
             <button
               onClick={declineApplication}
               disabled={saving}
-              className="flex-1 rounded-full border border-line-strong text-sm font-medium py-2.5 hover:bg-surface-sunken disabled:opacity-60"
+              className="btn btn-outline flex-1 disabled:opacity-60"
             >
               {saving ? 'Processing…' : 'Decline'}
             </button>
