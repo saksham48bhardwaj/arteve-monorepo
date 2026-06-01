@@ -28,6 +28,12 @@ function getRange(page: number) {
   return { from, to };
 }
 
+// PostgREST .or() treats ',' '(' ')' as grammar and '%' '_' as ilike wildcards —
+// strip them from raw user input so a query can't inject conditions.
+export function sanitizeForOr(s: string): string {
+  return s.replace(/[,()*%_\\]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                 SEARCH: PEOPLE                             */
 /* -------------------------------------------------------------------------- */
@@ -46,7 +52,14 @@ export async function searchPeople(
     .is('deleted_at', null);
 
   if (query.trim()) {
-    q = q.ilike('display_name', `%${query}%`);
+    const safe = sanitizeForOr(query);
+    if (safe) {
+      // Match name, bio, location, or an exact genre tag — so "jazz" surfaces
+      // jazz artists, not only people whose display name contains "jazz".
+      q = q.or(
+        `display_name.ilike.%${safe}%,bio.ilike.%${safe}%,location.ilike.%${safe}%,genres.cs.{${safe}}`
+      );
+    }
   }
   if (filters.location) {
     q = q.ilike('location', `%${filters.location}%`);

@@ -180,7 +180,7 @@ export default function PressKitPage() {
             <ul className="mt-2 space-y-3">
               {reviews.map((r) => (
                 <li key={r.id} className="text-sm text-ink-strong">
-                  <span className="text-amber-500">{'★'.repeat(r.rating)}</span>
+                  <span className="text-warning">{'★'.repeat(r.rating)}</span>
                   {r.comment && <span className="ml-2 italic">“{r.comment}”</span>}
                   {r.reviewer?.display_name && (
                     <span className="block text-xs text-ink-subtle">— {r.reviewer.display_name}</span>

@@ -6,7 +6,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@arteve/supabase/client';
-import { searchPeople, type PersonResult, type PersonFilters, PAGE_SIZE } from '@/lib/find-queries';
+import { searchPeople, sanitizeForOr, type PersonResult, type PersonFilters, PAGE_SIZE } from '@/lib/find-queries';
 import { Avatar, Spinner } from '@arteve/ui/components';
 
 type Tab = 'people' | 'venues';
@@ -129,13 +129,17 @@ function FindPageContent() {
         if (activeTab === 'people') {
           data = await searchPeople(trimmed, page, filters);
         } else {
-          // venues — fetch organizers directly
-          const { data: rows } = await supabase
+          // venues — fetch organizers directly (match name or location)
+          const safe = sanitizeForOr(trimmed);
+          let vq = supabase
             .from('profiles')
             .select('id, handle, display_name, avatar_url, location, genres')
             .eq('role', 'organizer')
-            .ilike('display_name', `%${trimmed}%`)
-            .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+            .is('deleted_at', null);
+          if (safe) {
+            vq = vq.or(`display_name.ilike.%${safe}%,location.ilike.%${safe}%`);
+          }
+          const { data: rows } = await vq.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
           data = (rows ?? []) as PersonResult[];
         }
         if (cancelled) return;

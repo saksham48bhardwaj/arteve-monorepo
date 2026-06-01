@@ -600,7 +600,7 @@ export default function OrganizerHomePage() {
 
                     {(post.post_comments_count?.[0]?.count ?? 0) > 2 && (
                       <button
-                        className="text-xs font-medium text-blue-600"
+                        className="text-xs font-medium text-brand"
                         onClick={() => setViewCommentsPost(post)}
                       >
                         View all {post.post_comments_count?.[0]?.count} comments

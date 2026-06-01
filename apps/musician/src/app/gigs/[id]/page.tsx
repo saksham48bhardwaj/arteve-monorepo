@@ -147,7 +147,7 @@ export default function GigDetailPage() {
             )}
             <Link
               href={`/profile/${organizer.handle}`}
-              className="text-sm text-blue-600 underline"
+              className="text-sm text-brand underline"
             >
               View organizer profile →
             </Link>

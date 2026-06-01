@@ -175,8 +175,8 @@ export default function WhatsOnVenuePage() {
                     </p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${
-                    g.status === 'open'   ? 'bg-emerald-100 text-emerald-800' :
-                    g.status === 'booked' ? 'bg-blue-100 text-blue-800' :
+                    g.status === 'open'   ? 'bg-success/10 text-success' :
+                    g.status === 'booked' ? 'bg-info/10 text-info' :
                     'bg-line-strong text-ink'
                   }`}>
                     {g.status}

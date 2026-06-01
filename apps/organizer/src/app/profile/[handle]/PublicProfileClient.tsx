@@ -254,6 +254,19 @@ export default function OrganizerPublicProfilePage() {
   function nextMedia() { const next = (selectedIndex + 1) % posts.length; setSelectedIndex(next); setSelectedMedia(posts[next]); }
   function prevMedia() { const prev = (selectedIndex - 1 + posts.length) % posts.length; setSelectedIndex(prev); setSelectedMedia(posts[prev]); }
 
+  // Keyboard navigation for the media lightbox (Esc to close, ←/→ to move).
+  useEffect(() => {
+    if (!selectedMedia) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setSelectedMedia(null);
+      else if (e.key === 'ArrowRight' && posts.length > 1) nextMedia();
+      else if (e.key === 'ArrowLeft' && posts.length > 1) prevMedia();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMedia, selectedIndex, posts.length]);
+
   if (loading) {
     return (
       <main className="px-4 py-6">
@@ -569,7 +582,7 @@ export default function OrganizerPublicProfilePage() {
 
       {/* MEDIA LIGHTBOX */}
       {selectedMedia && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
+        <div role="dialog" aria-modal="true" aria-label="Media viewer" className="fixed inset-0 z-50 flex items-center justify-center bg-ink-strong/85 backdrop-blur-sm p-4">
           <button
             type="button"
             aria-label="Close"
@@ -591,7 +604,7 @@ export default function OrganizerPublicProfilePage() {
             </div>
             <div className="rounded-2xl overflow-hidden bg-black">
               {selectedMedia.media_type === 'image' && (
-                <img src={selectedMedia.media_url} className="w-full max-h-[80vh] object-contain" alt="" />
+                <img src={selectedMedia.media_url} className="w-full max-h-[80vh] object-contain" alt={selectedMedia.caption ?? `Photo by ${profile.display_name ?? 'this profile'}`} />
               )}
               {selectedMedia.media_type === 'video' && (
                 <video src={selectedMedia.media_url} controls className="w-full max-h-[80vh]" />
