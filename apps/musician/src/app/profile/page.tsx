@@ -177,12 +177,28 @@ export default function ProfilePage() {
   }
 
   async function deleteMedia(item: PostMedia) {
-    if (!item.media_url) return;
-    const storagePath = extractStoragePath(item.media_url);
-    if (storagePath) await supabase.storage.from('media').remove([storagePath]);
-    await supabase.from('posts').delete().eq('id', item.id);
+    // Delete the DB row FIRST and verify a row was actually removed (RLS can
+    // silently match 0 rows). Only then clean up storage — the reverse order
+    // can orphan a post whose file is gone but whose row survives.
+    const { data: deleted, error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', item.id)
+      .select('id');
+    if (error || !deleted || deleted.length === 0) {
+      console.error('POST DELETE FAILED:', error);
+      toast.error("Couldn't delete this post. Please try again.");
+      return;
+    }
+    if (item.media_url) {
+      const storagePath = extractStoragePath(item.media_url);
+      // Best-effort: the post is already gone; a leftover file is harmless.
+      if (storagePath) await supabase.storage.from('media').remove([storagePath]);
+    }
     setMedia((prev) => prev.filter((m) => m.id !== item.id));
+    setCounts((prev) => ({ ...prev, posts: Math.max(0, prev.posts - 1) }));
     setSelectedMedia(null);
+    toast.success('Post deleted');
   }
 
   async function loadFollowers() {

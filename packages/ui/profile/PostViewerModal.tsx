@@ -46,6 +46,27 @@ export interface PostViewerModalProps {
   onDelete?: (item: PostViewerItem) => void | Promise<void>;
 }
 
+/** Plain <img> with a graceful "media unavailable" fallback — a deleted or
+ *  missing storage file should not render as a broken-image icon. */
+function ViewerImage({ src, alt, className }: { src: string; alt: string; className: string }) {
+  const [errored, setErrored] = useState(false);
+  useEffect(() => { setErrored(false); }, [src]);
+
+  if (errored) {
+    return (
+      <div role="img" aria-label="Media unavailable"
+        className="flex h-64 w-full max-w-md flex-col items-center justify-center gap-2 text-white/60">
+        <svg viewBox="0 0 24 24" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-5-5L5 21" />
+        </svg>
+        <p className="text-sm font-medium">This media is no longer available</p>
+      </div>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={alt} className={className} onError={() => setErrored(true)} />;
+}
+
 function timeAgo(iso?: string | null): string {
   if (!iso) return '';
   const diff = Date.now() - new Date(iso).getTime();
@@ -269,8 +290,7 @@ export function PostViewerModal({
   ) : item.media_type === 'video' ? (
     <video src={item.media_url} controls className="max-h-[55vh] max-w-full object-contain md:max-h-full" />
   ) : (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={item.media_url} alt={item.caption ?? `Post by ${author?.display_name ?? 'artist'}`}
+    <ViewerImage src={item.media_url} alt={item.caption ?? `Post by ${author?.display_name ?? 'artist'}`}
       className="max-h-[55vh] w-auto max-w-full object-contain md:max-h-full" />
   );
 
@@ -294,8 +314,7 @@ export function PostViewerModal({
     ) : item.media_type === 'video' ? (
       <video src={item.media_url} controls className="max-h-full max-w-full object-contain" />
     ) : (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={item.media_url} alt={item.caption ?? `Photo by ${author?.display_name ?? 'venue'}`} className="max-h-full max-w-full object-contain" />
+      <ViewerImage src={item.media_url} alt={item.caption ?? `Photo by ${author?.display_name ?? 'venue'}`} className="max-h-full max-w-full object-contain" />
     );
 
     const galleryNode = (

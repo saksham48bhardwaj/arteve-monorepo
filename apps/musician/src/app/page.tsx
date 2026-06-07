@@ -6,7 +6,7 @@ import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
 import { sendNotification } from '@arteve/shared/notifications';
-import { toast, usePullToRefresh, PullToRefreshIndicator, Modal, Button } from '@arteve/ui/components';
+import { toast, usePullToRefresh, PullToRefreshIndicator, Modal, Button, SafeImage } from '@arteve/ui/components';
 
 const PAGE_SIZE = 10;
 
@@ -466,10 +466,12 @@ export default function MusicianHomePage() {
                     playsInline
                   />
                 ) : (
-                  <img
+                  <SafeImage
                     src={post.media_url}
                     alt={post.caption ?? ''}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    fill
+                    sizes="(max-width: 640px) 160px, 192px"
+                    className="object-cover transition-transform group-hover:scale-105"
                   />
                 )}
 
@@ -610,10 +612,12 @@ export default function MusicianHomePage() {
                   // than the viewport. Tall images get center-cropped so the
                   // action row stays within the fold instead of scrolling.
                   <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: '4 / 5', maxHeight: '80vh' }}>
-                    <img
+                    <SafeImage
                       src={post.media_url}
                       alt={post.caption ?? ''}
-                      className="absolute inset-0 h-full w-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 640px"
+                      className="object-cover"
                     />
                   </div>
                 )}
