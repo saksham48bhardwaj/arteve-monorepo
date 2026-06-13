@@ -65,7 +65,7 @@ const SECTIONS: { heading: string; body: string[] }[] = [
   {
     heading: '9. Contact',
     body: [
-      'Questions about these terms can be sent to hello@arteve.app.',
+      'Questions about these terms can be sent to hello@arteve.in.',
     ],
   },
 ];

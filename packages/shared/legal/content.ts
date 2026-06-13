@@ -82,7 +82,7 @@ export const TERMS_OF_USE: LegalDocument = {
     {
       heading: '9. Contact',
       body: [
-        'Questions about these terms can be sent to hello@arteve.app.',
+        'Questions about these terms can be sent to hello@arteve.in.',
       ],
     },
   ],
@@ -154,7 +154,7 @@ export const PRIVACY_POLICY: LegalDocument = {
     {
       heading: '9. Contact',
       body: [
-        'For privacy questions or requests, contact privacy@arteve.app.',
+        'For privacy questions or requests, contact privacy@arteve.in.',
       ],
     },
   ],
