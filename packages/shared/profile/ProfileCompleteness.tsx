@@ -25,6 +25,9 @@ type Props = {
   related?: RelatedCounts;
   role: 'musician' | 'organizer';
   editHref?: string;
+  /** When true, render nothing once the profile is 100% complete (avoids a
+   *  persistent banner on an established user's own profile). */
+  hideWhenComplete?: boolean;
 };
 
 type Item = { label: string; done: boolean; href?: string };
@@ -58,16 +61,17 @@ function checklist(profile: ProfileShape, related: RelatedCounts, role: 'musicia
   ];
 }
 
-export function ProfileCompleteness({ profile, related = {}, role, editHref = '/profile/edit' }: Props) {
+export function ProfileCompleteness({ profile, related = {}, role, editHref = '/profile/edit', hideWhenComplete = false }: Props) {
   const items = checklist(profile, related, role);
   const total = items.length;
   const done = items.filter((i) => i.done).length;
   const pct = Math.round((done / total) * 100);
 
   if (pct === 100) {
+    if (hideWhenComplete) return null;
     return (
-      <div className="rounded-3xl border border-emerald-100 bg-emerald-50 px-5 py-4 border-line">
-        <p className="text-sm font-medium text-emerald-900">
+      <div className="rounded-3xl border border-success/30 bg-success/10 px-5 py-4">
+        <p className="text-sm font-medium text-success">
           Your profile is complete. ✨
         </p>
       </div>

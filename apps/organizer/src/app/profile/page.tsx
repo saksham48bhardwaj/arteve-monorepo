@@ -20,6 +20,7 @@ import {
   toast,
 } from '@arteve/ui/components';
 import { PostViewerModal } from '@arteve/ui/profile/PostViewerModal';
+import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
 
 type Profile = {
   id: string;
@@ -245,6 +246,17 @@ export default function OrganizerProfilePage() {
           <Link href="/gigs/create">
             <Button fullWidth size="sm" variant="outline">New gig</Button>
           </Link>
+        </div>
+
+        {/* First-run nudge: guide new venues to a complete, trustworthy profile. */}
+        <div className="mt-5">
+          <ProfileCompleteness
+            profile={profile}
+            related={{ mediaCount: venuePhotos.length }}
+            role="organizer"
+            editHref="/profile/edit"
+            hideWhenComplete
+          />
         </div>
       </div>
 

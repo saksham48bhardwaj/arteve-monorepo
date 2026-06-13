@@ -52,8 +52,8 @@ export function ReviewPrompt({
 
   if (alreadyReviewed) {
     return (
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4 border-line">
-        <p className="text-sm font-medium text-emerald-900">
+      <div className="rounded-2xl border border-success/30 bg-success/10 px-5 py-4">
+        <p className="text-sm font-medium text-success">
           Thanks — your review of {revieweeName} is live on their profile.
         </p>
       </div>
@@ -98,7 +98,7 @@ export function ReviewPrompt({
             type="button"
             onClick={() => setRating(n)}
             className={`text-3xl leading-none transition ${
-              n <= rating ? 'text-accent-500' : 'text-ink-disabled hover:text-amber-300'
+              n <= rating ? 'text-accent-500' : 'text-ink-disabled hover:text-accent-300'
             }`}
             aria-label={`Rate ${n} star${n === 1 ? '' : 's'}`}
           >

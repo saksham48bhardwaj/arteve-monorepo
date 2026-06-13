@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { RatingDisplay, ReviewList } from '@arteve/shared/reviews';
+import { ProfileCompleteness } from '@arteve/shared/profile/completeness';
 import {
   Card,
   Button,
@@ -373,6 +374,22 @@ export default function ProfilePage() {
           <Link href="/press-kit">
             <Button fullWidth size="sm" variant="outline">Press kit</Button>
           </Link>
+        </div>
+
+        {/* First-run nudge: guide new artists to a bookable profile. Hidden once complete. */}
+        <div className="mt-5">
+          <ProfileCompleteness
+            profile={profile}
+            related={{
+              mediaCount: media.length,
+              skillsCount: skills.length,
+              showsCount: shows.length,
+              achievementsCount: achievements.length,
+            }}
+            role="musician"
+            editHref="/profile/edit"
+            hideWhenComplete
+          />
         </div>
 
       </div>
