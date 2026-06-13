@@ -53,6 +53,18 @@ export default function EditProfilePage() {
   const [err, setErr] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Shared confirm dialog (replaces native confirm() — jarring on mobile,
+  // blocks the JS thread, and inconsistent with the rest of the app).
+  const [confirmState, setConfirmState] = useState<{
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  function requestConfirm(message: string, onConfirm: () => void, confirmLabel = 'Delete') {
+    setConfirmState({ message, confirmLabel, onConfirm });
+  }
+
   const [userId, setUserId] = useState<string | null>(null);
 
   // profile form fields
@@ -374,7 +386,6 @@ export default function EditProfilePage() {
 
   async function deleteAchievement(id: string) {
     if (!userId) return;
-    if (!confirm('Delete this achievement?')) return;
 
     try {
       setErr(null);
@@ -471,7 +482,6 @@ export default function EditProfilePage() {
 
   async function deleteShow(id: string) {
     if (!userId) return;
-    if (!confirm('Delete this show?')) return;
 
     try {
       setErr(null);
@@ -558,7 +568,6 @@ export default function EditProfilePage() {
 
   async function deleteSkill(id: string) {
     if (!userId) return;
-    if (!confirm('Delete this skill?')) return;
 
     try {
       setErr(null);
@@ -839,7 +848,7 @@ export default function EditProfilePage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => deleteAchievement(a.id)}
+                        onClick={() => requestConfirm('Delete this achievement?', () => deleteAchievement(a.id))}
                         className="px-2 py-1 border border-danger/30 text-danger rounded-full hover:bg-danger/5"
                       >
                         Delete
@@ -900,7 +909,7 @@ export default function EditProfilePage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => deleteShow(s.id)}
+                        onClick={() => requestConfirm('Delete this show?', () => deleteShow(s.id))}
                         className="px-2 py-1 border border-danger/30 text-danger rounded-full hover:bg-danger/5"
                       >
                         Delete
@@ -956,7 +965,7 @@ export default function EditProfilePage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => deleteSkill(sk.id)}
+                        onClick={() => requestConfirm('Delete this skill?', () => deleteSkill(sk.id))}
                         className="px-2 py-1 border border-danger/30 text-danger rounded-full hover:bg-danger/5"
                       >
                         Delete
@@ -1145,6 +1154,46 @@ export default function EditProfilePage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Shared confirm dialog — replaces native confirm() for destructive actions. */}
+      {confirmState && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 md:items-center md:p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => !confirmBusy && setConfirmState(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-t-3xl bg-surface p-5 shadow-2xl md:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm text-ink-strong">{confirmState.message}</p>
+            <p className="mt-1 text-xs text-ink-subtle">This can’t be undone.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={confirmBusy}
+                onClick={() => setConfirmState(null)}
+                className="px-3 py-1.5 border border-line-strong rounded-full text-sm hover:bg-surface-sunken disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={confirmBusy}
+                onClick={async () => {
+                  const action = confirmState.onConfirm;
+                  setConfirmBusy(true);
+                  try { await action(); } finally { setConfirmBusy(false); setConfirmState(null); }
+                }}
+                className="px-3 py-1.5 rounded-full bg-danger text-white text-sm hover:bg-danger/90 disabled:opacity-50"
+              >
+                {confirmBusy ? 'Deleting…' : confirmState.confirmLabel}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
