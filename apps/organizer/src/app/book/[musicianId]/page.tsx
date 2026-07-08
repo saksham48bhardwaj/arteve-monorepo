@@ -1,8 +1,9 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
+import { sendNotification } from '@arteve/shared/notifications';
 
 export default function BookMusician({ params }: { params: Promise<{ musicianId: string }> }) {
   const { musicianId } = use(params);
@@ -17,6 +18,21 @@ export default function BookMusician({ params }: { params: Promise<{ musicianId:
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [artist, setArtist] = useState<{ display_name: string | null; avatar_url: string | null } | null>(null);
+
+  // Show who's being booked — a bare "Book musician" header is disorienting.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('id', musicianId)
+        .maybeSingle();
+      if (!cancelled && data) setArtist(data);
+    })();
+    return () => { cancelled = true; };
+  }, [musicianId]);
 
   const todayStr = (() => {
     const d = new Date();
@@ -60,7 +76,7 @@ export default function BookMusician({ params }: { params: Promise<{ musicianId:
     const organizerName =
       me?.display_name?.trim() || (user.email ? user.email.split('@')[0] : 'Organizer');
 
-    const { error } = await supabase.from('bookings').insert({
+    const { data: inserted, error } = await supabase.from('bookings').insert({
       musician_id: musicianId,
       organizer_id: user.id,
       organizer_email: user.email ?? '',
@@ -73,7 +89,7 @@ export default function BookMusician({ params }: { params: Promise<{ musicianId:
       budget_max: budgetN,
       message: message.trim() || null,
       status: 'pending',
-    });
+    }).select('id').single();
 
     setLoading(false);
 
@@ -83,14 +99,34 @@ export default function BookMusician({ params }: { params: Promise<{ musicianId:
       return;
     }
 
+    // Tell the musician a request is waiting — without this they'd only
+    // discover it by checking their bookings tab.
+    await sendNotification({
+      userId: musicianId,
+      type: 'booking_created',
+      body: `${organizerName} sent you a booking request — "${event_title.trim()}"`,
+      data: { booking_id: inserted?.id },
+    });
+
     router.push('/bookings');
   }
 
   return (
     <main className="w-full max-w-xl mx-auto px-4 md:px-6 py-6 space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-ink-strong">Book musician</h1>
-        <p className="text-sm text-ink-muted mt-1">Send a booking request — the musician can accept or decline.</p>
+      <div className="flex items-center gap-3">
+        {artist && (
+          <img
+            src={artist.avatar_url ?? '/default-avatar.png'}
+            alt=""
+            className="h-12 w-12 rounded-full object-cover border border-line"
+          />
+        )}
+        <div>
+          <h1 className="text-xl font-semibold text-ink-strong">
+            {artist?.display_name ? `Book ${artist.display_name}` : 'Book musician'}
+          </h1>
+          <p className="text-sm text-ink-muted mt-1">Send a booking request — the musician can accept or decline.</p>
+        </div>
       </div>
 
       <div className="space-y-1.5">

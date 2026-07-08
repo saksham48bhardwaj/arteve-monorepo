@@ -169,8 +169,11 @@ function FindPageContent() {
     const filters = { location: filterLocation.trim() || undefined, genre: filterGenre.trim() || undefined };
     const filtersActive = Boolean(filters.location || filters.genre);
 
-    // Nothing to do when there's neither a query nor an active filter
-    if (!trimmed && !filtersActive) {
+    // The gigs tab doubles as "browse open gigs" with an empty query (this is
+    // where the "Find gigs" button lands); every other tab still waits for a
+    // query or filter before hitting the network.
+    const browsingGigs = activeTab === 'gigs';
+    if (!trimmed && !filtersActive && !browsingGigs) {
       setResults([]);
       setHasMore(false);
       setLoading(false);
@@ -283,7 +286,8 @@ function FindPageContent() {
     }
   }
 
-  const isSearching = query.trim().length > 0 || hasActiveFilters;
+  // The gigs tab always renders results (browse mode) even with no query.
+  const isSearching = query.trim().length > 0 || hasActiveFilters || activeTab === 'gigs';
   const hasVoice =
     typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
@@ -650,7 +654,11 @@ function SearchResults({
   }
 
   if (results.length === 0) {
-    return <p className="text-sm text-ink-subtle text-center py-12">No results.</p>;
+    return (
+      <p className="text-sm text-ink-subtle text-center py-12">
+        {tab === 'gigs' ? 'No open gigs right now — check back soon.' : 'No results.'}
+      </p>
+    );
   }
 
   return (
@@ -706,7 +714,7 @@ function SearchResults({
                 <p className="text-sm font-semibold text-ink-strong">{g.title}</p>
                 <div className="mt-1 text-xs text-ink-muted flex items-center gap-3 flex-wrap">
                   {g.location && <span>{g.location}</span>}
-                  {g.event_date && <span>{new Date(g.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                  {g.event_date && <span>{new Date(`${g.event_date}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
                   {(g.budget_min || g.budget_max) && (
                     <span className="tabular">${g.budget_min ?? 0}{g.budget_max ? `–${g.budget_max}` : '+'}</span>
                   )}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import type { Gig } from '@arteve/shared/types/gig';
+import { formatEventTime } from '@arteve/shared/utils/date';
 
 export default function OrganizerGigDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -100,9 +101,6 @@ export default function OrganizerGigDetailPage() {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-ink-subtle">
-                Gig ID: {gig.id.slice(0, 10)}…
-              </p>
               <h1 className="text-xl sm:text-2xl font-semibold text-ink-strong">
                 {gig.title ?? 'Untitled gig'}
               </h1>
@@ -141,13 +139,13 @@ export default function OrganizerGigDetailPage() {
                 <p>
                   📅{' '}
                   {gig.event_date
-                    ? new Date(gig.event_date).toLocaleDateString(undefined, {
+                    ? new Date(`${gig.event_date}T00:00:00`).toLocaleDateString(undefined, {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
                       })
                     : 'Date TBD'}
-                  {gig.event_time && ` · ${gig.event_time}`}
+                  {gig.event_time && ` · ${formatEventTime(gig.event_time)}`}
                 </p>
               )}
 

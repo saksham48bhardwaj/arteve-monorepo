@@ -6,12 +6,14 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import { sendNotification } from '@arteve/shared/notifications';
 import { track, Events } from '@arteve/shared/analytics/posthog';
+import { isPastDate } from '@arteve/shared/utils/date';
 
 type Gig = {
   id: string;
   title: string | null;
   status: string;
   organizer_id: string;
+  event_date: string | null;
 };
 
 type Profile = {
@@ -160,6 +162,10 @@ export default function ApplyToGigPage() {
       setFeedback('This gig is no longer accepting applications.');
       return;
     }
+    if (isPastDate(gig.event_date)) {
+      setFeedback('This gig’s date has passed, so applications are closed.');
+      return;
+    }
     if (!message.trim()) {
       setFeedback('Please write a message before submitting.');
       return;
@@ -240,7 +246,8 @@ export default function ApplyToGigPage() {
     );
 
   const username = profile.handle ?? profile.id.slice(0, 8);
-  const gigOpen = gig.status === 'open';
+  const gigPast = isPastDate(gig.event_date);
+  const gigOpen = gig.status === 'open' && !gigPast;
 
   return (
     <main className="w-full max-w-5xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-8">
@@ -346,7 +353,7 @@ export default function ApplyToGigPage() {
                   </p>
                   {s.event_date && (
                     <p className="text-[11px] text-ink-subtle">
-                      {new Date(s.event_date).toLocaleDateString()}
+                      {new Date(`${s.event_date}T00:00:00`).toLocaleDateString()}
                     </p>
                   )}
                 </li>
@@ -432,7 +439,9 @@ export default function ApplyToGigPage() {
 
         {!gigOpen && (
           <div className="rounded-xl border border-warning/30 bg-warning/10 px-3.5 py-2.5 text-sm font-medium text-ink-strong">
-            This gig is no longer accepting applications.
+            {gigPast
+              ? 'This gig’s date has passed, so applications are closed.'
+              : 'This gig is no longer accepting applications.'}
           </div>
         )}
         {gigOpen && alreadyApplied && (
@@ -443,7 +452,7 @@ export default function ApplyToGigPage() {
         )}
 
         {feedback && (
-          <p className="text-sm text-ink-muted">{feedback}</p>
+          <p role="alert" className="text-sm font-medium text-danger">{feedback}</p>
         )}
 
         <textarea

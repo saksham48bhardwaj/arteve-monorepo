@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@arteve/supabase/client';
 import Link from 'next/link';
 import { AudioPlayer } from '@arteve/shared/media/AudioPlayer';
+import { timeAgo } from '@arteve/shared/utils/date';
 import { sendNotification } from '@arteve/shared/notifications';
 import { toast, usePullToRefresh, PullToRefreshIndicator, Modal, Button, SafeImage } from '@arteve/ui/components';
 
@@ -333,7 +334,10 @@ export default function MusicianHomePage() {
   // ADD COMMENT
   // ----------------------------------------------------
   async function addComment() {
-    if (!commentModalPost || commentSubmitting) return;
+    // Works from both the standalone composer modal and the inline composer
+    // inside the "all comments" modal.
+    const targetPost = commentModalPost ?? viewCommentsPost;
+    if (!targetPost || commentSubmitting) return;
 
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
@@ -342,8 +346,8 @@ export default function MusicianHomePage() {
     if (!text) return;
 
     setCommentSubmitting(true);
-    const author = commentModalPost.profiles?.id;
-    const postId = commentModalPost.id;
+    const author = targetPost.profiles?.id;
+    const postId = targetPost.id;
 
     // Get the commenter's own profile so the optimistic comment renders correctly
     // (avatar / name / handle for the deep link).
@@ -364,27 +368,35 @@ export default function MusicianHomePage() {
 
     // Patch the affected post in place instead of refetching the whole feed
     // (which used to reset scroll back to the top).
+    const commentObj = {
+      id: inserted.id as number,
+      comment: inserted.comment as string,
+      created_at: inserted.created_at as string,
+      profiles: {
+        display_name: meProf?.display_name ?? null,
+        avatar_url: meProf?.avatar_url ?? null,
+        handle: meProf?.handle ?? null,
+      },
+    };
+
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
-        const newComment = {
-          id: inserted.id as number,
-          comment: inserted.comment as string,
-          created_at: inserted.created_at as string,
-          profiles: {
-            display_name: meProf?.display_name ?? null,
-            avatar_url: meProf?.avatar_url ?? null,
-            handle: meProf?.handle ?? null,
-          },
-        };
         const existing = p.post_comments ?? [];
         const existingCount = p.post_comments_count?.[0]?.count ?? existing.length;
         return {
           ...p,
-          post_comments: [...existing, newComment],
+          post_comments: [...existing, commentObj],
           post_comments_count: [{ count: existingCount + 1 }],
         };
       })
+    );
+
+    // Keep the open "all comments" modal in sync so the new comment shows up.
+    setViewCommentsPost((prev) =>
+      prev && prev.id === postId
+        ? { ...prev, post_comments: [...(prev.post_comments ?? []), commentObj] }
+        : prev,
     );
 
     // Notify the post author (skip self-comments).
@@ -591,6 +603,7 @@ export default function MusicianHomePage() {
                       <p className="text-sm font-semibold text-ink-strong">
                         {post.profiles?.display_name || 'Arteve musician'}
                       </p>
+                      <p className="text-xs text-ink-subtle">{timeAgo(post.created_at)}</p>
                     </div>
                   </Link>
 
@@ -720,8 +733,24 @@ export default function MusicianHomePage() {
           centers in the viewport, not mid-document. */}
       <Modal
         open={!!viewCommentsPost}
-        onClose={() => setViewCommentsPost(null)}
-        title={viewCommentsPost ? `Comments on ${viewCommentsPost.profiles?.display_name ?? 'post'}` : ''}
+        onClose={() => { if (!commentSubmitting) { setViewCommentsPost(null); setNewComment(''); } }}
+        title="Comments"
+        footer={
+          <form
+            className="flex w-full items-center gap-2"
+            onSubmit={(e) => { e.preventDefault(); addComment(); }}
+          >
+            <input
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Add a comment…"
+              className="flex-1 rounded-full border border-line bg-surface px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300 transition"
+            />
+            <Button type="submit" loading={commentSubmitting} disabled={!newComment.trim()}>
+              Post
+            </Button>
+          </form>
+        }
       >
         {viewCommentsPost?.post_comments?.length ? (
           <ul className="space-y-3">

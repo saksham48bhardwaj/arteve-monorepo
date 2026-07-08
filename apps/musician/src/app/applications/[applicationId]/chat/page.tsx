@@ -49,7 +49,16 @@ export default function ApplicationChatThread() {
     return () => { supabase.removeChannel(channel); };
   }, [applicationId]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
+  const didInitialScrollRef = useRef(false);
+  useEffect(() => {
+    const stream = endRef.current?.parentElement;
+    if (!stream) return;
+    stream.scrollTo({
+      top: stream.scrollHeight,
+      behavior: didInitialScrollRef.current ? 'smooth' : 'auto',
+    });
+    didInitialScrollRef.current = true;
+  }, [msgs]);
 
   async function sendMessage() {
     if (!userId || !body.trim()) return;

@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@arteve/supabase/client';
 import { useMarkNotificationAsRead } from '@arteve/shared/notifications/auto-read';
+import { formatEventTime, isPastDate } from '@arteve/shared/utils/date';
 
 type GigStatus = 'open' | 'closed' | 'booked' | string;
 
@@ -82,10 +83,6 @@ export default function GigDetailPage() {
           GIG HEADER
       ================================= */}
       <section className="rounded-3xl border border-line bg-surface shadow-sm px-6 py-8 space-y-4">
-        <p className="text-xs text-ink-subtle">
-          Gig ID: {gig.id.slice(0, 8)}…
-        </p>
-
         <h1 className="text-3xl font-semibold tracking-tight">
           {gig.title ?? 'Untitled gig'}
         </h1>
@@ -97,12 +94,12 @@ export default function GigDetailPage() {
         {(gig.event_date || gig.event_time) && (
           <p className="text-sm text-ink-muted">
             {gig.event_date &&
-              new Date(gig.event_date).toLocaleDateString('en-US', {
+              new Date(`${gig.event_date}T00:00:00`).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
               })}
-            {gig.event_time && ` · ${gig.event_time}`}
+            {gig.event_time && ` · ${formatEventTime(gig.event_time)}`}
           </p>
         )}
 
@@ -172,6 +169,10 @@ export default function GigDetailPage() {
         {gig.status !== 'open' ? (
           <p className="text-sm text-ink-subtle">
             This gig is no longer accepting applications.
+          </p>
+        ) : isPastDate(gig.event_date) ? (
+          <p className="text-sm text-ink-subtle">
+            This gig&apos;s date has passed, so applications are closed.
           </p>
         ) : (
           <button

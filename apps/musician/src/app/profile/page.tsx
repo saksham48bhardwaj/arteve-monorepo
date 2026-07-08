@@ -570,7 +570,7 @@ export default function ProfilePage() {
                         )}
                         {s.event_date && (
                           <p className="text-[10px] text-white/70 mt-0.5">
-                            {new Date(s.event_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
+                            {new Date(`${s.event_date}T00:00:00`).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })}
                           </p>
                         )}
                       </div>

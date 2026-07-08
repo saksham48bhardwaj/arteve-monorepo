@@ -239,3 +239,27 @@ from a Supabase Edge Function gives you real-time pulse.
 This gets you to a defensible product with revenue by month 3. Past that,
 the multi-venue org features (H) and live audio (D5) become the path to
 expansion.
+
+---
+
+## Post-R6 addendum (July 8, 2026) — reprioritized next steps
+
+R6 shipped the quick wins (see `QA_FINDINGS_R6.md`). What it changed about
+this roadmap, ranked by impact ÷ effort:
+
+1. **Paste the token_hash auth email templates into the Supabase dashboard**
+   (blocker, minutes of work — magic-link login is broken until then) and
+   re-run the full loop test: apply → shortlist → accept → booking confirm.
+2. **Public landing page for logged-out visitors** (new, high impact —
+   arteve.in is currently a login wall; SEO metadata already in place, so a
+   marketing page + public gig/venue pages compound fast).
+3. **Quote field on the apply form** (small; the data model + organizer UI
+   already display quotes — musicians just can't set one).
+4. **Organizer dashboard metrics** on home (applications this week, open
+   gigs, response rate) — the home feed is fine for discovery but organizers
+   need a pulse (subset of G1/H1).
+5. **A1 booking state machine** stays the top platform bet — R6's
+   booking-notification fix papered over the pending→accepted coarseness,
+   but counter-offers/completion still don't exist.
+6. **E1 email notifications** rise in priority: R6 proved in-app
+   notifications alone are missed (the booking request sat unseen).

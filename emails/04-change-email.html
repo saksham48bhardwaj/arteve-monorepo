@@ -2,7 +2,7 @@
   Arteve — Change email address confirmation
   Paste into: Supabase Dashboard → Authentication → Email Templates → "Change Email Address"
   Subject:  Confirm your new email for Arteve
-  Variables used: {{ .ConfirmationURL }}, {{ .Email }}, {{ .NewEmail }}
+  Variables used: {{ .RedirectTo }}, {{ .TokenHash }}, {{ .Email }}, {{ .NewEmail }}
 -->
 <!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
@@ -59,7 +59,7 @@
             <td align="center" style="padding:28px 40px 8px 40px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
                 <td align="center" bgcolor="#406887" style="border-radius:10px;">
-                  <a href="{{ .ConfirmationURL }}" target="_blank"
+                  <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change" target="_blank"
                      style="display:inline-block; padding:15px 34px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:10px;">
                     Confirm new email
                   </a>
@@ -72,7 +72,7 @@
             <td style="padding:14px 40px 0 40px;">
               <p style="margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; line-height:1.6; color:#8a847c; text-align:center;">
                 Button not working? Paste this link into your browser:<br>
-                <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#406887; text-decoration:underline; word-break:break-all;">{{ .ConfirmationURL }}</a>
+                <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change" target="_blank" style="color:#406887; text-decoration:underline; word-break:break-all;">{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change</a>
               </p>
             </td>
           </tr>

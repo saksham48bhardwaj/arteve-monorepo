@@ -29,7 +29,7 @@ export default function RoleGuard() {
       if (cancelled) return;
       if (prof?.role && prof.role !== APP_ROLE) {
         toast.error(`This is a ${prof.role} account. Please use the ${OTHER_APP.label} app at ${OTHER_APP.url.replace('https://', '')}.`);
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' }); // default 'global' would kill sessions on the other Arteve app + all devices
         router.replace('/login');
       }
     }

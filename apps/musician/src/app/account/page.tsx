@@ -85,7 +85,7 @@ export default function AccountPage() {
   }
 
   async function handleSignOut() {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' }); // default 'global' would kill sessions on the other Arteve app + all devices
     router.push('/login');
   }
 

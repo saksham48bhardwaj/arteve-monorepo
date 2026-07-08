@@ -79,8 +79,19 @@ function FindPageContent() {
   const searchParams = useSearchParams();
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
-  const [activeTab, setActiveTab] = useState<Tab>('people');
+  const initialTab = searchParams.get('tab') === 'venues' ? 'venues' : 'people';
+  // A ?tab= deep link means "browse this directory" (e.g. the talent pool),
+  // so results render even before the organizer types anything.
+  const cameFromTabLink = searchParams.has('tab');
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [filters] = useState<PersonFilters>(DEFAULT_FILTERS);
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+
+  // Debounce so we don't fire a PostgREST round-trip on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 280);
+    return () => clearTimeout(t);
+  }, [query]);
 
   const [results, setResults] = useState<PersonResult[]>([]);
   const [page, setPage] = useState(1);
@@ -111,11 +122,11 @@ function FindPageContent() {
     setResults([]);
     setPage(1);
     setHasMore(true);
-  }, [query, activeTab]);
+  }, [debouncedQuery, activeTab]);
 
   useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed) {
+    const trimmed = debouncedQuery.trim();
+    if (!trimmed && !cameFromTabLink) {
       setResults([]);
       setHasMore(false);
       setLoading(false);
@@ -153,7 +164,7 @@ function FindPageContent() {
       }
     })();
     return () => { cancelled = true; };
-  }, [query, activeTab, page, filters]);
+  }, [debouncedQuery, activeTab, page, filters, cameFromTabLink]);
 
   const pushRecent = useCallback((item: RecentItem) => {
     setRecents((prev) => {
@@ -200,7 +211,7 @@ function FindPageContent() {
     else { try { rec.start(); setVoiceListening(true); } catch { /* */ } }
   }
 
-  const isSearching = query.trim().length > 0;
+  const isSearching = query.trim().length > 0 || cameFromTabLink;
   const hasVoice = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
 
   function handleProfileClick(item: { id?: string; handle: string; display_name?: string | null; avatar_url?: string | null }) {

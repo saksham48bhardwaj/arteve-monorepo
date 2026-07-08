@@ -332,7 +332,7 @@ export default function PublicProfilePage() {
                     {s.event_date && (
                       <span>
                         {' — '}
-                        {new Date(s.event_date).toLocaleDateString()}
+                        {new Date(`${s.event_date}T00:00:00`).toLocaleDateString()}
                       </span>
                     )}
                   </li>

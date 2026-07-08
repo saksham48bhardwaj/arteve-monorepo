@@ -561,7 +561,7 @@ export default function ApplicationDetailPage() {
                     </div>
                     {s.event_date && (
                       <div className="text-[10px] text-ink-subtle mt-1">
-                        {new Date(s.event_date).toLocaleDateString()}
+                        {new Date(`${s.event_date}T00:00:00`).toLocaleDateString()}
                       </div>
                     )}
                   </li>

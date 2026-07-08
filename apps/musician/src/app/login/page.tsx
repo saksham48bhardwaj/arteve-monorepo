@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, FormEvent } from 'react';
+import { useEffect, useState, useMemo, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -55,6 +55,22 @@ export default function LoginPage() {
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+
+  // Already signed in with the right role? Skip the form entirely.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled || !session?.user) return;
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      if (!cancelled && prof?.role === 'musician') router.replace('/');
+    })();
+    return () => { cancelled = true; };
+  }, [router]);
 
   const pwStrength = useMemo(
     () => (mode === 'signup' && password ? passwordStrength(password) : null),
@@ -207,7 +223,7 @@ export default function LoginPage() {
         <Image src="/images/hero.png" alt="Musician performing" fill className="object-cover" priority />
         {/* Brand wash overlay so the white form on the right doesn't feel orphaned */}
         <div className="absolute inset-0 bg-gradient-to-tr from-brand-700/55 via-brand-500/20 to-transparent mix-blend-multiply" />
-        <div className="relative z-10 flex flex-col justify-between w-full px-10 lg:px-16 py-12 bg-gradient-to-t from-ink-strong/85 via-ink-strong/35 to-transparent">
+        <div className="relative z-10 flex flex-col justify-between w-full px-10 lg:px-16 py-12 bg-gradient-to-t from-ink-strong/85 via-ink-strong/55 to-transparent">
           <Image src="/images/arteve_logo.png" alt="Arteve" width={120} height={32} className="brightness-0 invert opacity-90" />
           <div>
             <h1 className="text-3xl lg:text-[44px] font-display tracking-[-0.02em] text-white max-w-xl leading-[1.05]">

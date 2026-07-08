@@ -112,6 +112,38 @@ const TYPE_META: Record<
   },
 };
 
+
+/**
+ * Stored titles sometimes already lead with the actor's name (older writers
+ * did `title: `${name} commented``). Since the row renders the actor name
+ * separately, strip a duplicated leading name and fall back to a readable
+ * verb phrase.
+ */
+function displayTitle(
+  title: string | null | undefined,
+  actorName: string | null | undefined,
+  fallback: string,
+): string {
+  const raw = (title ?? '').trim();
+  if (!raw) return fallback;
+  if (actorName && raw.toLowerCase().startsWith(actorName.trim().toLowerCase())) {
+    const rest = raw.slice(actorName.trim().length).replace(/^[\s,:—-]+/, '').trim();
+    return rest || fallback;
+  }
+  return raw;
+}
+
+const ACTOR_TITLE: Record<string, string> = {
+  gig_application: 'applied to your gig',
+  application_status: 'updated your application',
+  gig_closed: 'closed a gig',
+  booking_created: 'booked you',
+  new_message: 'sent you a message',
+  follow: 'followed you',
+  like: 'liked your post',
+  comment: 'commented',
+};
+
 const TONE_BG: Record<string, string> = {
   brand:   'bg-brand-50 text-brand-700',
   success: 'bg-success/10 text-success',
@@ -310,6 +342,10 @@ export default function NotificationsPage() {
                     ),
                   };
                   const actor = n.actor_id ? actors[n.actor_id] : undefined;
+                  const actorName = actor?.display_name ?? (actor?.handle ? `@${actor.handle}` : null);
+                  const fallbackTitle = (actor && ACTOR_TITLE[n.type ?? '']) || meta.defaultTitle;
+                  const titleText = displayTitle(n.title, actorName, fallbackTitle);
+                  const bodyText = n.body && n.body.trim().toLowerCase() !== titleText.toLowerCase() ? n.body : null;
                   const isUnread = !n.read_at;
                   return (
                     <li key={n.id}>
@@ -339,11 +375,11 @@ export default function NotificationsPage() {
                             )}
                             {actor ? ' ' : null}
                             <span className={isUnread ? 'text-ink-strong font-medium' : 'text-ink'}>
-                              {n.title || meta.defaultTitle}
+                              {titleText}
                             </span>
                           </p>
-                          {n.body && (
-                            <p className="text-xs text-ink-muted mt-0.5 line-clamp-2">{n.body}</p>
+                          {bodyText && (
+                            <p className="text-xs text-ink-muted mt-0.5 line-clamp-2">{bodyText}</p>
                           )}
                           <p className="text-[11px] text-ink-subtle mt-1">{relativeTime(n.created_at)}</p>
                         </div>

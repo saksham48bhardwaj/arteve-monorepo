@@ -43,6 +43,8 @@ type Skill = {
   level: string | null;
 };
 
+const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
+
 export default function EditProfilePage() {
   const router = useRouter();
 
@@ -895,7 +897,7 @@ export default function EditProfilePage() {
                       </div>
                       {s.event_date && (
                         <div className="text-[11px] text-ink-subtle mt-1">
-                          {new Date(s.event_date).toLocaleDateString()}
+                          {new Date(`${s.event_date}T00:00:00`).toLocaleDateString()}
                         </div>
                       )}
                     </div>
@@ -1131,12 +1133,16 @@ export default function EditProfilePage() {
             </label>
             <label className="block text-sm">
               Level
-              <input
-                className="mt-1 w-full border border-line rounded-xl p-2 text-sm focus:outline-none focus:ring-2 focus:ring-black/80"
-                value={skillLevel}
+              <select
+                className="mt-1 w-full border border-line rounded-xl p-2 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-black/80"
+                value={SKILL_LEVELS.includes(skillLevel) ? skillLevel : ''}
                 onChange={(e) => setSkillLevel(e.target.value)}
-                placeholder="Beginner / Intermediate / Advanced"
-              />
+              >
+                <option value="">No level</option>
+                {SKILL_LEVELS.map((l) => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
             </label>
             <div className="flex justify-end gap-3 pt-2">
               <button

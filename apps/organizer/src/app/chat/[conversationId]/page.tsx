@@ -166,8 +166,18 @@ export default function ChatPage() {
     return () => { supabase.removeChannel(channel); };
   }, [channel, conversationId, userId]);
 
+  const didInitialScrollRef = useRef(false);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const stream = endRef.current?.parentElement;
+    if (!stream) return;
+    // Jump instantly on first paint (a smooth scroll mid-mount is flaky and
+    // long threads would open at the oldest message), then glide for
+    // messages that arrive while the thread is open.
+    stream.scrollTo({
+      top: stream.scrollHeight,
+      behavior: didInitialScrollRef.current ? 'smooth' : 'auto',
+    });
+    didInitialScrollRef.current = true;
   }, [msgs, otherTyping]);
 
   async function sendMessage() {

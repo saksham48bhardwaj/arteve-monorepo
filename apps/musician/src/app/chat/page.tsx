@@ -128,7 +128,15 @@ export default function MusicianChatListPage() {
   return (
     <Page>
       <PullToRefreshIndicator {...pull} />
-      <PageHeader title="Messages" subtitle="Your conversations with artists, venues and organizers." />
+      <PageHeader
+        title="Messages"
+        subtitle="Your conversations with artists, venues and organizers."
+        actions={
+          <Link href="/find" className="btn btn-outline btn-sm">
+            New message
+          </Link>
+        }
+      />
 
       {loading ? (
         <div className="space-y-2">

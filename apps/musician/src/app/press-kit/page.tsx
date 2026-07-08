@@ -167,7 +167,7 @@ export default function PressKitPage() {
                 <li key={sh.id}>
                   {sh.title}
                   {sh.venue ? ` · ${sh.venue}` : ''}
-                  {sh.event_date ? ` · ${new Date(sh.event_date).toLocaleDateString()}` : ''}
+                  {sh.event_date ? ` · ${new Date(`${sh.event_date}T00:00:00`).toLocaleDateString()}` : ''}
                 </li>
               ))}
             </ul>

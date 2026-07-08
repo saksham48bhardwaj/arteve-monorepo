@@ -46,7 +46,10 @@ function formatBudget(min: number | null, max: number | null): string | null {
 
 function formatDate(iso: string | null): string | null {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  // Date-only strings must be parsed as LOCAL time; new Date('YYYY-MM-DD')
+  // is UTC midnight and renders the previous day in western timezones.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00:00`) : new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function ManageGigsPage() {
@@ -195,7 +198,10 @@ export default function ManageGigsPage() {
             </button>
           );
         })}
-        <div className="ml-auto shrink-0">
+        <div className="ml-auto shrink-0 flex items-center gap-2">
+          <Link href="/find?tab=people" className="btn btn-outline btn-sm">
+            Browse musicians
+          </Link>
           <Link href="/gigs/create">
             <Button size="sm" variant="primary">+ New gig</Button>
           </Link>

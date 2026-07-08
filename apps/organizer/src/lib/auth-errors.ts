@@ -31,6 +31,12 @@ export function authErrorMessage(err: unknown): string {
   if (code === 'same_password' || raw.includes('new password should be different')) {
     return 'Your new password must be different from the current one.';
   }
+  if (raw.includes('code verifier') || raw.includes('pkce')) {
+    return 'This sign-in link couldn’t be verified — it usually means the link was opened in a different browser or device than the one that requested it. Request a fresh link and open it here.';
+  }
+  if (code === 'otp_expired' || raw.includes('otp_expired') || (raw.includes('link') && raw.includes('invalid'))) {
+    return 'This sign-in link has expired or was already used. Request a fresh one.';
+  }
   if (raw.includes('jwt') || raw.includes('expired')) {
     return 'Your session has expired. Please sign in again.';
   }

@@ -168,7 +168,7 @@ export default function WhatsOnVenuePage() {
                   <div className="min-w-0">
                     <p className="font-semibold text-ink-strong">{g.title}</p>
                     <p className="text-sm text-ink-muted">
-                      {g.event_date && new Date(g.event_date).toLocaleDateString(undefined, {
+                      {g.event_date && new Date(`${g.event_date}T00:00:00`).toLocaleDateString(undefined, {
                         weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
                       })}
                       {g.event_time && ` · ${g.event_time.slice(0, 5)}`}
@@ -212,7 +212,7 @@ export default function WhatsOnVenuePage() {
               >
                 <span className="font-medium text-ink-strong">{g.title}</span>
                 <span className="ml-2 text-ink-subtle">
-                  {g.event_date && new Date(g.event_date).toLocaleDateString()}
+                  {g.event_date && new Date(`${g.event_date}T00:00:00`).toLocaleDateString()}
                 </span>
               </li>
             ))}

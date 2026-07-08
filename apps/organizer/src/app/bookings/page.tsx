@@ -37,6 +37,12 @@ type Booking = {
   musician_avatar_url: string | null;
 };
 
+type MusicianEmbed = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
 type BookingRow = {
   id: string;
   musician_id: string;
@@ -53,11 +59,9 @@ type BookingRow = {
   created_at: string;
   updated_at: string;
   event_time: string | null;
-  musician: {
-    id: string;
-    display_name: string | null;
-    avatar_url: string | null;
-  }[] | null;
+  // PostgREST returns an object for this to-one embed, but older type defs
+  // (and some client versions) treat it as an array — accept both.
+  musician: MusicianEmbed | MusicianEmbed[] | null;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -162,8 +166,8 @@ export default function OrganizerBookingsPage() {
         created_at: row.created_at,
         updated_at: row.updated_at,
         event_time: row.event_time,
-        musician_name: row.musician?.[0]?.display_name ?? 'Unknown',
-        musician_avatar_url: row.musician?.[0]?.avatar_url ?? null,
+        musician_name: (Array.isArray(row.musician) ? row.musician[0] : row.musician)?.display_name ?? 'Unknown',
+        musician_avatar_url: (Array.isArray(row.musician) ? row.musician[0] : row.musician)?.avatar_url ?? null,
       }));
 
       setBookings(mapped);
@@ -260,7 +264,7 @@ export default function OrganizerBookingsPage() {
 
                   <p className="text-xs text-ink-subtle mt-1">
                     {b.event_date &&
-                      new Date(b.event_date).toLocaleDateString(undefined, {
+                      new Date(`${b.event_date}T00:00:00`).toLocaleDateString(undefined, {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
@@ -271,8 +275,9 @@ export default function OrganizerBookingsPage() {
                   {(b.budget_min !== null || b.budget_max !== null) && (
                     <p className="text-xs text-ink-subtle">
                       Budget:{' '}
-                      {b.budget_min ? `$${b.budget_min}` : 'TBD'}
-                      {b.budget_max ? ` – $${b.budget_max}` : ''}
+                      {b.budget_min && b.budget_max && b.budget_min === b.budget_max
+                        ? `$${b.budget_min}`
+                        : <>{b.budget_min ? `$${b.budget_min}` : 'TBD'}{b.budget_max ? ` – $${b.budget_max}` : ''}</>}
                     </p>
                   )}
                 </div>

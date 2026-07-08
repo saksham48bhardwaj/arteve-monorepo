@@ -136,6 +136,10 @@ export async function searchGigs(
     .eq('status', 'open')
     .neq('organizer_id', musicianId);
 
+  // Hide gigs whose date has already passed — musicians can no longer apply.
+  const today = new Date().toISOString().slice(0, 10);
+  q = q.or(`event_date.is.null,event_date.gte.${today}`);
+
   // Text search
   if (query) {
     const safe = sanitizeForOr(query);
