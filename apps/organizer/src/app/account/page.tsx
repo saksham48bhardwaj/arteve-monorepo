@@ -58,7 +58,10 @@ export default function AccountPage() {
       return;
     }
     setEmailBusy(true);
-    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    const { error } = await supabase.auth.updateUser(
+      { email: newEmail },
+      { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    );
     setEmailBusy(false);
     if (error) {
       toast.error(authErrorMessage(error));

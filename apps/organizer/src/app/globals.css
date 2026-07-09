@@ -42,7 +42,7 @@
   --ink:           #1c1a17;
   --ink-strong:    #0f0e0c;
   --ink-muted:     #57534e;
-  --ink-subtle:    #8a847c;
+  --ink-subtle:    #756f67;
   --ink-disabled:  #b5afa6;
   --ink-inverse:   #ffffff;
 
@@ -138,7 +138,7 @@
   --color-line:        var(--line);
   --color-line-strong: var(--line-strong);
 
-  --color-success:  var(--success-500);
+  --color-success:  var(--success-700);
   --color-warning:  var(--warning-500);
   --color-danger:   var(--danger-500);
   --color-info:     var(--info-500);
@@ -557,7 +557,7 @@ a:focus-visible,
     font-size: 0.875rem; line-height: 1.35;
   }
   .toast[data-leaving="true"] { animation: arteve-toast-out 160ms var(--ease-out) forwards; }
-  .toast[data-tone="success"] { background-color: var(--success-500); }
+  .toast[data-tone="success"] { background-color: var(--success-700); }
   .toast[data-tone="danger"]  { background-color: var(--danger-500); }
   .toast[data-tone="warning"] { background-color: var(--warning-500); color: var(--ink-strong); }
   .toast-close {

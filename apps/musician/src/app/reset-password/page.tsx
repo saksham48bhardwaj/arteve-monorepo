@@ -21,12 +21,15 @@ function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Supabase recovery links arrive in two shapes depending on flow:
+  // Supabase recovery links arrive in three shapes depending on flow:
   //   (1) PKCE: ?code=...
-  //   (2) Legacy OTP: ?token=...&type=recovery&email=...
-  // We handle both and also fall back to detecting an existing session set by
-  // the Supabase client's auto-detect-in-URL behavior.
+  //   (2) token_hash: ?token_hash=...&type=recovery  (our branded email template)
+  //   (3) Legacy OTP: ?token=...&type=recovery&email=...
+  // We handle all three and also fall back to detecting an existing session set
+  // by the Supabase client's auto-detect-in-URL behavior.
   const code = searchParams.get('code');
+  const tokenHash = searchParams.get('token_hash');
+  const linkType = searchParams.get('type');
   const otpToken = searchParams.get('token');
   const otpEmail = searchParams.get('email');
 
@@ -54,7 +57,18 @@ function ResetPasswordContent() {
           setReady(true);
           return;
         }
-        // 2) Legacy OTP flow
+        // 2) token_hash flow (our branded recovery email)
+        if (tokenHash) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: (linkType as 'recovery') || 'recovery',
+          });
+          if (cancelled) return;
+          if (error) throw error;
+          setReady(true);
+          return;
+        }
+        // 3) Legacy OTP flow
         if (otpToken && otpEmail) {
           const { error } = await supabase.auth.verifyOtp({
             email: otpEmail,
@@ -82,7 +96,7 @@ function ResetPasswordContent() {
     }
     verify();
     return () => { cancelled = true; };
-  }, [code, otpToken, otpEmail]);
+  }, [code, tokenHash, linkType, otpToken, otpEmail]);
 
   async function handleReset(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
