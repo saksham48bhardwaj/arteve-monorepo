@@ -181,15 +181,19 @@ body {
   letter-spacing: -0.005em;
 }
 
-h1, h2, h3, h4 {
-  color: var(--ink-strong);
-  letter-spacing: -0.018em;
-  font-feature-settings: 'ss01', 'ss03';
+/* Heading defaults MUST live in @layer base — an unlayered `h1{color:…}` rule
+   beats Tailwind's @layer utilities, so `text-white`/`text-ink` on a heading
+   was silently ignored (e.g. the login hero heading rendered dark-on-dark). */
+@layer base {
+  h1, h2, h3, h4 {
+    color: var(--ink-strong);
+    letter-spacing: -0.018em;
+    font-feature-settings: 'ss01', 'ss03';
+  }
+  h1 { font-weight: 700; }
+  h2 { font-weight: 600; }
+  h3, h4 { font-weight: 600; }
 }
-
-h1 { font-weight: 700; }
-h2 { font-weight: 600; }
-h3, h4 { font-weight: 600; }
 
 /* Stats / numeric labels — tabular figures for crisp alignment */
 .tabular { font-variant-numeric: tabular-nums; }
