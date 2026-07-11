@@ -37,6 +37,9 @@ function ResetPasswordContent() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  // When true, the recovery token hasn't been consumed yet — do it on submit
+  // (not on page load) so email prefetch/scanners can't burn the single-use token.
+  const [deferredVerify, setDeferredVerify] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -57,26 +60,13 @@ function ResetPasswordContent() {
           setReady(true);
           return;
         }
-        // 2) token_hash flow (our branded recovery email)
-        if (tokenHash) {
-          const { error } = await supabase.auth.verifyOtp({
-            token_hash: tokenHash,
-            type: (linkType as 'recovery') || 'recovery',
-          });
+        // 2) token_hash (branded recovery email) or legacy OTP — do NOT consume
+        //    on load. Email providers / security scanners prefetch this page and
+        //    would burn the single-use recovery token before the user submits.
+        //    Show the form now; verify the token on submit (a real click).
+        if (tokenHash || (otpToken && otpEmail)) {
           if (cancelled) return;
-          if (error) throw error;
-          setReady(true);
-          return;
-        }
-        // 3) Legacy OTP flow
-        if (otpToken && otpEmail) {
-          const { error } = await supabase.auth.verifyOtp({
-            email: otpEmail,
-            token: otpToken,
-            type: 'recovery',
-          });
-          if (cancelled) return;
-          if (error) throw error;
+          setDeferredVerify(true);
           setReady(true);
           return;
         }
@@ -105,6 +95,16 @@ function ResetPasswordContent() {
     if (password.length < 8) { setMsg('Password must be at least 8 characters.'); return; }
     if (password !== confirm) { setMsg('Passwords do not match.'); return; }
     setLoading(true);
+
+    // Consume the recovery token now (on the user's click) — see note above.
+    if (deferredVerify) {
+      const { error: verifyErr } = tokenHash
+        ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type: (linkType as 'recovery') || 'recovery' })
+        : await supabase.auth.verifyOtp({ email: otpEmail as string, token: otpToken as string, type: 'recovery' });
+      if (verifyErr) { setMsg(authErrorMessage(verifyErr)); setLoading(false); return; }
+      setDeferredVerify(false);
+    }
+
     const { error } = await supabase.auth.updateUser({ password });
     if (error) { setMsg(authErrorMessage(error)); setLoading(false); return; }
     setSuccess(true);
